@@ -9,13 +9,15 @@ of an event a cell can emit multiple events to its subscribers.
 
 I hope you like them. ;)
 
+## Version
+
+Version 5.0.0
+
 ## Packages
 
 ### Cells
 
 Major package providing the infrastructure for event based applications.
-
-Version 5.0.0
 
 [![GoDoc](https://godoc.org/github.com/tideland/gocells/cells?status.svg)](https://godoc.org/github.com/tideland/gocells/cells)
 
@@ -98,8 +100,6 @@ Useful if no state and no complex recovery is needed.
 The ticker behavior emits a tick event in a defined interval to its
 subscribers. So they can process chronological tasks beside other
 events.
-
-Version 5.0.0
 
 [![GoDoc](https://godoc.org/github.com/tideland/gocells/behaviors?status.svg)](https://godoc.org/github.com/tideland/gocells/behaviors)
 
