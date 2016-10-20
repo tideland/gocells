@@ -51,7 +51,7 @@ type ConfigurationValidator func(configuration.Configuration) error
 
 // configuratorBehavior implements the configurator behavior.
 type configuratorBehavior struct {
-	ctx      cells.Context
+	cell     cells.Cell
 	validate ConfigurationValidator
 }
 
@@ -66,8 +66,8 @@ func NewConfiguratorBehavior(validator ConfigurationValidator) cells.Behavior {
 }
 
 // Init implements the cells.Behavior interface.
-func (b *configuratorBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *configuratorBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -102,7 +102,7 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 		pvs := cells.PayloadValues{
 			ConfigurationPayload: config,
 		}
-		b.ctx.EmitNew(ConfigurationTopic, pvs, event.Scene())
+		b.cell.EmitNew(ConfigurationTopic, pvs, event.Context())
 	}
 	return nil
 }

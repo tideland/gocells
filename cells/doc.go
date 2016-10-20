@@ -37,7 +37,7 @@
 //    env.EmitNew("foo", "myTopic", cells.PayloadValues{
 //        "KeyA": 12345,
 //        "KeyB": true,
-//    }, myScene)
+//    }, ctx)
 //
 // Behaviors have to implement the cells.Behavior interface. Here
 // the Init() method is called with a cells.Context. This can be
@@ -47,7 +47,7 @@
 // Sometimes it's needed to directly communicate with a cell to retrieve
 // information. In this case the method
 //
-//     response, err := env.Request("foo", "myRequest?", myPayload, myScene, myTimeout)
+//     response, err := env.Request("foo", "myRequest?", myPayload, myTimeout, ctx)
 //
 // is to be used. Inside the ProcessEvent() of the addressed cell the
 // event can be used to send the response with
@@ -74,9 +74,9 @@ import (
 // VERSION
 //--------------------
 
-// PackageVersion returns the version of the version package.
-func PackageVersion() version.Version {
-	return version.New(5, 0, 0)
+// Version returns the version of the cells package.
+func Version() version.Version {
+	return version.New(5, 0, 0, "alpha", "2016-10-20")
 }
 
 // EOF

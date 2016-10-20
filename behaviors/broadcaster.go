@@ -21,7 +21,7 @@ import (
 
 // broadcasterBehavior is a simple repeater.
 type broadcasterBehavior struct {
-	ctx cells.Context
+	cell cells.Cell
 }
 
 // NewBroadcasterBehavior creates a broadcasting behavior that just emits every
@@ -32,8 +32,8 @@ func NewBroadcasterBehavior() cells.Behavior {
 }
 
 // Init the behavior.
-func (b *broadcasterBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *broadcasterBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -44,7 +44,7 @@ func (b *broadcasterBehavior) Terminate() error {
 
 // ProcessEvent emits the event to all subscribers.
 func (b *broadcasterBehavior) ProcessEvent(event cells.Event) error {
-	b.ctx.Emit(event)
+	b.cell.Emit(event)
 	return nil
 }
 

@@ -24,7 +24,7 @@ type MapFunc func(id string, event cells.Event) (cells.Event, error)
 
 // mapperBehavior maps the received event to a new event.
 type mapperBehavior struct {
-	ctx     cells.Context
+	cell    cells.Cell
 	mapFunc MapFunc
 }
 
@@ -35,8 +35,8 @@ func NewMapperBehavior(mf MapFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *mapperBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *mapperBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -47,12 +47,12 @@ func (b *mapperBehavior) Terminate() error {
 
 // ProcessEvent maps the received event to a new one and emits it.
 func (b *mapperBehavior) ProcessEvent(event cells.Event) error {
-	mappedEvent, err := b.mapFunc(b.ctx.ID(), event)
+	mappedEvent, err := b.mapFunc(b.cell.ID(), event)
 	if err != nil {
 		return err
 	}
 	if mappedEvent != nil {
-		b.ctx.Emit(mappedEvent)
+		b.cell.Emit(mappedEvent)
 	}
 	return nil
 }

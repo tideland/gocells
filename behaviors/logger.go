@@ -23,7 +23,7 @@ import (
 
 // loggerBehavior is a behaior for the logging of events.
 type loggerBehavior struct {
-	ctx cells.Context
+	cell cells.Cell
 }
 
 // NewLoggerBehavior creates a logging behavior. It logs emitted
@@ -33,8 +33,8 @@ func NewLoggerBehavior() cells.Behavior {
 }
 
 // Init the behavior.
-func (b *loggerBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *loggerBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -45,7 +45,7 @@ func (b *loggerBehavior) Terminate() error {
 
 // ProcessEvent logs the event at info level.
 func (b *loggerBehavior) ProcessEvent(event cells.Event) error {
-	logger.Infof("(%s) processing event %v", b.ctx.ID(), event)
+	logger.Infof("(%s) processing event %v", b.cell.ID(), event)
 	return nil
 }
 

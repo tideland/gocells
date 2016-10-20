@@ -24,7 +24,7 @@ import (
 
 // tickerBehavior emits events in chronological order.
 type tickerBehavior struct {
-	ctx      cells.Context
+	cell     cells.Cell
 	duration time.Duration
 	loop     loop.Loop
 }
@@ -37,8 +37,8 @@ func NewTickerBehavior(duration time.Duration) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *tickerBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *tickerBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	b.loop = loop.Go(b.tickerLoop)
 	return nil
 }
@@ -53,10 +53,10 @@ func (b *tickerBehavior) Terminate() error {
 func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
 	if event.Topic() == TickerTopic {
 		pvs := cells.PayloadValues{
-			TickerIDPayload:   b.ctx.ID(),
+			TickerIDPayload:   b.cell.ID(),
 			TickerTimePayload: time.Now(),
 		}
-		b.ctx.EmitNew(TickerTopic, pvs, nil)
+		b.cell.EmitNew(TickerTopic, pvs, nil)
 	}
 	return nil
 }
@@ -75,7 +75,7 @@ func (b *tickerBehavior) tickerLoop(l loop.Loop) error {
 		case now := <-time.After(b.duration):
 			// Notify myself, action there to avoid
 			// race when subscribers are updated.
-			b.ctx.Environment().EmitNew(b.ctx.ID(), TickerTopic, now, nil)
+			b.cell.Environment().EmitNew(b.cell.ID(), TickerTopic, now, nil)
 		}
 	}
 }

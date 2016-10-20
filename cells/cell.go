@@ -12,6 +12,7 @@ package cells
 //--------------------
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -21,7 +22,6 @@ import (
 	"github.com/tideland/golib/logger"
 	"github.com/tideland/golib/loop"
 	"github.com/tideland/golib/monitoring"
-	"github.com/tideland/golib/scene"
 )
 
 //--------------------
@@ -175,26 +175,26 @@ func newCell(env *environment, id string, behavior Behavior) (*cell, error) {
 	return c, nil
 }
 
-// Environment implements the Context interface.
+// Environment implements the Cell interface.
 func (c *cell) Environment() Environment {
 	return c.env
 }
 
-// ID implements the Context interface.
+// ID implements the Cell interface.
 func (c *cell) ID() string {
 	return c.id
 }
 
-// Emit implements the Context interface.
+// Emit implements the Cell interface.
 func (c *cell) Emit(event Event) error {
 	return c.SubscribersDo(func(cs Subscriber) error {
 		return cs.ProcessEvent(event)
 	})
 }
 
-// EmitNew implements the Context interface.
-func (c *cell) EmitNew(topic string, payload interface{}, scene scene.Scene) error {
-	event, err := NewEvent(topic, payload, scene)
+// EmitNew implements the Cell interface.
+func (c *cell) EmitNew(topic string, payload interface{}, ctx context.Context) error {
+	event, err := NewEvent(topic, payload, ctx)
 	if err != nil {
 		return err
 	}
@@ -221,8 +221,8 @@ func (c *cell) ProcessEvent(event Event) error {
 }
 
 // ProcessNewEvent implements the Subscriber interface.
-func (c *cell) ProcessNewEvent(topic string, payload interface{}, scene scene.Scene) error {
-	event, err := NewEvent(topic, payload, scene)
+func (c *cell) ProcessNewEvent(topic string, payload interface{}, ctx context.Context) error {
+	event, err := NewEvent(topic, payload, ctx)
 	if err != nil {
 		return err
 	}

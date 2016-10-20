@@ -12,6 +12,7 @@ package cells
 //--------------------
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/tideland/golib/errors"
 	"github.com/tideland/golib/identifier"
 	"github.com/tideland/golib/logger"
-	"github.com/tideland/golib/scene"
 )
 
 //--------------------
@@ -95,8 +95,8 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(id, topic string, payload interface{}, scene scene.Scene) error {
-	event, err := NewEvent(topic, payload, scene)
+func (env *environment) EmitNew(id, topic string, payload interface{}, ctx context.Context) error {
+	event, err := NewEvent(topic, payload, ctx)
 	if err != nil {
 		return err
 	}
@@ -107,12 +107,12 @@ func (env *environment) EmitNew(id, topic string, payload interface{}, scene sce
 func (env *environment) Request(
 	id, topic string,
 	payload interface{},
-	scn scene.Scene,
 	timeout time.Duration,
+	ctx context.Context,
 ) (interface{}, error) {
 	responseChan := make(chan interface{}, 1)
 	p := NewPayload(payload).Apply(PayloadValues{ResponseChanPayload: responseChan})
-	err := env.EmitNew(id, topic, p, scn)
+	err := env.EmitNew(id, topic, p, ctx)
 	if err != nil {
 		return nil, err
 	}

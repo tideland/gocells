@@ -23,7 +23,7 @@ import (
 
 // FSMState is the signature of a function or method which processes
 // an event and returns the following state or an error.
-type FSMState func(ctx cells.Context, event cells.Event) (FSMState, error)
+type FSMState func(cell cells.Cell, event cells.Event) (FSMState, error)
 
 // FSMStatus contains information about the current status of the FSM.
 type FSMStatus struct {
@@ -38,7 +38,7 @@ func (s FSMStatus) String() string {
 
 // fsmBehavior runs the finite state machine.
 type fsmBehavior struct {
-	ctx   cells.Context
+	cell  cells.Cell
 	state FSMState
 	done  bool
 	err   error
@@ -54,8 +54,8 @@ func NewFSMBehavior(state FSMState) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *fsmBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *fsmBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -80,7 +80,7 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 		if b.done {
 			return nil
 		}
-		state, err := b.state(b.ctx, event)
+		state, err := b.state(b.cell, event)
 		if err != nil {
 			b.done = true
 			b.err = err
@@ -95,13 +95,13 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 // Recover from an error.
 func (b *fsmBehavior) Recover(err interface{}) error {
 	b.done = true
-	b.err = cells.NewCannotRecoverError(b.ctx.ID(), err)
+	b.err = cells.NewCannotRecoverError(b.cell.ID(), err)
 	return nil
 }
 
 // RequestFSMStatus retrieves the status of a FSM cell.
 func RequestFSMStatus(env cells.Environment, id string) FSMStatus {
-	response, err := env.Request(id, cells.StatusTopic, nil, nil, cells.DefaultTimeout)
+	response, err := env.Request(id, cells.StatusTopic, nil, cells.DefaultTimeout, nil)
 	if err != nil {
 		return FSMStatus{
 			Error: err,

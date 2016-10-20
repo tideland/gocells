@@ -26,7 +26,7 @@ type RouterFunc func(emitterID, subscriberID string, event cells.Event) (bool, e
 // routerBehavior check for each received event which subscriber will
 // get it based on the router function.
 type routerBehavior struct {
-	ctx        cells.Context
+	cell       cells.Cell
 	routerFunc RouterFunc
 }
 
@@ -37,8 +37,8 @@ func NewRouterBehavior(rf RouterFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *routerBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *routerBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -50,8 +50,8 @@ func (b *routerBehavior) Terminate() error {
 // ProcessEvent emits the event to those ids returned by the router
 // function.
 func (b *routerBehavior) ProcessEvent(event cells.Event) error {
-	return b.ctx.SubscribersDo(func(s cells.Subscriber) error {
-		ok, err := b.routerFunc(b.ctx.ID(), s.ID(), event)
+	return b.cell.SubscribersDo(func(s cells.Subscriber) error {
+		ok, err := b.routerFunc(b.cell.ID(), s.ID(), event)
 		if err != nil {
 			return err
 		}

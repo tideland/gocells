@@ -12,12 +12,12 @@ package cells
 //--------------------
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/tideland/golib/errors"
-	"github.com/tideland/golib/scene"
 )
 
 //--------------------
@@ -256,7 +256,7 @@ type Event interface {
 
 	// Scene returns a scene that is possibly emitted
 	// with the event.
-	Scene() scene.Scene
+	Context() context.Context
 
 	// Respond responds to a request event emitted
 	// with Environment.Request().
@@ -267,16 +267,16 @@ type Event interface {
 type event struct {
 	topic   string
 	payload Payload
-	scene   scene.Scene
+	ctx     context.Context
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(topic string, payload interface{}, scene scene.Scene) (Event, error) {
+func NewEvent(topic string, payload interface{}, ctx context.Context) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
 	}
 	p := NewPayload(payload)
-	return &event{topic, p, scene}, nil
+	return &event{topic, p, ctx}, nil
 }
 
 // Topic is specified on the Event interface.
@@ -289,9 +289,9 @@ func (e *event) Payload() Payload {
 	return e.payload
 }
 
-// Scene is specified on the Event interface.
-func (e *event) Scene() scene.Scene {
-	return e.scene
+// Context is specified on the Event interface.
+func (e *event) Context() context.Context {
+	return e.ctx
 }
 
 // Respond is specified on the Event interface.

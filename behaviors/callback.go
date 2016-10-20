@@ -27,7 +27,7 @@ type CallbackFunc func(topic string, payload cells.Payload) error
 // callbackBehavior is an event processor calling all stored functions
 // if it receives an event.
 type callbackBehavior struct {
-	ctx           cells.Context
+	cell          cells.Cell
 	callbackFuncs []CallbackFunc
 }
 
@@ -42,8 +42,8 @@ func NewCallbackBehavior(cbfs ...CallbackFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *callbackBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *callbackBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 

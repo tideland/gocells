@@ -22,12 +22,12 @@ import (
 //--------------------
 
 // SimpleProcessorFunc is a function type doing the event processing.
-type SimpleProcessorFunc func(ctx cells.Context, event cells.Event) error
+type SimpleProcessorFunc func(cell cells.Cell, event cells.Event) error
 
 // simpleBehavior is a simple event processor using the processor
 // function for its own logic.
 type simpleBehavior struct {
-	ctx           cells.Context
+	cell          cells.Cell
 	processorFunc SimpleProcessorFunc
 }
 
@@ -36,8 +36,8 @@ type simpleBehavior struct {
 // function for the event processing.
 func NewSimpleProcessorBehavior(spf SimpleProcessorFunc) cells.Behavior {
 	if spf == nil {
-		spf = func(ctx cells.Context, event cells.Event) error {
-			logger.Errorf("simple processor %q used without function to handle event %v", ctx.ID(), event)
+		spf = func(cell cells.Cell, event cells.Event) error {
+			logger.Errorf("simple processor %q used without function to handle event %v", cell.ID(), event)
 			return nil
 		}
 	}
@@ -45,8 +45,8 @@ func NewSimpleProcessorBehavior(spf SimpleProcessorFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *simpleBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *simpleBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (b *simpleBehavior) Terminate() error {
 
 // ProcessEvent calls the simple processor function.
 func (b *simpleBehavior) ProcessEvent(event cells.Event) error {
-	return b.processorFunc(b.ctx, event)
+	return b.processorFunc(b.cell, event)
 }
 
 // Recover from an error.

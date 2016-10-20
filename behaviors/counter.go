@@ -28,7 +28,7 @@ type CounterFunc func(id string, event cells.Event) []string
 
 // counterBehavior counts events based on the counter function.
 type counterBehavior struct {
-	ctx         cells.Context
+	cell        cells.Cell
 	counterFunc CounterFunc
 	counters    Counters
 }
@@ -42,8 +42,8 @@ func NewCounterBehavior(cf CounterFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *counterBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *counterBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -64,7 +64,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	case cells.ResetTopic:
 		b.counters = make(map[string]int64)
 	default:
-		cids := b.counterFunc(b.ctx.ID(), event)
+		cids := b.counterFunc(b.cell.ID(), event)
 		if cids != nil {
 			for _, cid := range cids {
 				v, ok := b.counters[cid]
@@ -74,7 +74,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 					b.counters[cid] = 1
 				}
 				topic := "counter:" + cid
-				b.ctx.EmitNew(topic, b.counters[cid], event.Scene())
+				b.cell.EmitNew(topic, b.counters[cid], event.Context())
 			}
 		}
 	}

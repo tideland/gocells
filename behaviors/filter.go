@@ -27,7 +27,7 @@ type FilterFunc func(id string, event cells.Event) bool
 // filterBehavior is a simple repeater using the filter
 // function to check if an event shall be emitted.
 type filterBehavior struct {
-	ctx        cells.Context
+	cell       cells.Cell
 	filterFunc FilterFunc
 }
 
@@ -44,8 +44,8 @@ func NewFilterBehavior(ff FilterFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *filterBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *filterBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -56,8 +56,8 @@ func (b *filterBehavior) Terminate() error {
 
 // ProcessEvent emits the event when the filter func returns true.
 func (b *filterBehavior) ProcessEvent(event cells.Event) error {
-	if b.filterFunc(b.ctx.ID(), event) {
-		b.ctx.Emit(event)
+	if b.filterFunc(b.cell.ID(), event) {
+		b.cell.Emit(event)
 	}
 	return nil
 }

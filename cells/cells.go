@@ -12,9 +12,8 @@ package cells
 //--------------------
 
 import (
+	"context"
 	"time"
-
-	"github.com/tideland/golib/scene"
 )
 
 //--------------------
@@ -50,15 +49,38 @@ type Environment interface {
 	Emit(id string, event Event) error
 
 	// EmitNew creates an event and emits it to the cell with a given ID.
-	EmitNew(id, topic string, payload interface{}, scn scene.Scene) error
+	EmitNew(id, topic string, payload interface{}, ctx context.Context) error
 
 	// Request creates and emits an event to the cell with the given ID.
 	// It is intended as request which has to be responded to with
 	// event.Respond().
-	Request(id, topic string, payload interface{}, scn scene.Scene, timeout time.Duration) (interface{}, error)
+	Request(id, topic string, payload interface{}, timeout time.Duration, ctx context.Context) (interface{}, error)
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
+}
+
+//--------------------
+// CELL
+//--------------------
+
+// Cell gives a behavior access to the cell which is running the behavior.
+type Cell interface {
+	// Environment returns the environment the cell is running in.
+	Environment() Environment
+
+	// ID returns the ID used during the start of the cell. The same behavior
+	// can be started multiple times but has to use different IDs.
+	ID() string
+
+	// Emit emits an event to all subscribers of a cell.
+	Emit(event Event) error
+
+	// EmitNew creates an event and emits it to all subscribers of a cell.
+	EmitNew(topic string, payload interface{}, ctx context.Context) error
+
+	// SubscribersDo calls the passed function for each subscriber.
+	SubscribersDo(f func(s Subscriber) error) error
 }
 
 //--------------------
@@ -72,7 +94,7 @@ type Behavior interface {
 	// The passed context allows the behavior to interact with this
 	// environment and to emit events to subscribers during ProcessEvent().
 	// So if this is needed the context should be stored inside the behavior.
-	Init(ctx Context) error
+	Init(c Cell) error
 
 	// Terminate is called when a cell is stopped.
 	Terminate() error
@@ -122,30 +144,7 @@ type Subscriber interface {
 	ProcessEvent(event Event) error
 
 	// ProcessNewEvent creates an event and tells the subscriber to process it.
-	ProcessNewEvent(topic string, payload interface{}, scene scene.Scene) error
-}
-
-//--------------------
-// CONTEXT
-//--------------------
-
-// Context gives a behavior access to its environment.
-type Context interface {
-	// Environment returns the environment the cell is running in.
-	Environment() Environment
-
-	// ID returns the ID used during the start of the cell. The same cell
-	// can be started multiple times but has to use different IDs.
-	ID() string
-
-	// Emit emits an event to all subscribers of a cell.
-	Emit(event Event) error
-
-	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(topic string, payload interface{}, scene scene.Scene) error
-
-	// SubscribersDo calls the passed function for each subscriber.
-	SubscribersDo(f func(s Subscriber) error) error
+	ProcessNewEvent(topic string, payload interface{}, ctx context.Context) error
 }
 
 // EOF

@@ -22,7 +22,7 @@ import (
 // roundRobinBehavior emit the received events round robin to its
 // subscribers in a very simple way.
 type roundRobinBehavior struct {
-	ctx     cells.Context
+	cell    cells.Cell
 	current int
 }
 
@@ -34,8 +34,8 @@ func NewRoundRobinBehavior() cells.Behavior {
 }
 
 // Init the behavior.
-func (b *roundRobinBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *roundRobinBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -47,7 +47,7 @@ func (b *roundRobinBehavior) Terminate() error {
 // ProcessEvent emits the event round robin to the subscribers.
 func (b *roundRobinBehavior) ProcessEvent(event cells.Event) error {
 	loopCurrent := 0
-	err := b.ctx.SubscribersDo(func(s cells.Subscriber) error {
+	err := b.cell.SubscribersDo(func(s cells.Subscriber) error {
 		if loopCurrent == b.current {
 			if err := s.ProcessEvent(event); err != nil {
 				return err

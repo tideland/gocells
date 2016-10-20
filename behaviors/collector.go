@@ -36,7 +36,7 @@ func newEventData(event cells.Event) EventData {
 
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
-	ctx       cells.Context
+	cell      cells.Cell
 	max       int
 	collected []EventData
 }
@@ -52,8 +52,8 @@ func NewCollectorBehavior(max int) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *collectorBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *collectorBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		if len(b.collected) > b.max {
 			b.collected = b.collected[1:]
 		}
-		b.ctx.Emit(event)
+		b.cell.Emit(event)
 	}
 	return nil
 }
