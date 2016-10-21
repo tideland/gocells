@@ -50,7 +50,7 @@ func TestMapperBehavior(t *testing.T) {
 			"upper-text": strings.ToUpper(text.(string)),
 		}
 		payload := event.Payload().Apply(pv)
-		return cells.NewEvent(event.Topic(), payload, event.Scene())
+		return cells.NewEvent(event.Topic(), payload, event.Context())
 	}
 
 	env.StartCell("mapper", behaviors.NewMapperBehavior(mf))
@@ -63,7 +63,7 @@ func TestMapperBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, nil, cells.DefaultTimeout)
+	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
 	assert.Nil(err)
 	assert.Length(collected, 3, "three mapped events")
 	assertPayload(collected, 0, "ABC")

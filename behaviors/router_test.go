@@ -51,7 +51,7 @@ func TestRouterBehavior(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	test := func(id string, length int) {
-		collected, err := env.Request(id, cells.CollectedTopic, nil, nil, cells.DefaultTimeout)
+		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
 		assert.Nil(err)
 		assert.Length(collected, length)
 	}

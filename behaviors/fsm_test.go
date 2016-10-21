@@ -33,17 +33,17 @@ func TestFSMBehavior(t *testing.T) {
 	defer env.Stop()
 
 	checkCents := func(id string) int {
-		cents, err := env.Request(id, "cents?", nil, nil, cells.DefaultTimeout)
+		cents, err := env.Request(id, "cents?", nil, cells.DefaultTimeout, nil)
 		assert.Nil(err)
 		return cents.(int)
 	}
 	info := func(id string) string {
-		info, err := env.Request(id, "info?", nil, nil, cells.DefaultTimeout)
+		info, err := env.Request(id, "info?", nil, cells.DefaultTimeout, nil)
 		assert.Nil(err)
 		return info.(string)
 	}
 	grabCents := func() int {
-		cents, err := env.Request("restorer", "grab!", nil, nil, cells.DefaultTimeout)
+		cents, err := env.Request("restorer", "grab!", nil, cells.DefaultTimeout, nil)
 		assert.Nil(err)
 		return cents.(int)
 	}
@@ -145,7 +145,7 @@ func (m *lockMachine) Locked(ctx cells.Cell, event cells.Event) (behaviors.FSMSt
 		return m.Locked, nil
 	case "button-press!":
 		if m.cents > 0 {
-			ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Scene())
+			ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Context())
 			m.cents = 0
 		}
 		return m.Locked, nil
@@ -166,10 +166,10 @@ func (m *lockMachine) Unlocked(ctx cells.Cell, event cells.Event) (behaviors.FSM
 		return m.Unlocked, event.Respond(info)
 	case "coin!":
 		cents := payloadCents(event)
-		ctx.EmitNew("return", cents, event.Scene())
+		ctx.EmitNew("return", cents, event.Context())
 		return m.Unlocked, nil
 	case "button-press!":
-		ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Scene())
+		ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Context())
 		m.cents = 0
 		return m.Locked, nil
 	}

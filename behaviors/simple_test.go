@@ -33,7 +33,7 @@ func TestSimpleBehavior(t *testing.T) {
 
 	topics := []string{}
 	var wg sync.WaitGroup
-	spf := func(ctx cells.Context, event cells.Event) error {
+	spf := func(c cells.Cell, event cells.Event) error {
 		topics = append(topics, event.Topic())
 		wg.Done()
 		return nil
