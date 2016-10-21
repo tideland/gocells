@@ -125,7 +125,7 @@ type lockMachine struct {
 }
 
 // Locked represents the locked state receiving coins.
-func (m *lockMachine) Locked(ctx cells.Context, event cells.Event) (behaviors.FSMState, error) {
+func (m *lockMachine) Locked(ctx cells.Cell, event cells.Event) (behaviors.FSMState, error) {
 	switch event.Topic() {
 	case "cents?":
 		return m.Locked, event.Respond(m.cents)
@@ -157,7 +157,7 @@ func (m *lockMachine) Locked(ctx cells.Context, event cells.Event) (behaviors.FS
 }
 
 // Unlocked represents the unlocked state receiving coins.
-func (m *lockMachine) Unlocked(ctx cells.Context, event cells.Event) (behaviors.FSMState, error) {
+func (m *lockMachine) Unlocked(ctx cells.Cell, event cells.Event) (behaviors.FSMState, error) {
 	switch event.Topic() {
 	case "cents?":
 		return m.Unlocked, event.Respond(m.cents)
@@ -177,7 +177,7 @@ func (m *lockMachine) Unlocked(ctx cells.Context, event cells.Event) (behaviors.
 }
 
 type restorerBehavior struct {
-	ctx   cells.Context
+	cell  cells.Cell
 	cents int
 }
 
@@ -185,8 +185,8 @@ func newRestorerBehavior() cells.Behavior {
 	return &restorerBehavior{nil, 0}
 }
 
-func (b *restorerBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *restorerBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 

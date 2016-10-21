@@ -12,8 +12,8 @@ package behaviors
 //--------------------
 
 import (
-	"github.com/tideland/golib/configuration"
 	"github.com/tideland/golib/errors"
+	"github.com/tideland/golib/etc"
 	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
@@ -25,20 +25,20 @@ import (
 
 // Configuration returns the configuration payload
 // of the passed event or an empty configuration.
-func Configuration(event cells.Event) configuration.Configuration {
+func Configuration(event cells.Event) etc.Etc {
 	payload, ok := event.Payload().Get(ConfigurationPayload)
 	if !ok {
 		logger.Warningf("event does not contain configuration payload")
-		config, _ := configuration.ReadString("{config}")
-		return config
+		cfg, _ := etc.ReadString("{etc}")
+		return cfg
 	}
-	config, ok := payload.(configuration.Configuration)
+	cfg, ok := payload.(etc.Etc)
 	if !ok {
 		logger.Warningf("configuration payload has illegal type")
-		config, _ := configuration.ReadString("{config}")
-		return config
+		cfg, _ := etc.ReadString("{etc}")
+		return cfg
 	}
-	return config
+	return cfg
 }
 
 //--------------------
@@ -47,7 +47,7 @@ func Configuration(event cells.Event) configuration.Configuration {
 
 // ConfigurationValidator defines a function for the validation of
 // a new read configuration.
-type ConfigurationValidator func(configuration.Configuration) error
+type ConfigurationValidator func(etc.Etc) error
 
 // configuratorBehavior implements the configurator behavior.
 type configuratorBehavior struct {
@@ -87,20 +87,20 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 			return nil
 		}
 		logger.Infof("reading configuration from %q", filename)
-		config, err := configuration.ReadFile(filename)
+		cfg, err := etc.ReadFile(filename)
 		if err != nil {
 			return errors.Annotate(err, ErrCannotReadConfiguration, errorMessages)
 		}
 		// If wanted then validate it.
 		if b.validate != nil {
-			err = b.validate(config)
+			err = b.validate(cfg)
 			if err != nil {
 				return errors.Annotate(err, ErrCannotValidateConfiguration, errorMessages)
 			}
 		}
 		// All done, emit it.
 		pvs := cells.PayloadValues{
-			ConfigurationPayload: config,
+			ConfigurationPayload: cfg,
 		}
 		b.cell.EmitNew(ConfigurationTopic, pvs, event.Context())
 	}
