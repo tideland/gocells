@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/tideland/golib/audit"
-	"github.com/tideland/golib/configuration"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"

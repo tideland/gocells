@@ -76,7 +76,7 @@ import (
 
 // Version returns the version of the cells package.
 func Version() version.Version {
-	return version.New(5, 0, 0, "alpha", "2016-10-20")
+	return version.New(5, 0, 0, "alpha", "2016-10-21")
 }
 
 // EOF

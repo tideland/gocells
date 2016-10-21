@@ -48,7 +48,7 @@ type nullBehavior struct{}
 
 var _ cells.Behavior = (*nullBehavior)(nil)
 
-func (b *nullBehavior) Init(ctx cells.Context) error { return nil }
+func (b *nullBehavior) Init(c cells.Cell) error { return nil }
 
 func (b *nullBehavior) Terminate() error { return nil }
 
@@ -60,7 +60,7 @@ func (b *nullBehavior) Recover(r interface{}) error { return nil }
 // on the topic "processed" and delets all collected on the
 // topic "reset".
 type collectBehavior struct {
-	ctx         cells.Context
+	c           cells.Cell
 	processed   []string
 	recoverings int
 }
@@ -71,8 +71,8 @@ func newCollectBehavior() *collectBehavior {
 	return &collectBehavior{nil, []string{}, 0}
 }
 
-func (b *collectBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *collectBehavior) Init(c cells.Cell) error {
+	b.c = c
 	return nil
 }
 
@@ -97,8 +97,8 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 			return err
 		}
 	case iterateTopic:
-		err := b.ctx.SubscribersDo(func(s cells.Subscriber) error {
-			return s.ProcessNewEvent("love", b.ctx.ID()+" loves "+s.ID(), event.Scene())
+		err := b.c.SubscribersDo(func(s cells.Subscriber) error {
+			return s.ProcessNewEvent("love", b.c.ID()+" loves "+s.ID(), event.Context())
 		})
 		if err != nil {
 			return err
@@ -107,7 +107,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 		panic("Ouch!")
 	case subscribersTopic:
 		var ids []string
-		b.ctx.SubscribersDo(func(s cells.Subscriber) error {
+		b.c.SubscribersDo(func(s cells.Subscriber) error {
 			ids = append(ids, s.ID())
 			return nil
 		})
@@ -117,7 +117,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 		}
 	default:
 		b.processed = append(b.processed, fmt.Sprintf("%v", event))
-		return b.ctx.Emit(event)
+		return b.c.Emit(event)
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 func (b *collectBehavior) Recover(r interface{}) error {
 	b.recoverings++
 	if b.recoverings > 5 {
-		return cells.NewCannotRecoverError(b.ctx.ID(), r)
+		return cells.NewCannotRecoverError(b.c.ID(), r)
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (b *emitTimeoutBehavior) EmitTimeout() time.Duration {
 
 // emitBehavior simply emits the sleep topic to its subscribers.
 type emitBehavior struct {
-	ctx cells.Context
+	c cells.Cell
 }
 
 var _ cells.Behavior = (*emitBehavior)(nil)
@@ -206,8 +206,8 @@ func newEmitBehavior() *emitBehavior {
 	return &emitBehavior{}
 }
 
-func (b *emitBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *emitBehavior) Init(c cells.Cell) error {
+	b.c = c
 	return nil
 }
 
@@ -216,7 +216,7 @@ func (b *emitBehavior) Terminate() error {
 }
 
 func (b *emitBehavior) ProcessEvent(event cells.Event) error {
-	return b.ctx.EmitNew(sleepTopic, event.Payload(), nil)
+	return b.c.EmitNew(sleepTopic, event.Payload(), nil)
 }
 
 func (b *emitBehavior) Recover(r interface{}) error {
@@ -225,7 +225,7 @@ func (b *emitBehavior) Recover(r interface{}) error {
 
 // sleepBehavior simply emits the sleep topic to its subscribers.
 type sleepBehavior struct {
-	ctx cells.Context
+	cell cells.Cell
 }
 
 var _ cells.Behavior = (*sleepBehavior)(nil)
@@ -234,8 +234,8 @@ func newSleepBehavior() *sleepBehavior {
 	return &sleepBehavior{}
 }
 
-func (b *sleepBehavior) Init(ctx cells.Context) error {
-	b.ctx = ctx
+func (b *sleepBehavior) Init(c cells.Cell) error {
+	b.cell = c
 	return nil
 }
 
