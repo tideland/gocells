@@ -46,7 +46,7 @@ func TestCounterBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	counters, err := env.Request("counter", cells.CountersTopic, nil, nil, cells.DefaultTimeout)
+	counters, err := env.Request("counter", cells.CountersTopic, nil, cells.DefaultTimeout, nil)
 	assert.Nil(err)
 	assert.Length(counters, 4, "four counted events")
 
@@ -60,7 +60,7 @@ func TestCounterBehavior(t *testing.T) {
 	err = env.EmitNew("counter", cells.ResetTopic, nil, nil)
 	assert.Nil(err)
 
-	counters, err = env.Request("counter", cells.CountersTopic, nil, nil, cells.DefaultTimeout)
+	counters, err = env.Request("counter", cells.CountersTopic, nil, cells.DefaultTimeout, nil)
 	assert.Nil(err)
 	assert.Empty(counters, "zero counted events")
 }

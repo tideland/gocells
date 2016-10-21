@@ -49,7 +49,7 @@ func TestFilterBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, nil, cells.DefaultTimeout)
+	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
 	assert.Nil(err)
 	assert.Length(collected, 2, "two collected events")
 }

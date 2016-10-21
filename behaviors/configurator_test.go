@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/tideland/golib/audit"
+	"github.com/tideland/golib/etc"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
@@ -35,11 +36,10 @@ func TestConfigurationRead(t *testing.T) {
 	defer tempDir.Restore()
 
 	sigc := audit.MakeSigChan()
-	spf := func(ctx cells.Context, event cells.Event) error {
+	spf := func(c cells.Cell, event cells.Event) error {
 		if event.Topic() == behaviors.ConfigurationTopic {
-			config := behaviors.Configuration(event)
-			v, err := config.At("foo").Value()
-			assert.Nil(err)
+			cfg := behaviors.Configuration(event)
+			v := cfg.ValueAsString("foo", "0815")
 			assert.Equal(v, "42")
 
 			sigc <- true
@@ -67,17 +67,17 @@ func TestConfigurationValidation(t *testing.T) {
 	defer tempDir.Restore()
 
 	sigc := audit.MakeSigChan()
-	spf := func(ctx cells.Context, event cells.Event) error {
+	spf := func(c cells.Cell, event cells.Event) error {
 		sigc <- true
 		return nil
 	}
 	var key string
-	cv := func(config configuration.Configuration) error {
-		_, err := config.At(key).Value()
-		if err != nil {
+	cv := func(cfg etc.Etc) error {
+		v := cfg.ValueAsString(key, "[-default-]")
+		if v == "[-default-]" {
 			sigc <- false
 		}
-		return err
+		return nil
 	}
 
 	env.StartCell("configurator", behaviors.NewConfiguratorBehavior(cv))
