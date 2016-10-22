@@ -102,7 +102,7 @@ import (
 
 // Version returns the version of the behaviors package.
 func Version() version.Version {
-	return version.New(5, 0, 0, "beta", "2016-10-22")
+	return version.New(6, 0, 0, "beta", "2016-10-22")
 }
 
 // EOF
