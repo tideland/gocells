@@ -34,7 +34,7 @@ func TestCollectorBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 
 	for i := 0; i < 25; i++ {
-		env.EmitNew("collector", "collect", i, nil)
+		env.EmitNew("collector", "collect", i)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -43,7 +43,7 @@ func TestCollectorBehavior(t *testing.T) {
 	assert.Nil(err)
 	assert.Length(collected, 10)
 
-	err = env.EmitNew("collector", cells.ResetTopic, nil, nil)
+	err = env.EmitNew("collector", cells.ResetTopic, nil)
 	assert.Nil(err)
 
 	collected, err = env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)

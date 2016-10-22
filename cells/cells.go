@@ -49,7 +49,11 @@ type Environment interface {
 	Emit(id string, event Event) error
 
 	// EmitNew creates an event and emits it to the cell with a given ID.
-	EmitNew(id, topic string, payload interface{}, ctx context.Context) error
+	EmitNew(id, topic string, payload interface{}) error
+
+	// EmitNewContext creates an event with a contextand emits it to the cell
+	// with a given ID.
+	EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error
 
 	// Request creates and emits an event to the cell with the given ID.
 	// It is intended as request which has to be responded to with
@@ -77,7 +81,10 @@ type Cell interface {
 	Emit(event Event) error
 
 	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(topic string, payload interface{}, ctx context.Context) error
+	EmitNew(topic string, payload interface{}) error
+
+	// EmitNewContext creates an event and emits it to all subscribers of a cell.
+	EmitNewContext(topic string, payload interface{}, ctx context.Context) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error

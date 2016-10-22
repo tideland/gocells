@@ -43,9 +43,9 @@ func TestFilterBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("filter", "collector")
 
-	env.EmitNew("filter", "a", "a", nil)
-	env.EmitNew("filter", "a", "b", nil)
-	env.EmitNew("filter", "b", "b", nil)
+	env.EmitNew("filter", "a", "a")
+	env.EmitNew("filter", "a", "b")
+	env.EmitNew("filter", "b", "b")
 
 	time.Sleep(100 * time.Millisecond)
 

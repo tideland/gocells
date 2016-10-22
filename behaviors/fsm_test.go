@@ -59,10 +59,10 @@ func TestFSMBehavior(t *testing.T) {
 	env.Subscribe("lock-b", "restorer")
 
 	// 1st run: emit not enough and press button.
-	env.EmitNew("lock-a", "coin!", 20, nil)
-	env.EmitNew("lock-a", "coin!", 20, nil)
-	env.EmitNew("lock-a", "coin!", 20, nil)
-	env.EmitNew("lock-a", "button-press!", nil, nil)
+	env.EmitNew("lock-a", "coin!", 20)
+	env.EmitNew("lock-a", "coin!", 20)
+	env.EmitNew("lock-a", "coin!", 20)
+	env.EmitNew("lock-a", "button-press!", nil)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -70,15 +70,15 @@ func TestFSMBehavior(t *testing.T) {
 	assert.Equal(grabCents(), 60)
 
 	// 2nd run: unlock the lock and lock it again.
-	env.EmitNew("lock-a", "coin!", 50, nil)
-	env.EmitNew("lock-a", "coin!", 20, nil)
-	env.EmitNew("lock-a", "coin!", 50, nil)
+	env.EmitNew("lock-a", "coin!", 50)
+	env.EmitNew("lock-a", "coin!", 20)
+	env.EmitNew("lock-a", "coin!", 50)
 
 	time.Sleep(100 * time.Millisecond)
 
 	assert.Equal(info("lock-a"), "state 'unlocked' with 20 cents")
 
-	env.EmitNew("lock-a", "button-press!", nil, nil)
+	env.EmitNew("lock-a", "button-press!", nil)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -87,7 +87,7 @@ func TestFSMBehavior(t *testing.T) {
 	assert.Equal(grabCents(), 20)
 
 	// 3rd run: put a screwdriwer in the lock.
-	env.EmitNew("lock-a", "screwdriver!", nil, nil)
+	env.EmitNew("lock-a", "screwdriver!", nil)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -96,7 +96,7 @@ func TestFSMBehavior(t *testing.T) {
 	assert.Nil(status.Error)
 
 	// 4th run: try an illegal action.
-	env.EmitNew("lock-b", "chewing-gum", nil, nil)
+	env.EmitNew("lock-b", "chewing-gum", nil)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -145,7 +145,7 @@ func (m *lockMachine) Locked(ctx cells.Cell, event cells.Event) (behaviors.FSMSt
 		return m.Locked, nil
 	case "button-press!":
 		if m.cents > 0 {
-			ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Context())
+			ctx.Environment().EmitNewContext("restorer", "drop!", m.cents, event.Context())
 			m.cents = 0
 		}
 		return m.Locked, nil
@@ -166,10 +166,10 @@ func (m *lockMachine) Unlocked(ctx cells.Cell, event cells.Event) (behaviors.FSM
 		return m.Unlocked, event.Respond(info)
 	case "coin!":
 		cents := payloadCents(event)
-		ctx.EmitNew("return", cents, event.Context())
+		ctx.EmitNewContext("return", cents, event.Context())
 		return m.Unlocked, nil
 	case "button-press!":
-		ctx.Environment().EmitNew("restorer", "drop!", m.cents, event.Context())
+		ctx.Environment().EmitNewContext("restorer", "drop!", m.cents, event.Context())
 		m.cents = 0
 		return m.Locked, nil
 	}

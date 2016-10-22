@@ -43,7 +43,7 @@ func TestRoundRobinBehavior(t *testing.T) {
 
 	// Just 23 to let two cells receive less events.
 	for i := 0; i < 25; i++ {
-		err := env.EmitNew("round-robin", "round", i, nil)
+		err := env.EmitNew("round-robin", "round", i)
 		assert.Nil(err)
 	}
 

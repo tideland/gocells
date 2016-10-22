@@ -54,7 +54,7 @@ func TestConfigurationRead(t *testing.T) {
 	pvs := cells.PayloadValues{
 		behaviors.ConfigurationFilenamePayload: filename,
 	}
-	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs, nil)
+	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs)
 	assert.Wait(sigc, true, 100*time.Millisecond)
 }
 
@@ -89,14 +89,14 @@ func TestConfigurationValidation(t *testing.T) {
 		behaviors.ConfigurationFilenamePayload: filename,
 	}
 	key = "foo"
-	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs, nil)
+	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs)
 	assert.Wait(sigc, true, 100*time.Millisecond)
 
 	// Second run also will succeed, even with "bar" as invalid value.
 	// See definition of validator cv above. But validationError is not
 	// nil.
 	key = "bar"
-	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs, nil)
+	env.EmitNew("configurator", behaviors.ReadConfigurationTopic, pvs)
 	assert.Wait(sigc, false, 100*time.Millisecond)
 }
 

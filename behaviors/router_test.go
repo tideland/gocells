@@ -44,9 +44,9 @@ func TestRouterBehavior(t *testing.T) {
 	env.StartCell("test-5", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("router", "test-1", "test-2", "test-3", "test-4", "test-5")
 
-	env.EmitNew("router", "test-1:test-2", "a", nil)
-	env.EmitNew("router", "test-1:test-2:test-3", "b", nil)
-	env.EmitNew("router", "test-3:test-4:test-5", "c", nil)
+	env.EmitNew("router", "test-1:test-2", "a")
+	env.EmitNew("router", "test-1:test-2:test-3", "b")
+	env.EmitNew("router", "test-3:test-4:test-5", "c")
 
 	time.Sleep(100 * time.Millisecond)
 

@@ -51,9 +51,9 @@ func TestCallbackBehavior(t *testing.T) {
 
 	env.StartCell("callback", behaviors.NewCallbackBehavior(cbfA, cbfB, cbfC))
 
-	env.EmitNew("callback", "foo", nil, nil)
-	env.EmitNew("callback", "bar", nil, nil)
-	env.EmitNew("callback", "baz", nil, nil)
+	env.EmitNew("callback", "foo", nil)
+	env.EmitNew("callback", "bar", nil)
+	env.EmitNew("callback", "baz", nil)
 
 	assert.Wait(sigc, true, time.Second)
 	assert.Equal(cbdA, []string{"foo", "bar", "baz"})
