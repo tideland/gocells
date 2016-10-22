@@ -32,7 +32,7 @@ func TestConfigurationRead(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	env := cells.NewEnvironment("configuration-read")
 	defer env.Stop()
-	tempDir, filename := createConfigurationFile(assert, "{config {foo 42}}")
+	tempDir, filename := createConfigurationFile(assert, "{etc {foo 42}}")
 	defer tempDir.Restore()
 
 	sigc := audit.MakeSigChan()
@@ -63,7 +63,7 @@ func TestConfigurationValidation(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	env := cells.NewEnvironment("configuration-validation")
 	defer env.Stop()
-	tempDir, filename := createConfigurationFile(assert, "{config {foo 42}}")
+	tempDir, filename := createConfigurationFile(assert, "{etc {foo 42}}")
 	defer tempDir.Restore()
 
 	sigc := audit.MakeSigChan()
