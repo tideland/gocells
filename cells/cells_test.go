@@ -234,7 +234,7 @@ func TestBehaviorEmitTimeoutError(t *testing.T) {
 
 	// Emit more events than queue can take while the subscriber works.
 	for i := 0; i < 25; i++ {
-		env.EmitNew("emitter", emitTopic, i, nil)
+		env.EmitNew("emitter", emitTopic, i)
 	}
 
 	time.Sleep(2 * time.Second)
@@ -345,7 +345,7 @@ func TestEnvironmentSubscribersDo(t *testing.T) {
 
 	err = env.Subscribe("foo", "bar", "baz")
 	assert.Nil(err)
-	err = env.EmitNew("foo", iterateTopic, nil, nil)
+	err = env.EmitNew("foo", iterateTopic, nil)
 	assert.Nil(err)
 
 	time.Sleep(200 * time.Millisecond)
@@ -379,9 +379,9 @@ func TestEnvironmentScenario(t *testing.T) {
 	err = env.Subscribe("bar", "collector")
 	assert.Nil(err)
 
-	err = env.EmitNew("foo", "lorem", 4711, nil)
+	err = env.EmitNew("foo", "lorem", 4711)
 	assert.Nil(err)
-	err = env.EmitNew("foo", "ipsum", 1234, nil)
+	err = env.EmitNew("foo", "ipsum", 1234)
 	assert.Nil(err)
 	response, err := env.Request("foo", cells.PingTopic, nil, cells.DefaultTimeout, nil)
 	assert.Nil(err)

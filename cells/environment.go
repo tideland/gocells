@@ -95,7 +95,15 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(id, topic string, payload interface{}, ctx context.Context) error {
+func (env *environment) EmitNew(id, topic string, payload interface{}) error {
+	return env.EmitNewContext(id, topic, payload, context.Background())
+}
+
+// EmitNewContext implements the Environment interface.
+func (env *environment) EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	event, err := NewEvent(topic, payload, ctx)
 	if err != nil {
 		return err
@@ -112,7 +120,7 @@ func (env *environment) Request(
 ) (interface{}, error) {
 	responseChan := make(chan interface{}, 1)
 	p := NewPayload(payload).Apply(PayloadValues{ResponseChanPayload: responseChan})
-	err := env.EmitNew(id, topic, p, ctx)
+	err := env.EmitNewContext(id, topic, p, ctx)
 	if err != nil {
 		return nil, err
 	}

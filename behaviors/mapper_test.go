@@ -57,9 +57,9 @@ func TestMapperBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("mapper", "collector")
 
-	env.EmitNew("mapper", "a", "abc", nil)
-	env.EmitNew("mapper", "b", "def", nil)
-	env.EmitNew("mapper", "c", "ghi", nil)
+	env.EmitNew("mapper", "a", "abc")
+	env.EmitNew("mapper", "b", "def")
+	env.EmitNew("mapper", "c", "ghi")
 
 	time.Sleep(100 * time.Millisecond)
 

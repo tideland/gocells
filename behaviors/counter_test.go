@@ -40,9 +40,9 @@ func TestCounterBehavior(t *testing.T) {
 	}
 	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
 
-	env.EmitNew("counter", "count", []string{"a", "b"}, nil)
-	env.EmitNew("counter", "count", []string{"a", "c", "d"}, nil)
-	env.EmitNew("counter", "count", []string{"a", "d"}, nil)
+	env.EmitNew("counter", "count", []string{"a", "b"})
+	env.EmitNew("counter", "count", []string{"a", "c", "d"})
+	env.EmitNew("counter", "count", []string{"a", "d"})
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -57,7 +57,7 @@ func TestCounterBehavior(t *testing.T) {
 	assert.Equal(c["c"], int64(1))
 	assert.Equal(c["d"], int64(2))
 
-	err = env.EmitNew("counter", cells.ResetTopic, nil, nil)
+	err = env.EmitNew("counter", cells.ResetTopic, nil)
 	assert.Nil(err)
 
 	counters, err = env.Request("counter", cells.CountersTopic, nil, cells.DefaultTimeout, nil)

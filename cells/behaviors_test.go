@@ -216,7 +216,7 @@ func (b *emitBehavior) Terminate() error {
 }
 
 func (b *emitBehavior) ProcessEvent(event cells.Event) error {
-	return b.c.EmitNew(sleepTopic, event.Payload(), nil)
+	return b.c.EmitNew(sleepTopic, event.Payload())
 }
 
 func (b *emitBehavior) Recover(r interface{}) error {

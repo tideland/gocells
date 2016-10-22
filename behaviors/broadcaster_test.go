@@ -36,9 +36,9 @@ func TestBroadcasterBehavior(t *testing.T) {
 	env.StartCell("test-2", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("broadcast", "test-1", "test-2")
 
-	env.EmitNew("broadcast", "test", "a", nil)
-	env.EmitNew("broadcast", "test", "b", nil)
-	env.EmitNew("broadcast", "test", "c", nil)
+	env.EmitNew("broadcast", "test", "a")
+	env.EmitNew("broadcast", "test", "b")
+	env.EmitNew("broadcast", "test", "c")
 
 	time.Sleep(100 * time.Millisecond)
 
