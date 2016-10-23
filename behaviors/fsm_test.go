@@ -33,17 +33,17 @@ func TestFSMBehavior(t *testing.T) {
 	defer env.Stop()
 
 	checkCents := func(id string) int {
-		cents, err := env.Request(id, "cents?", nil, cells.DefaultTimeout, nil)
+		cents, err := env.Request(id, "cents?", nil, cells.DefaultTimeout)
 		assert.Nil(err)
 		return cents.(int)
 	}
 	info := func(id string) string {
-		info, err := env.Request(id, "info?", nil, cells.DefaultTimeout, nil)
+		info, err := env.Request(id, "info?", nil, cells.DefaultTimeout)
 		assert.Nil(err)
 		return info.(string)
 	}
 	grabCents := func() int {
-		cents, err := env.Request("restorer", "grab!", nil, cells.DefaultTimeout, nil)
+		cents, err := env.Request("restorer", "grab!", nil, cells.DefaultTimeout)
 		assert.Nil(err)
 		return cents.(int)
 	}

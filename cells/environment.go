@@ -116,6 +116,15 @@ func (env *environment) Request(
 	id, topic string,
 	payload interface{},
 	timeout time.Duration,
+) (interface{}, error) {
+	return env.RequestContext(id, topic, payload, timeout, context.Background())
+}
+
+// RequestContext implements the Environment interface.
+func (env *environment) RequestContext(
+	id, topic string,
+	payload interface{},
+	timeout time.Duration,
 	ctx context.Context,
 ) (interface{}, error) {
 	responseChan := make(chan interface{}, 1)

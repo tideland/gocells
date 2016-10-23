@@ -42,11 +42,11 @@ func TestBroadcasterBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("test-1", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err := env.Request("test-1", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 3)
 
-	collected, err = env.Request("test-2", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err = env.Request("test-2", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 3)
 }

@@ -323,7 +323,7 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert.Nil(err)
 
 	// Expect only baz because bar is stopped.
-	response, err := env.Request("foo", subscribersTopic, nil, cells.DefaultTimeout, nil)
+	response, err := env.Request("foo", subscribersTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Equal(response, []string{"baz"})
 }
@@ -350,11 +350,11 @@ func TestEnvironmentSubscribersDo(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	collected, err := env.Request("bar", cells.ProcessedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err := env.Request("bar", cells.ProcessedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 1)
 	assert.Contents(`<topic: "love" / payload: <"default": foo loves bar>>`, collected)
-	collected, err = env.Request("baz", cells.ProcessedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err = env.Request("baz", cells.ProcessedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 1)
 	assert.Contents(`<topic: "love" / payload: <"default": foo loves baz>>`, collected)
@@ -383,13 +383,13 @@ func TestEnvironmentScenario(t *testing.T) {
 	assert.Nil(err)
 	err = env.EmitNew("foo", "ipsum", 1234)
 	assert.Nil(err)
-	response, err := env.Request("foo", cells.PingTopic, nil, cells.DefaultTimeout, nil)
+	response, err := env.Request("foo", cells.PingTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Equal(response, cells.PongResponse)
 
 	time.Sleep(200 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.ProcessedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err := env.Request("collector", cells.ProcessedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 2, "two collected events")
 	assert.Contents(`<topic: "lorem" / payload: <"default": 4711>>`, collected)

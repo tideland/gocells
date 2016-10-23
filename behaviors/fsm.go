@@ -101,7 +101,7 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 
 // RequestFSMStatus retrieves the status of a FSM cell.
 func RequestFSMStatus(env cells.Environment, id string) FSMStatus {
-	response, err := env.Request(id, cells.StatusTopic, nil, cells.DefaultTimeout, nil)
+	response, err := env.Request(id, cells.StatusTopic, nil, cells.DefaultTimeout)
 	if err != nil {
 		return FSMStatus{
 			Error: err,

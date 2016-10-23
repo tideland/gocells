@@ -63,7 +63,7 @@ func TestMapperBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 3, "three mapped events")
 	assertPayload(collected, 0, "ABC")
