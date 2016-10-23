@@ -259,7 +259,7 @@ type Event interface {
 	Context() context.Context
 
 	// Respond responds to a request event emitted
-	// with Environment.Request().
+	// with Environment.RequestContext().
 	Respond(response interface{}) error
 }
 

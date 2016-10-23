@@ -51,14 +51,18 @@ type Environment interface {
 	// EmitNew creates an event and emits it to the cell with a given ID.
 	EmitNew(id, topic string, payload interface{}) error
 
-	// EmitNewContext creates an event with a contextand emits it to the cell
+	// EmitNewContext creates an event with a context and emits it to the cell
 	// with a given ID.
 	EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error
 
-	// Request creates and emits an event to the cell with the given ID.
-	// It is intended as request which has to be responded to with
+	// Request creates and emits an event with a context to the cell with the
+	// given ID. It is intended as request which has to be responded to with
 	// event.Respond().
-	Request(id, topic string, payload interface{}, timeout time.Duration, ctx context.Context) (interface{}, error)
+	Request(id, topic string, payload interface{}, timeout time.Duration) (interface{}, error)
+
+	// RequestContext creates and emits an event with a context to the cell with
+	// the given ID.
+	RequestContext(id, topic string, payload interface{}, timeout time.Duration, ctx context.Context) (interface{}, error)
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error

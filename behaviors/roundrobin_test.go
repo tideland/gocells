@@ -50,7 +50,7 @@ func TestRoundRobinBehavior(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	test := func(id string) int {
-		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout)
 		assert.Nil(err)
 		l := len(collected.([]behaviors.EventData))
 		assert.Equal(l, 5)

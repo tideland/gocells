@@ -47,7 +47,7 @@
 // Sometimes it's needed to directly communicate with a cell to retrieve
 // information. In this case the method
 //
-//     response, err := env.Request("foo", "myRequest?", myPayload, myTimeout, ctx)
+//     response, err := env.RequestContext("foo", "myRequest?", myPayload, myTimeout)
 //
 // is to be used. Inside the ProcessEvent() of the addressed cell the
 // event can be used to send the response with
@@ -76,7 +76,7 @@ import (
 
 // Version returns the version of the cells package.
 func Version() version.Version {
-	return version.New(6, 0, 0, "beta", "2016-10-22")
+	return version.New(6, 0, 0, "beta", "2016-10-23")
 }
 
 // EOF

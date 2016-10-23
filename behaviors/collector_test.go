@@ -39,14 +39,14 @@ func TestCollectorBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 10)
 
 	err = env.EmitNew("collector", cells.ResetTopic, nil)
 	assert.Nil(err)
 
-	collected, err = env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout, nil)
+	collected, err = env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(collected, 0)
 }
