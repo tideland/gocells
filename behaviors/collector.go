@@ -41,7 +41,7 @@ type collectorBehavior struct {
 	collected []EventData
 }
 
-// NewCollectorBehaviorFactory creates a collector behavior. It collects
+// NewCollectorBehavior creates a collector behavior. It collects
 // a configured maximum number events emitted directly or by subscription.
 // The event is passed through. The collected events can be requested with
 // the topic "collected?" and will be stored in the scene store named in

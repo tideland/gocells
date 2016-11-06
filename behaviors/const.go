@@ -16,12 +16,16 @@ const (
 	ReadConfigurationTopic = "read-configuration!"
 	ConfigurationTopic     = "configuration"
 	TickerTopic            = "tick!"
+	EventRateTopic         = "event-rate!"
 
 	// Payload keys.
 	ConfigurationFilenamePayload = "configuration:filename"
 	ConfigurationPayload         = "configuration"
 	TickerIDPayload              = "ticker:id"
 	TickerTimePayload            = "ticker:time"
+	EventRateAveragePayload      = "event-rate:average"
+	EventRateHighPayload         = "event-rate:high"
+	EventRateLowPayload          = "event-rate:low"
 )
 
 // EOF
