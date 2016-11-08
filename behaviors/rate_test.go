@@ -38,10 +38,10 @@ func TestRateBehavior(t *testing.T) {
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
 	env.StartCell("rater", behaviors.NewRateBehavior(matches, 5))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(1000))
 	env.Subscribe("rater", "collector")
 
-	for i := 0; i < 1000; i++{
+	for i := 0; i < 1000; i++ {
 		topic := topics[rand.Intn(len(topics))]
 		env.EmitNew("rater", topic, nil)
 		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
@@ -49,7 +49,11 @@ func TestRateBehavior(t *testing.T) {
 
 	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	assert.Length(collected, 10)
+	events := collected.([]behaviors.EventData)
+	assert.True(len(events) <= 1000)
+	for _, event := range events {
+		assert.Equal(event.Topic, "event-rate!")
+	}
 }
 
 // EOF

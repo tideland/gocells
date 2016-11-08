@@ -121,7 +121,7 @@ type cell struct {
 
 // newCell create a new cell around a behavior.
 func newCell(env *environment, id string, behavior Behavior) (*cell, error) {
-	logger.Infof("starting cell %q", id)
+	logger.Infof("cell '%s' starts", id)
 	// Init cell runtime.
 	c := &cell{
 		env:               env,
@@ -171,7 +171,7 @@ func newCell(env *environment, id string, behavior Behavior) (*cell, error) {
 		return nil, errors.Annotate(err, ErrCellInit, errorMessages, id)
 	}
 	// Start backend.
-	c.loop = loop.GoRecoverable(c.backendLoop, c.checkRecovering)
+	c.loop = loop.GoRecoverable(c.backendLoop, c.checkRecovering, id)
 	return c, nil
 }
 
@@ -257,9 +257,9 @@ func (c *cell) stop() error {
 	c.emitTimeoutTicker.Stop()
 	err := c.loop.Stop()
 	if err != nil {
-		logger.Errorf("cell %q terminated with error: %v", c.id, err)
+		logger.Errorf("cell '%s' stopped with error: %v", c.id, err)
 	} else {
-		logger.Infof("cell %q terminated", c.id)
+		logger.Infof("cell '%s' stopped", c.id)
 	}
 	return err
 }
