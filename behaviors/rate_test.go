@@ -53,6 +53,12 @@ func TestRateBehavior(t *testing.T) {
 	assert.True(len(events) <= 1000)
 	for _, event := range events {
 		assert.Equal(event.Topic, "event-rate!")
+		_, ok := event.Payload.GetDuration(behaviors.EventRateAveragePayload)
+		assert.True(ok)
+		_, ok = event.Payload.GetDuration(behaviors.EventRateAveragePayload)
+		assert.True(ok)
+		_, ok = event.Payload.GetDuration(behaviors.EventRateLowPayload)
+		assert.True(ok)
 	}
 }
 
