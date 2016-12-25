@@ -11,14 +11,13 @@ package behaviors
 // CONSTANTS
 //--------------------
 
+// Topics and payload keys.
 const (
-	// Topics.
 	ReadConfigurationTopic = "read-configuration!"
 	ConfigurationTopic     = "configuration"
 	TickerTopic            = "tick!"
 	EventRateTopic         = "event-rate!"
 
-	// Payload keys.
 	ConfigurationFilenamePayload = "configuration:filename"
 	ConfigurationPayload         = "configuration"
 	TickerIDPayload              = "ticker:id"
