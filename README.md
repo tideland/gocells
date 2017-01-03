@@ -79,16 +79,17 @@ The logger behavior logs every event. The used level is INFO.
 The mapper behavior is created with a mapping. It is called with each
 received event and returns a new mapped one.
 
+### Rate
+
+The rate behavior measures the time between two events fitting a criterion
+defined by a user function with the signature `func(event cells.Event) bool`.
+The time, the duration, and the lowest, highest, and average duration during 
+a defined number of fitting events is emitted each time.
+
 ### Round Robin
 
 The round robin behavior distributes each received event round robin
 to its subscribers. It can be used for load balancing.
-
-### Scene
-
-The scene behavior stores a received payload using the event topic as
-key in the event scene. So it can be used later by other behaviors
-or by the external environments, which can wait until the setting.
 
 ### Simple Processor
 

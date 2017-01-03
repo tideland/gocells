@@ -70,20 +70,22 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 			total := 0 * time.Nanosecond
 			low := 0x7FFFFFFFFFFFFFFF * time.Nanosecond
 			high := 0 * time.Nanosecond
-			for _, duration = range b.durations {
-				total += duration
-				if duration < low {
-					low = duration
+			for _, d := range b.durations {
+				total += d
+				if d < low {
+					low = d
 				}
-				if duration > high {
-					high = duration
+				if d > high {
+					high = d
 				}
 			}
 			avg := total / time.Duration(len(b.durations))
 			return b.cell.EmitNew(EventRateTopic, cells.PayloadValues{
-				EventRateAveragePayload: avg,
-				EventRateHighPayload:    high,
-				EventRateLowPayload:     low,
+				EventRateTimePayload:     current,
+				EventRateDurationPayload: duration,
+				EventRateAveragePayload:  avg,
+				EventRateHighPayload:     high,
+				EventRateLowPayload:      low,
 			})
 		}
 	}
