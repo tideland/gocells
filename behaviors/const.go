@@ -23,6 +23,8 @@ const (
 	ConfigurationPayload         = "configuration"
 	TickerIDPayload              = "ticker:id"
 	TickerTimePayload            = "ticker:time"
+	EventRateTimePayload         = "event-rate:time"
+	EventRateDurationPayload     = "event-rate:duration"
 	EventRateAveragePayload      = "event-rate:average"
 	EventRateHighPayload         = "event-rate:high"
 	EventRateLowPayload          = "event-rate:low"
