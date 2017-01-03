@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Unit Tests - Event Rate
 //
-// Copyright (C) 2010-2016 Frank Mueller / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -37,11 +37,11 @@ func TestRateBehavior(t *testing.T) {
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
-	env.StartCell("rater", behaviors.NewRateBehavior(matches, 5))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(1000))
+	env.StartCell("rater", behaviors.NewRateBehavior(matches, 100))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
 	env.Subscribe("rater", "collector")
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		topic := topics[rand.Intn(len(topics))]
 		env.EmitNew("rater", topic, nil)
 		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
@@ -50,16 +50,17 @@ func TestRateBehavior(t *testing.T) {
 	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	events := collected.([]behaviors.EventData)
-	assert.True(len(events) <= 1000)
+	assert.True(len(events) <= 10000)
 	for _, event := range events {
 		assert.Equal(event.Topic, "event-rate!")
 		hi, ok := event.Payload.GetDuration(behaviors.EventRateHighPayload)
 		assert.True(ok)
-		_, ok = event.Payload.GetDuration(behaviors.EventRateAveragePayload)
+		avg, ok := event.Payload.GetDuration(behaviors.EventRateAveragePayload)
 		assert.True(ok)
 		lo, ok := event.Payload.GetDuration(behaviors.EventRateLowPayload)
 		assert.True(ok)
-		assert.True(lo <= hi)
+		assert.True(lo <= avg)
+		assert.True(avg <= hi)
 	}
 }
 

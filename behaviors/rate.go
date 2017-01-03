@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Rate
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -22,22 +22,23 @@ import (
 //--------------------
 
 // RateCriterion is used by the rate behavior and has to return true, if
-// the passed evend matches a criterion for rate measuring.
+// the passed event matches a criterion for rate measuring.
 type RateCriterion func(event cells.Event) bool
 
 // rateBehavior calculates the average rate of event matching a criterion.
 type rateBehavior struct {
-	cell       cells.Cell
-	matches    RateCriterion
-	count      int
-	timestamps []time.Time
+	cell      cells.Cell
+	matches   RateCriterion
+	count     int
+	last      time.Time
+	durations []time.Duration
 }
 
 // NewRateBehavior creates an even rate measuiring behavior. Each time the
 // criterion function returns true for a received event a timestamp is
 // stored and a moving average of the times between these events is emitted.
 func NewRateBehavior(matches RateCriterion, count int) cells.Behavior {
-	return &rateBehavior{nil, matches, count, []time.Time{}}
+	return &rateBehavior{nil, matches, count, time.Now(), []time.Duration{}}
 }
 
 // Init the behavior.
@@ -53,36 +54,46 @@ func (b *rateBehavior) Terminate() error {
 
 // ProcessEvent collects and re-emits events.
 func (b *rateBehavior) ProcessEvent(event cells.Event) error {
-	if b.matches(event) {
-		b.timestamps = append(b.timestamps, time.Now())
-		if len(b.timestamps) > b.count {
-			b.timestamps = b.timestamps[1:]
-		}
-		d := b.timestamps[len(b.timestamps)-1].Sub(b.timestamps[0])
-		avg := d / time.Duration(len(b.timestamps))
-		hi := 0 * time.Nanosecond
-		lo := d
-		for i := 1; i < len(b.timestamps); i++ {
-			d = b.timestamps[i].Sub(b.timestamps[i-1])
-			if d > hi {
-				hi = d
+	switch event.Topic() {
+	case ResetTopic:
+		b.last = time.Now()
+		b.durations = []time.Duration{}
+	default:
+		if b.matches(event) {
+			current := time.Now()
+			duration := current.Sub(b.last)
+			b.last = current
+			b.durations = append(b.durations, duration)
+			if len(b.durations) > b.count {
+				b.durations = b.durations[1:]
 			}
-			if d < lo {
-				lo = d
+			total := 0 * time.Nanosecond
+			low := 0x7FFFFFFFFFFFFFFF * time.Nanosecond
+			high := 0 * time.Nanosecond
+			for _, duration = range b.durations {
+				total += duration
+				if duration < low {
+					low = duration
+				}
+				if duration > high {
+					high = duration
+				}
 			}
+			avg := total / time.Duration(len(b.durations))
+			return b.cell.EmitNew(EventRateTopic, cells.PayloadValues{
+				EventRateAveragePayload: avg,
+				EventRateHighPayload:    high,
+				EventRateLowPayload:     low,
+			})
 		}
-		return b.cell.EmitNew(EventRateTopic, cells.PayloadValues{
-			EventRateAveragePayload: avg,
-			EventRateHighPayload:    hi,
-			EventRateLowPayload:     lo,
-		})
 	}
 	return nil
 }
 
 // Recover from an error.
 func (b *rateBehavior) Recover(err interface{}) error {
-	b.timestamps = []time.Time{}
+	b.last = time.Now()
+	b.durations = []time.Duration{}
 	return nil
 }
 
