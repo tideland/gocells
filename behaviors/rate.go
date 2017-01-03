@@ -25,7 +25,7 @@ import (
 // the passed event matches a criterion for rate measuring.
 type RateCriterion func(event cells.Event) bool
 
-// rateBehavior calculates the average rate of event matching a criterion.
+// rateBehavior calculates the average rate of events matching a criterion.
 type rateBehavior struct {
 	cell      cells.Cell
 	matches   RateCriterion
@@ -35,8 +35,10 @@ type rateBehavior struct {
 }
 
 // NewRateBehavior creates an even rate measuiring behavior. Each time the
-// criterion function returns true for a received event a timestamp is
-// stored and a moving average of the times between these events is emitted.
+// criterion function returns true for a received event the duration between
+// this and the last one is calculated and emitted together with the timestamp.
+// Additionally a moving average, lowest, and highest duration is calculated
+// and emitted too. A "reset!" as topic resets the stored values.
 func NewRateBehavior(matches RateCriterion, count int) cells.Behavior {
 	return &rateBehavior{nil, matches, count, time.Now(), []time.Duration{}}
 }
