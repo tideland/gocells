@@ -11,7 +11,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-01-03
+Version 6.0.0-beta.2017-01-08
 
 ## Packages
 
@@ -79,11 +79,18 @@ The logger behavior logs every event. The used level is INFO.
 The mapper behavior is created with a mapping. It is called with each
 received event and returns a new mapped one.
 
+### Pair
+
+The rate behavior checks if two events fitting a criterion defined by
+a user function with the signature `func(event cells.Event) bool` happen
+during a defined duration. If the second event is in time a positive
+pair event is emitted, otherwise a negative pair event.
+
 ### Rate
 
 The rate behavior measures the time between two events fitting a criterion
 defined by a user function with the signature `func(event cells.Event) bool`.
-The time, the duration, and the lowest, highest, and average duration during 
+The time, the duration, and the lowest, highest, and average duration during
 a defined number of fitting events is emitted each time.
 
 ### Round Robin
