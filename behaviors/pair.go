@@ -27,11 +27,11 @@ type PairCriterion func(event cells.Event) bool
 
 // pairBehavior checks if events occur in pairs.
 type pairBehavior struct {
-	cell      cells.Cell
-	matches   PairCriterion
-	duration  time.Duration
-	firstHit  *time.Time
-	secondHit *time.Time
+	cell     cells.Cell
+	matches  PairCriterion
+	duration time.Duration
+	hit      *time.Time
+	timeout  *time.Timer
 }
 
 // NewPairBehavior creates ...
@@ -52,6 +52,36 @@ func (b *pairBehavior) Terminate() error {
 
 // ProcessEvent collects and re-emits events.
 func (b *pairBehavior) ProcessEvent(event cells.Event) error {
+	switch event.Topic() {
+	case EventPairTimeoutTopic:
+		if b.hit != nil {
+			// Otherwise it has been reset already, just a queued event.
+			b.cell.EmitNew(EventPairTimeoutTopic, cells.PayloadValues{
+				EventPairFirstPayload:   b.hit,
+				EventPairTimeoutPayload: time.Now(),
+			})
+			b.hit = nil
+		}
+	default:
+		if b.matches(event) {
+			now := time.Now()
+			if b.hit == nil {
+				// First hit, store time and start timeout reminder.
+				b.hit = &now
+				b.timeout = time.AfterFunc(b.duration, func() {
+					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, nil)
+				})
+			} else {
+				// Second hit earlier than timeout, fine.
+				b.timeout.Stop()
+				b.cell.EmitNew(EventPairTopic, cells.PayloadValues{
+					EventPairFirstPayload:  b.hit,
+					EventPairSecondPayload: now,
+				})
+				b.hit = nil
+			}
+		}
+	}
 	return nil
 }
 
