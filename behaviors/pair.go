@@ -23,7 +23,7 @@ import (
 
 // PairCriterion is used by the pair behavior and has to return true, if
 // the passed event matches a criterion for rate measuring.
-type PairCriterion func(event cells.Event) bool
+type PairCriterion func(event cells.Event, hitData interface{}) (interface{}, bool)
 
 // pairBehavior checks if events occur in pairs.
 type pairBehavior struct {
@@ -31,12 +31,13 @@ type pairBehavior struct {
 	matches  PairCriterion
 	duration time.Duration
 	hit      *time.Time
+	hitData  interface{}
 	timeout  *time.Timer
 }
 
 // NewPairBehavior creates ...
 func NewPairBehavior(matches PairCriterion, duration time.Duration) cells.Behavior {
-	return &pairBehavior{nil, matches, duration, nil, nil}
+	return &pairBehavior{nil, matches, duration, nil, nil, nil}
 }
 
 // Init the behavior.
@@ -57,17 +58,19 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 		if b.hit != nil {
 			// Otherwise it has been reset already, just a queued event.
 			b.cell.EmitNew(EventPairTimeoutTopic, cells.PayloadValues{
-				EventPairFirstPayload:   b.hit,
-				EventPairTimeoutPayload: time.Now(),
+				EventPairFirstTimePayload: b.hit,
+				EventPairFirstDataPayload: b.hitData,
+				EventPairTimeoutPayload:   time.Now(),
 			})
 			b.hit = nil
 		}
 	default:
-		if b.matches(event) {
+		if hitData, ok := b.matches(event, b.hitData); ok {
 			now := time.Now()
 			if b.hit == nil {
-				// First hit, store time and start timeout reminder.
+				// First hit, store time and data and start timeout reminder.
 				b.hit = &now
+				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
 					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, nil)
 				})
@@ -75,8 +78,10 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				// Second hit earlier than timeout, fine.
 				b.timeout.Stop()
 				b.cell.EmitNew(EventPairTopic, cells.PayloadValues{
-					EventPairFirstPayload:  b.hit,
-					EventPairSecondPayload: now,
+					EventPairFirstTimePayload:  b.hit,
+					EventPairFirstDataPayload:  b.hitData,
+					EventPairSecondTimePayload: now,
+					EventPairSecondDataPayload: hitData,
 				})
 				b.hit = nil
 			}
