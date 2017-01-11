@@ -63,9 +63,12 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case EventPairTimeoutTopic:
 		if b.hit != nil && b.timeout != nil {
-			// Received timeout event, not a queued one.
-			b.emitTimeout("timeout event")
-			b.timeout = nil
+			// Received timeout event, check if the expected one.
+			hit, ok := event.Payload.GetTine(EventPairFirstTimePayload)
+			if ok && hit.Equal(*b.hit) {
+				b.emitTimeout("timeout event")
+				b.timeout = nil
+			}
 		}
 	default:
 		if hitData, ok := b.matches(event, b.hitData); ok {
@@ -75,7 +78,9 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hit = &now
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, nil)
+					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
+						EventPairFirstTimePayload: *b.hit,
+					})
 				})
 			} else {
 				// Second hit earlier than timeout event.
