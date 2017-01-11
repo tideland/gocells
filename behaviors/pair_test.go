@@ -39,11 +39,27 @@ func TestPairBehavior(t *testing.T) {
 		}
 		return nil, false
 	}
+	filterFuncBuilder := func(positive bool) behaviors.FilterFunc {
+		var topic string
+		if positive {
+			topic = behaviors.EventPairTopic
+		} else {
+			topic = behaviors.EventPairTimeoutTopic
+		}
+		return func(id string, event cells.Event) bool {
+			return event.Topic() == topic
+		}
+	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
-	env.StartCell("pairer", behaviors.NewPairBehavior(matches, time.Second))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
-	env.Subscribe("pairer", "collector")
+	env.StartCell("pairer", behaviors.NewPairBehavior(matches, time.Millisecond))
+	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterFuncBuilder(true)))
+	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterFuncBuilder(false)))
+	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000))
+	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000))
+	env.Subscribe("pairer", "positive-filter", "negative-filter")
+	env.Subscribe("positive-filter", "positive-collector")
+	env.Subscribe("negative-filter", "negative-collector")
 
 	for i := 0; i < 10000; i++ {
 		topic := generator.OneStringOf(topics...)
@@ -52,11 +68,17 @@ func TestPairBehavior(t *testing.T) {
 		time.Sleep(pause)
 	}
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	events := collected.([]behaviors.EventData)
 	assert.True(len(events) >= 1)
-	assert.Logf("Events: %d", len(events))
+	assert.Logf("Positive Events: %d", len(events))
+
+	collected, err = env.Request("negative-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	assert.Nil(err)
+	events = collected.([]behaviors.EventData)
+	assert.True(len(events) >= 1)
+	assert.Logf("Negative Events: %d", len(events))
 }
 
 // EOF
