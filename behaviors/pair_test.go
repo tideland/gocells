@@ -51,8 +51,9 @@ func TestPairBehavior(t *testing.T) {
 		}
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
+	duration := time.Millisecond
 
-	env.StartCell("pairer", behaviors.NewPairBehavior(matches, time.Millisecond))
+	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
 	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterFuncBuilder(true)))
 	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterFuncBuilder(false)))
 	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000))
@@ -68,17 +69,40 @@ func TestPairBehavior(t *testing.T) {
 		time.Sleep(pause)
 	}
 
+	time.Sleep(10 * time.Millisecond)
+
 	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	events := collected.([]behaviors.EventData)
 	assert.True(len(events) >= 1)
 	assert.Logf("Positive Events: %d", len(events))
 
+	for _, event := range events {
+		first, ok := event.Payload.GetTime(behaviors.EventPairFirstTimePayload)
+		assert.True(ok)
+		second, ok := event.Payload.GetTime(behaviors.EventPairSecondTimePayload)
+		assert.True(ok)
+		difference := second.Sub(first)
+		assert.True(difference <= duration)
+	}
+
 	collected, err = env.Request("negative-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
 	events = collected.([]behaviors.EventData)
 	assert.True(len(events) >= 1)
 	assert.Logf("Negative Events: %d", len(events))
+
+	for i, event := range events {
+		first, ok := event.Payload.GetTime(behaviors.EventPairFirstTimePayload)
+		assert.True(ok)
+		timeout, ok := event.Payload.GetTime(behaviors.EventPairTimeoutPayload)
+		assert.True(ok)
+		debug, ok := event.Payload.GetString("debug")
+		assert.True(ok)
+		difference := timeout.Sub(first)
+		assert.Logf("I = %d / D = %v / REASON = %v", i, difference, debug)
+		assert.True(difference > duration)
+	}
 }
 
 // EOF
