@@ -64,9 +64,9 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	case EventPairTimeoutTopic:
 		if b.hit != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit, ok := event.Payload.GetTine(EventPairFirstTimePayload)
+			hit, ok := event.Payload().GetTime(EventPairFirstTimePayload)
 			if ok && hit.Equal(*b.hit) {
-				b.emitTimeout("timeout event")
+				b.emitTimeout()
 				b.timeout = nil
 			}
 		}
@@ -79,7 +79,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
 					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
-						EventPairFirstTimePayload: *b.hit,
+						EventPairFirstTimePayload: now,
 					})
 				})
 			} else {
@@ -88,7 +88,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.timeout.Stop()
 				b.timeout = nil
 				if now.Sub(*b.hit) > b.duration {
-					b.emitTimeout("hit but too late")
+					b.emitTimeout()
 				} else {
 					b.emitPair(now, hitData)
 				}
@@ -115,12 +115,11 @@ func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
 }
 
 // emitTimeout emits the event for a pairing timeout.
-func (b *pairBehavior) emitTimeout(debug string) {
+func (b *pairBehavior) emitTimeout() {
 	b.cell.EmitNew(EventPairTimeoutTopic, cells.PayloadValues{
 		EventPairFirstTimePayload: *b.hit,
 		EventPairFirstDataPayload: b.hitData,
 		EventPairTimeoutPayload:   time.Now(),
-		"debug":                   debug,
 	})
 	b.hit = nil
 }

@@ -62,14 +62,12 @@ func TestPairBehavior(t *testing.T) {
 	env.Subscribe("positive-filter", "positive-collector")
 	env.Subscribe("negative-filter", "negative-collector")
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 5000; i++ {
 		topic := generator.OneStringOf(topics...)
 		env.EmitNew("pairer", topic, nil)
 		pause := time.Duration(generator.OneIntOf(0, 1, 2)) * time.Millisecond
 		time.Sleep(pause)
 	}
-
-	time.Sleep(10 * time.Millisecond)
 
 	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
@@ -92,15 +90,12 @@ func TestPairBehavior(t *testing.T) {
 	assert.True(len(events) >= 1)
 	assert.Logf("Negative Events: %d", len(events))
 
-	for i, event := range events {
+	for _, event := range events {
 		first, ok := event.Payload.GetTime(behaviors.EventPairFirstTimePayload)
 		assert.True(ok)
 		timeout, ok := event.Payload.GetTime(behaviors.EventPairTimeoutPayload)
 		assert.True(ok)
-		debug, ok := event.Payload.GetString("debug")
-		assert.True(ok)
 		difference := timeout.Sub(first)
-		assert.Logf("I = %d / D = %v / REASON = %v", i, difference, debug)
 		assert.True(difference > duration)
 	}
 }
