@@ -22,7 +22,10 @@ import (
 //--------------------
 
 // PairCriterion is used by the pair behavior and has to return true, if
-// the passed event matches a criterion for rate measuring.
+// the passed event matches a criterion for rate measuring. The returned
+// data in case of a first hit is stored and then passed as argument to
+// each further call of the pair criterion. In case of a pair event both
+// returned datas are part of the emitted event payload.
 type PairCriterion func(event cells.Event, hitData interface{}) (interface{}, bool)
 
 // pairBehavior checks if events occur in pairs.
@@ -35,7 +38,12 @@ type pairBehavior struct {
 	timeout  *time.Timer
 }
 
-// NewPairBehavior creates ...
+// NewPairBehavior creates a behavior checking if two events match a criterion
+// defined by the PairCriterion function and the duration between them is not
+// longer than the passed duration. In case of a positive pair match an according
+// event containing both timestamps and both returned datas is emitted. In case
+// of a timeout a timeout event is emitted. It's payload is the first timestamp,
+// the first data, and the timestamp of the timeout.
 func NewPairBehavior(matches PairCriterion, duration time.Duration) cells.Behavior {
 	return &pairBehavior{
 		cell:     nil,

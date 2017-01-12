@@ -11,7 +11,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-01-08
+Version 6.0.0-beta.2017-01-12
 
 ## Packages
 
@@ -81,10 +81,15 @@ received event and returns a new mapped one.
 
 ### Pair
 
-The rate behavior checks if two events fitting a criterion defined by
-a user function with the signature `func(event cells.Event) bool` happen
-during a defined duration. If the second event is in time a positive
-pair event is emitted, otherwise a negative pair event.
+The rate behavior checks if two events match a criterion defined by
+a user function with the signature `func(event cells.Event, hitData interface{}) (interface{}, bool)` 
+happen during a defined duration. If the second event is in time a positive
+pair event is emitted, otherwise a timeout pair event.
+
+The returned data in case of a positive first hit is passed to each future
+call of the match function allowing it to make its decision depending on
+this data. The payload of a pair event contains both timestamps and both
+returned data.
 
 ### Rate
 
