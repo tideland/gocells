@@ -25,7 +25,7 @@ import (
 // TESTS
 //--------------------
 
-// TestPairBehavior tests the event rate behavior.
+// TestPairBehavior tests the event pair behavior.
 func TestPairBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	generator := audit.NewGenerator(audit.FixedRand())

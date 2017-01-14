@@ -70,9 +70,14 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 				// Collected timestamps are full, check duration.
 				firstRaw, _ := b.timestamps.Peek()
 				first := firstRaw.(time.Time)
-				if first.Sub(current) <= b.duration {
+				difference := current.Sub(first)
+				if difference <= b.duration {
 					// We've got a burst!
-					// TODO Mue 2017-01-13 Add event emitting.
+					b.cell.EmitNew(EventRateWindowTopic, cells.PayloadValues{
+						EventRateWindowCountPayload:     b.count,
+						EventRateWindowFirstTimePayload: first,
+						EventRateWindowLastTimePayload:  current,
+					})
 				}
 			}
 		}
