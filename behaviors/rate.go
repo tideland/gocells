@@ -43,18 +43,18 @@ func NewRateBehavior(matches RateCriterion, count int) cells.Behavior {
 	return &rateBehavior{nil, matches, count, time.Now(), []time.Duration{}}
 }
 
-// Init the behavior.
+// Init implements the cells.Behavior interface.
 func (b *rateBehavior) Init(c cells.Cell) error {
 	b.cell = c
 	return nil
 }
 
-// Terminate the behavior.
+// Terminate implements the cells.Behavior interface.
 func (b *rateBehavior) Terminate() error {
 	return nil
 }
 
-// ProcessEvent collects and re-emits events.
+// ProcessEvent implements the cells.Behavior interface.
 func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
@@ -94,7 +94,7 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 	return nil
 }
 
-// Recover from an error.
+// Recover implements the cells.Behavior interface.
 func (b *rateBehavior) Recover(err interface{}) error {
 	b.last = time.Now()
 	b.durations = []time.Duration{}

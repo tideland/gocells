@@ -55,18 +55,18 @@ func NewPairBehavior(matches PairCriterion, duration time.Duration) cells.Behavi
 	}
 }
 
-// Init the behavior.
+// Init implements the cells.Behavior interface.
 func (b *pairBehavior) Init(c cells.Cell) error {
 	b.cell = c
 	return nil
 }
 
-// Terminate the behavior.
+// Terminate implements the cells.Behavior interface.
 func (b *pairBehavior) Terminate() error {
 	return nil
 }
 
-// ProcessEvent collects and re-emits events.
+// ProcessEvent implements the cells.Behavior interface.
 func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case EventPairTimeoutTopic:
@@ -106,7 +106,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	return nil
 }
 
-// Recover from an error.
+// Recover implements the cells.Behavior interface.
 func (b *pairBehavior) Recover(err interface{}) error {
 	return nil
 }
