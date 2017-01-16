@@ -35,8 +35,9 @@ func TestRateWindowBehavior(t *testing.T) {
 	matches := func(event cells.Event) bool {
 		return event.Topic() == "now"
 	}
-	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
-	duration := 10 * time.Millisecond
+	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	interestingTopics := []string{"a", "b", "c", "d", "now"}
+	duration := 25 * time.Millisecond
 
 	env.StartCell("windower", behaviors.NewRateWindowBehavior(matches, 5, duration))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(100))
@@ -45,13 +46,13 @@ func TestRateWindowBehavior(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		// Slow loop.
 		for j := 0; j < 100; j++ {
-			topic := generator.OneStringOf(topics...)
+			topic := generator.OneStringOf(boringTopics...)
 			env.EmitNew("windower", topic, nil)
 			time.Sleep(1)
 		}
 		// Fast loop.
-		for j := 0; j < 100; j++ {
-			topic := generator.OneStringOf(topics...)
+		for j := 0; j < 10; j++ {
+			topic := generator.OneStringOf(interestingTopics...)
 			env.EmitNew("windower", topic, nil)
 		}
 	}

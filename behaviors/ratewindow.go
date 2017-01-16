@@ -35,8 +35,11 @@ type rateWindowBehavior struct {
 	timestamps collections.RingBuffer
 }
 
-// NewRateWindowBehavior ...
-// A "reset!" as topic resets the collected timestamps.
+// NewRateWindowBehavior creates an event rate window behavior. It checks
+// if an event matches the passed criterion. If count events match during
+// duration an according event containing the first time, the last time,
+// and the number of matches is emitted. A "reset!" as topic resets the
+// collected matches.
 func NewRateWindowBehavior(matches RateWindowCriterion, count int, duration time.Duration) cells.Behavior {
 	return &rateWindowBehavior{
 		matches:    matches,

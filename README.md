@@ -11,7 +11,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-01-12
+Version 6.0.0-beta.2017-01-16
 
 ## Packages
 
@@ -97,6 +97,14 @@ The rate behavior measures the time between two events fitting a criterion
 defined by a user function with the signature `func(event cells.Event) bool`.
 The time, the duration, and the lowest, highest, and average duration during
 a defined number of fitting events is emitted each time.
+
+### Rate Window
+
+The rate window behavior checks if an event matches a given criterion defined
+by a user function with the signature `func(event cells.Event) bool`. If a
+defined number of events match during a defined timespan an event is emitted.
+It contains the first and the last time as well as the number of matches.
+This way bursts of events can be detected.
 
 ### Round Robin
 
