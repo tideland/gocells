@@ -19,21 +19,6 @@ import (
 // COLLECTOR BEHAVIOR
 //--------------------
 
-// EventData represents the pure collected event data.
-type EventData struct {
-	Topic   string
-	Payload cells.Payload
-}
-
-// newEventData returns the passed event as event data to collect.
-func newEventData(event cells.Event) EventData {
-	data := EventData{
-		Topic:   event.Topic(),
-		Payload: event.Payload(),
-	}
-	return data
-}
-
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
 	cell      cells.Cell
