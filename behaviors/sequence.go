@@ -22,20 +22,20 @@ import "github.com/tideland/gocells/cells"
 // The collected events help the criterion to decide, if the new one
 // is a matching one. The second bool signals if a sequence is full and
 // and event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected *EventDatas) (bool, bool)
+type SequenceCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	events  *EventDatas
+	events  *cells.EventDatas
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It ...
 func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
 	return &sequenceBehavior{
 		matches: matches,
-		events:  NewEventDatas(0),
+		events:  cells.NewEventDatas(0),
 	}
 }
 
@@ -68,7 +68,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
 				EventSequenceEventsPayload: b.events,
 			})
-			b.events = NewEventDatas(0)
+			b.events = cells.NewEventDatas(0)
 		}
 	}
 	return nil

@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Unit Tests - Callback
 //
-// Copyright (C) 2010-2016 Frank Mueller / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
