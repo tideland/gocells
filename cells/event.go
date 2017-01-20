@@ -1,6 +1,6 @@
 // Tideland Go Cells - Event
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -314,6 +314,132 @@ func (e *event) String() string {
 		return fmt.Sprintf("<event: %q>", e.topic)
 	}
 	return fmt.Sprintf("<topic: %q / payload: %v>", e.topic, e.payload)
+}
+
+//--------------------
+// EVENT DATA
+//--------------------
+
+// EventData represents the pure collected event data. To
+// be used in behaviors.
+type EventData struct {
+	Timestamp time.Time
+	Topic     string
+	Payload   Payload
+}
+
+// newEventData returns the passed event as event data to collect.
+func newEventData(event Event) EventData {
+	data := EventData{
+		Timestamp: time.Now(),
+		Topic:     event.Topic(),
+		Payload:   event.Payload(),
+	}
+	return data
+}
+
+// EventDatas stores a number of event datas. To be used
+// in behaviors.
+type EventDatas struct {
+	max   int
+	datas []*EventData
+}
+
+// NewEventDatas creates a store for event datas.
+func NewEventDatas(max int) *EventDatas {
+	return &EventDatas{
+		max: max,
+	}
+}
+
+// Add adds a new event data based on the passed event.
+func (d *EventDatas) Add(event Event) *EventData {
+	data := &EventData{
+		Timestamp: time.Now(),
+		Topic:     event.Topic(),
+		Payload:   event.Payload(),
+	}
+	d.datas = append(d.datas, data)
+	if d.max > 0 && len(d.datas) > d.max {
+		d.datas = d.datas[1:]
+	}
+	return data
+}
+
+// Len returns the number of stored event datas.
+func (d *EventDatas) Len() int {
+	return len(d.datas)
+}
+
+// First returns the first of the collected event datas.
+func (d *EventDatas) First() (*EventData, bool) {
+	if len(d.datas) < 1 {
+		return nil, false
+	}
+	return d.datas[0], true
+}
+
+// Last returns the last of the collected event datas.
+func (d *EventDatas) Last() (*EventData, bool) {
+	if len(d.datas) < 1 {
+		return nil, false
+	}
+	return d.datas[len(d.datas)-1], true
+}
+
+// TimestampAt returns the collected timestamp at a given index.
+func (d *EventDatas) TimestampAt(index int) (time.Time, bool) {
+	if index < 0 || index > len(d.datas)-1 {
+		return time.Time{}, false
+	}
+	return d.datas[index].Timestamp, true
+}
+
+// TopicAt returns the collected topic at a given index.
+func (d *EventDatas) TopicAt(index int) (string, bool) {
+	if index < 0 || index > len(d.datas)-1 {
+		return "", false
+	}
+	return d.datas[index].Topic, true
+}
+
+// PayloadAt returns the collected payload at a given index.
+func (d *EventDatas) PayloadAt(index int) (Payload, bool) {
+	if index < 0 || index > len(d.datas)-1 {
+		return nil, false
+	}
+	return d.datas[index].Payload, true
+}
+
+// Do iterates over all collected event datas.
+func (d *EventDatas) Do(doer func(index int, data *EventData) error) error {
+	for index, data := range d.datas {
+		if err := doer(index, data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Match checks if all event datas match the passed criterion.
+func (d *EventDatas) Match(matcher func(index int, data *EventData) (bool, error)) (bool, error) {
+	match := true
+	doer := func(mindex int, mdata *EventData) error {
+		ok, err := matcher(mindex, mdata)
+		if err != nil {
+			match = false
+			return err
+		}
+		match = match && ok
+		return nil
+	}
+	err := d.Do(doer)
+	return match, err
+}
+
+// Clear removes all collected event datas.
+func (d *EventDatas) Clear() {
+	d.datas = nil
 }
 
 // EOF

@@ -71,12 +71,12 @@ func TestPairBehavior(t *testing.T) {
 
 	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(*behaviors.EventDatas)
+	events, ok := collected.(*cells.EventDatas)
 	assert.True(ok)
 	assert.True(events.Len() >= 1)
 	assert.Logf("Positive Events: %d", events.Len())
 
-	err = events.Do(func(index int, data *behaviors.EventData) error {
+	err = events.Do(func(index int, data *cells.EventData) error {
 		first, ok := data.Payload.GetTime(behaviors.EventPairFirstTimePayload)
 		assert.True(ok)
 		second, ok := data.Payload.GetTime(behaviors.EventPairSecondTimePayload)
@@ -88,12 +88,12 @@ func TestPairBehavior(t *testing.T) {
 
 	collected, err = env.Request("negative-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok = collected.(*behaviors.EventDatas)
+	events, ok = collected.(*cells.EventDatas)
 	assert.True(ok)
 	assert.True(events.Len() >= 1)
 	assert.Logf("Positive Events: %d", events.Len())
 
-	err = events.Do(func(index int, data *behaviors.EventData) error {
+	err = events.Do(func(index int, data *cells.EventData) error {
 		first, ok := data.Payload.GetTime(behaviors.EventPairFirstTimePayload)
 		assert.True(ok)
 		timeout, ok := data.Payload.GetTime(behaviors.EventPairTimeoutPayload)

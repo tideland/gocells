@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Collector
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -23,7 +23,7 @@ import (
 type collectorBehavior struct {
 	cell      cells.Cell
 	max       int
-	collected *EventDatas
+	collected *cells.EventDatas
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
@@ -35,7 +35,7 @@ type collectorBehavior struct {
 func NewCollectorBehavior(max int) cells.Behavior {
 	return &collectorBehavior{
 		max:       max,
-		collected: NewEventDatas(max),
+		collected: cells.NewEventDatas(max),
 	}
 }
 
@@ -57,9 +57,9 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		if err := event.Respond(b.collected); err != nil {
 			return err
 		}
-		b.collected = NewEventDatas(b.max)
+		b.collected = cells.NewEventDatas(b.max)
 	case cells.ResetTopic:
-		b.collected = NewEventDatas(b.max)
+		b.collected = cells.NewEventDatas(b.max)
 	default:
 		b.collected.Add(event)
 		b.cell.Emit(event)
@@ -69,7 +69,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *collectorBehavior) Recover(err interface{}) error {
-	b.collected = NewEventDatas(b.max)
+	b.collected = cells.NewEventDatas(b.max)
 	return nil
 }
 

@@ -49,10 +49,10 @@ func TestRateBehavior(t *testing.T) {
 
 	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(*behaviors.EventDatas)
+	events, ok := collected.(*cells.EventDatas)
 	assert.True(ok)
 	assert.True(events.Len() <= 10000)
-	err = events.Do(func(index int, data *behaviors.EventData) error {
+	err = events.Do(func(index int, data *cells.EventData) error {
 		assert.Equal(data.Topic, "event-rate!")
 		hi, ok := data.Payload.GetDuration(behaviors.EventRateHighPayload)
 		assert.True(ok)

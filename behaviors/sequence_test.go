@@ -32,9 +32,9 @@ func TestSequenceBehavior(t *testing.T) {
 	env := cells.NewEnvironment("sequence-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event, datas *behaviors.EventDatas) (bool, bool) {
-		sequence := []string{"a", "e", "now"}
-		matcher := func(index int, data *behaviors.EventData) (bool, error) {
+	sequence := []string{"a", "b", "now"}
+	matches := func(event cells.Event, datas *cells.EventDatas) (bool, bool) {
+		matcher := func(index int, data *cells.EventData) (bool, error) {
 			ok := data.Topic == sequence[index]
 			return ok, nil
 		}
@@ -47,13 +47,13 @@ func TestSequenceBehavior(t *testing.T) {
 		}
 		return true, false
 	}
-	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
+	topics := []string{"a", "b", "c", "d", "now"}
 
 	env.StartCell("sequencer", behaviors.NewSequenceBehavior(matches))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
 	env.Subscribe("sequencer", "collector")
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		topic := generator.OneStringOf(topics...)
 		env.EmitNew("sequencer", topic, nil)
 		generator.SleepOneOf(0, 1*time.Millisecond, 2*time.Millisecond)
@@ -61,18 +61,21 @@ func TestSequenceBehavior(t *testing.T) {
 
 	collectedRaw, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	collected, ok := collectedRaw.(*behaviors.EventDatas)
+	collected, ok := collectedRaw.(*cells.EventDatas)
 	assert.True(ok)
 	assert.True(collected.Len() > 0)
 	assert.Logf("Collected Sequences: %d", collected.Len())
-	err = collected.Do(func(index int, data *behaviors.EventData) error {
+	err = collected.Do(func(index int, data *cells.EventData) error {
 		assert.Equal(data.Topic, behaviors.EventSequenceTopic)
-		sequenceRaw, ok := data.Payload.Get(behaviors.EventSequenceEventsPayload)
+		csequenceRaw, ok := data.Payload.Get(behaviors.EventSequenceEventsPayload)
 		assert.True(ok)
-		sequence, ok := sequenceRaw.(*behaviors.EventDatas)
+		csequence, ok := csequenceRaw.(*cells.EventDatas)
 		assert.True(ok)
-		assert.Length(sequence, 3)
-		return nil
+		assert.Length(csequence, 3)
+		return csequence.Do(func(cindex int, cdata *cells.EventData) error {
+			assert.Equal(cdata.Topic, sequence[cindex])
+			return nil
+		})
 	})
 	assert.Nil(err)
 }
