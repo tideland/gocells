@@ -32,20 +32,20 @@ func TestSequenceBehavior(t *testing.T) {
 	env := cells.NewEnvironment("sequence-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event, events *behaviors.EventDatas) (bool, bool) {
-		switch event.Topic() {
-		case "c":
-			return events.Len() == 0, false
-		case "d":
-			last, _ := events.Last()
-			return events.Len() == 1 && last.Topic == "c", false
-		case "e":
-			last, _ := events.Last()
-			if events.Len() == 2 && last.Topic == "d" {
-				return true, true
-			}
+	matches := func(event cells.Event, datas *behaviors.EventDatas) (bool, bool) {
+		sequence := []string{"a", "e", "now"}
+		matcher := func(index int, data *behaviors.EventData) (bool, error) {
+			ok := data.Topic == sequence[index]
+			return ok, nil
 		}
-		return false, false
+		matches, err := datas.Match(matcher)
+		if err != nil || !matches {
+			return false, false
+		}
+		if datas.Len() == len(sequence)-1 && event.Topic() == sequence[len(sequence)-1] {
+			return true, true
+		}
+		return true, false
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
@@ -56,17 +56,22 @@ func TestSequenceBehavior(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		topic := generator.OneStringOf(topics...)
 		env.EmitNew("sequencer", topic, nil)
-		generator.SleepOneOf(1*time.Millisecond, 2*time.Millisecond, 3*time.Millisecond)
+		generator.SleepOneOf(0, 1*time.Millisecond, 2*time.Millisecond)
 	}
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	collectedRaw, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(*behaviors.EventDatas)
+	collected, ok := collectedRaw.(*behaviors.EventDatas)
 	assert.True(ok)
-	assert.True(events.Len() <= 10000)
-	assert.Logf("Sequences: %d", events.Len())
-	err = events.Do(func(index int, data *behaviors.EventData) error {
+	assert.True(collected.Len() > 0)
+	assert.Logf("Collected Sequences: %d", collected.Len())
+	err = collected.Do(func(index int, data *behaviors.EventData) error {
 		assert.Equal(data.Topic, behaviors.EventSequenceTopic)
+		sequenceRaw, ok := data.Payload.Get(behaviors.EventSequenceEventsPayload)
+		assert.True(ok)
+		sequence, ok := sequenceRaw.(*behaviors.EventDatas)
+		assert.True(ok)
+		assert.Length(sequence, 3)
 		return nil
 	})
 	assert.Nil(err)
