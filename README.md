@@ -111,6 +111,17 @@ This way bursts of events can be detected.
 The round robin behavior distributes each received event round robin
 to its subscribers. It can be used for load balancing.
 
+### Sequence
+
+The sequence behavior checks the event stream for a sequence defined
+by the criterion function with the signature
+`func(event cells.Event, collected *cells.EventDatas) (bool, bool)`.
+Here `event` is the current event, `collected` the so far collected
+matching events. If the current event is matching the first returned
+bool has to be true, if all are collected the second one has to be
+true too. In this case an event containing the collected events will
+be emitted.
+
 ### Simple Processor
 
 The simple behavior is created with a simple event processing function.
