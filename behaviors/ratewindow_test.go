@@ -59,21 +59,24 @@ func TestRateWindowBehavior(t *testing.T) {
 
 	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events := collected.([]behaviors.EventData)
-	assert.Logf("Window Events: %d", len(events))
-	assert.True(len(events) >= 1)
+	events, ok := collected.(*behaviors.EventDatas)
+	assert.True(ok)
+	assert.Logf("Window Events: %d", events.Len())
+	assert.True(events.Len() >= 1)
 
-	for _, event := range events {
-		count, ok := event.Payload.GetInt(behaviors.EventRateWindowCountPayload)
+	err = events.Do(func(index int, data *behaviors.EventData) error {
+		count, ok := data.Payload.GetInt(behaviors.EventRateWindowCountPayload)
 		assert.True(ok)
 		assert.Equal(count, 5)
-		first, ok := event.Payload.GetTime(behaviors.EventRateWindowFirstTimePayload)
+		first, ok := data.Payload.GetTime(behaviors.EventRateWindowFirstTimePayload)
 		assert.True(ok)
-		last, ok := event.Payload.GetTime(behaviors.EventRateWindowLastTimePayload)
+		last, ok := data.Payload.GetTime(behaviors.EventRateWindowLastTimePayload)
 		assert.True(ok)
 		difference := last.Sub(first)
 		assert.True(difference <= duration)
-	}
+		return nil
+	})
+	assert.Nil(err)
 }
 
 // EOF

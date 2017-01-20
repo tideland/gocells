@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Unit Tests - Round-Robin
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -52,9 +52,10 @@ func TestRoundRobinBehavior(t *testing.T) {
 	test := func(id string) int {
 		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout)
 		assert.Nil(err)
-		l := len(collected.([]behaviors.EventData))
-		assert.Equal(l, 5)
-		return l
+		events, ok := collected.(*behaviors.EventDatas)
+		assert.True(ok)
+		assert.Length(events, 5)
+		return events.Len()
 	}
 
 	l1 := test("round-robin-1")

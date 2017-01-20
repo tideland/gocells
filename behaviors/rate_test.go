@@ -49,19 +49,22 @@ func TestRateBehavior(t *testing.T) {
 
 	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events := collected.([]behaviors.EventData)
-	assert.True(len(events) <= 10000)
-	for _, event := range events {
-		assert.Equal(event.Topic, "event-rate!")
-		hi, ok := event.Payload.GetDuration(behaviors.EventRateHighPayload)
+	events, ok := collected.(*behaviors.EventDatas)
+	assert.True(ok)
+	assert.True(events.Len() <= 10000)
+	err = events.Do(func(index int, data *behaviors.EventData) error {
+		assert.Equal(data.Topic, "event-rate!")
+		hi, ok := data.Payload.GetDuration(behaviors.EventRateHighPayload)
 		assert.True(ok)
-		avg, ok := event.Payload.GetDuration(behaviors.EventRateAveragePayload)
+		avg, ok := data.Payload.GetDuration(behaviors.EventRateAveragePayload)
 		assert.True(ok)
-		lo, ok := event.Payload.GetDuration(behaviors.EventRateLowPayload)
+		lo, ok := data.Payload.GetDuration(behaviors.EventRateLowPayload)
 		assert.True(ok)
 		assert.True(lo <= avg)
 		assert.True(avg <= hi)
-	}
+		return nil
+	})
+	assert.Nil(err)
 }
 
 // EOF
