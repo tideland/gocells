@@ -71,33 +71,38 @@ func TestPairBehavior(t *testing.T) {
 
 	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events := collected.([]behaviors.EventData)
-	assert.True(len(events) >= 1)
-	assert.Logf("Positive Events: %d", len(events))
+	events, ok := collected.(*behaviors.EventDatas)
+	assert.True(ok)
+	assert.True(events.Len() >= 1)
+	assert.Logf("Positive Events: %d", events.Len())
 
-	for _, event := range events {
-		first, ok := event.Payload.GetTime(behaviors.EventPairFirstTimePayload)
+	err = events.Do(func(index int, data *behaviors.EventData) error {
+		first, ok := data.Payload.GetTime(behaviors.EventPairFirstTimePayload)
 		assert.True(ok)
-		second, ok := event.Payload.GetTime(behaviors.EventPairSecondTimePayload)
+		second, ok := data.Payload.GetTime(behaviors.EventPairSecondTimePayload)
 		assert.True(ok)
 		difference := second.Sub(first)
 		assert.True(difference <= duration)
-	}
+		return nil
+	})
 
 	collected, err = env.Request("negative-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events = collected.([]behaviors.EventData)
-	assert.True(len(events) >= 1)
-	assert.Logf("Negative Events: %d", len(events))
+	events, ok = collected.(*behaviors.EventDatas)
+	assert.True(ok)
+	assert.True(events.Len() >= 1)
+	assert.Logf("Positive Events: %d", events.Len())
 
-	for _, event := range events {
-		first, ok := event.Payload.GetTime(behaviors.EventPairFirstTimePayload)
+	err = events.Do(func(index int, data *behaviors.EventData) error {
+		first, ok := data.Payload.GetTime(behaviors.EventPairFirstTimePayload)
 		assert.True(ok)
-		timeout, ok := event.Payload.GetTime(behaviors.EventPairTimeoutPayload)
+		timeout, ok := data.Payload.GetTime(behaviors.EventPairTimeoutPayload)
 		assert.True(ok)
 		difference := timeout.Sub(first)
 		assert.True(difference > duration)
-	}
+		return nil
+	})
+	assert.Nil(err)
 }
 
 // EOF
