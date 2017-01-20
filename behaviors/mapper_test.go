@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Unit Tests - Mapper
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -30,9 +30,9 @@ import (
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	assertPayload := func(collected interface{}, index int, value string) {
-		eventData, ok := collected.([]behaviors.EventData)
+		eventDatas, ok := collected.(*cells.EventDatas)
 		assert.True(ok)
-		payload, ok := eventData[index].Payload.(cells.Payload)
+		payload, ok := eventDatas.PayloadAt(index)
 		assert.True(ok)
 		upperText, ok := payload.Get("upper-text")
 		assert.True(ok)
