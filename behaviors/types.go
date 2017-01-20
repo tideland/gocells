@@ -111,13 +111,29 @@ func (d *EventDatas) PayloadAt(index int) (cells.Payload, bool) {
 }
 
 // Do iterates over all collected event datas.
-func (d *EventDatas) Do(f func(index int, data *EventData) error) error {
+func (d *EventDatas) Do(doer func(index int, data *EventData) error) error {
 	for index, data := range d.datas {
-		if err := f(index, data); err != nil {
+		if err := doer(index, data); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// Match checks if all event datas match the passed criterion.
+func (d *EventDatas) Match(matcher func(index int, data *EventData) (bool, error)) (bool, error) {
+	match := true
+	doer := func(mindex int, mdata *EventData) error {
+		ok, err := matcher(mindex, mdata)
+		if err != nil {
+			match = false
+			return err
+		}
+		match = match && ok
+		return nil
+	}
+	err := d.Do(doer)
+	return match, err
 }
 
 // Clear removes all collected event datas.
