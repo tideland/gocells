@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Collector
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -19,26 +19,11 @@ import (
 // COLLECTOR BEHAVIOR
 //--------------------
 
-// EventData represents the pure collected event data.
-type EventData struct {
-	Topic   string
-	Payload cells.Payload
-}
-
-// newEventData returns the passed event as event data to collect.
-func newEventData(event cells.Event) EventData {
-	data := EventData{
-		Topic:   event.Topic(),
-		Payload: event.Payload(),
-	}
-	return data
-}
-
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
 	cell      cells.Cell
 	max       int
-	collected []EventData
+	collected *cells.EventDatas
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
@@ -48,7 +33,10 @@ type collectorBehavior struct {
 // the events payload. Additionally the collection can be resetted with
 // "reset!".
 func NewCollectorBehavior(max int) cells.Behavior {
-	return &collectorBehavior{nil, max, []EventData{}}
+	return &collectorBehavior{
+		max:       max,
+		collected: cells.NewEventDatas(max),
+	}
 }
 
 // Init the behavior.
@@ -66,18 +54,14 @@ func (b *collectorBehavior) Terminate() error {
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CollectedTopic:
-		response := make([]EventData, len(b.collected))
-		copy(response, b.collected)
-		if err := event.Respond(response); err != nil {
+		if err := event.Respond(b.collected); err != nil {
 			return err
 		}
+		b.collected = cells.NewEventDatas(b.max)
 	case cells.ResetTopic:
-		b.collected = []EventData{}
+		b.collected = cells.NewEventDatas(b.max)
 	default:
-		b.collected = append(b.collected, newEventData(event))
-		if len(b.collected) > b.max {
-			b.collected = b.collected[1:]
-		}
+		b.collected.Add(event)
 		b.cell.Emit(event)
 	}
 	return nil
@@ -85,6 +69,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *collectorBehavior) Recover(err interface{}) error {
+	b.collected = cells.NewEventDatas(b.max)
 	return nil
 }
 

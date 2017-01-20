@@ -1,6 +1,6 @@
 // Tideland Go Cells
 //
-// Copyright (C) 2010-2016 Frank Mueller / Tideland / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -76,7 +76,7 @@ import (
 
 // Version returns the version of the cells package.
 func Version() version.Version {
-	return version.New(6, 0, 0, "beta", "2016-10-23")
+	return version.New(6, 0, 0, "beta", "2017-10-23")
 }
 
 // EOF

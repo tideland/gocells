@@ -21,6 +21,7 @@ const (
 	EventPairTimeoutTopic  = "event-pair-timeout!"
 	EventRateTopic         = "event-rate!"
 	EventRateWindowTopic   = "event-rate-window!"
+	EventSequenceTopic     = "event-sequence!"
 
 	ConfigurationFilenamePayload    = "configuration:filename"
 	ConfigurationPayload            = "configuration"
@@ -39,6 +40,7 @@ const (
 	EventRateWindowCountPayload     = "event-rate-window:count"
 	EventRateWindowFirstTimePayload = "event-rate-window:first:time"
 	EventRateWindowLastTimePayload  = "event-rate-window:last:time"
+	EventSequenceEventsPayload      = "event-sequence:events"
 )
 
 // EOF
