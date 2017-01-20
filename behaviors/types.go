@@ -120,4 +120,9 @@ func (d *EventDatas) Do(f func(index int, data *EventData) error) error {
 	return nil
 }
 
+// Clear removes all collected event datas.
+func (d *EventDatas) Clear() {
+	d.datas = nil
+}
+
 // EOF

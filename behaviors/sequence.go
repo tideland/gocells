@@ -22,19 +22,20 @@ import "github.com/tideland/gocells/cells"
 // The collected events help the criterion to decide, if the new one
 // is a matching one. The second bool signals if a sequence is full and
 // and event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected []EventData) (bool, bool)
+type SequenceCriterion func(event cells.Event, collected *EventDatas) (bool, bool)
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	events  []EventData
+	events  *EventDatas
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It ...
 func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
 	return &sequenceBehavior{
 		matches: matches,
+		events:  NewEventDatas(0),
 	}
 }
 
@@ -53,21 +54,21 @@ func (b *sequenceBehavior) Terminate() error {
 func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
-		b.events = nil
+		b.events.Clear()
 	default:
 		matches, done := b.matches(event, b.events)
 		if !matches {
 			// No match, so reset.
-			b.events = nil
+			b.events.Clear()
 			return nil
 		}
-		b.events = append(b.events, newEventData(event))
+		b.events.Add(event)
 		if done {
 			// All matches collected.
 			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
 				EventSequenceEventsPayload: b.events,
 			})
-			b.events = nil
+			b.events = NewEventDatas(0)
 		}
 	}
 	return nil
@@ -75,7 +76,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover implements the cells.Behavior interface.
 func (b *sequenceBehavior) Recover(err interface{}) error {
-	b.events = nil
+	b.events.Clear()
 	return nil
 }
 
