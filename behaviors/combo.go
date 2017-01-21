@@ -1,4 +1,4 @@
-// Tideland Go Cells - Behaviors - Sequence
+// Tideland Go Cells - Behaviors - Combo
 //
 // Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
@@ -19,43 +19,43 @@ import (
 // SEQUENCE BEHAVIOR
 //--------------------
 
-// SequenceCriterion is used by the sequence behavior and has to return
-// true, if the passed event matches a criterion for sequence monitoring.
+// ComboCriterion is used by the combo behavior and has to return
+// true, if the passed event matches a criterion for combo measuring.
 // The collected events help the criterion to decide, if the new one
-// is a matching one. The second bool signals if a sequence is full and
+// is a matching one. The second bool signals if a combo is full and
 // and an event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
+type ComboCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
 
-// sequenceBehavior implements the sequence behavior.
-type sequenceBehavior struct {
+// comboBehavior implements the combo behavior.
+type comboBehavior struct {
 	cell    cells.Cell
-	matches SequenceCriterion
+	matches ComboCriterion
 	events  *cells.EventDatas
 }
 
-// NewSequenceBehavior creates an event sequence behavior. It checks the
-// event stream for a sequence defined by the criterion. In this case an
-// event containing the sequence is emitted.
-func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
-	return &sequenceBehavior{
+// NewComboBehavior creates an event sequence behavior. It checks the
+// event stream for a combination of events defined by the criterion. In
+// this case an event containing the combination is emitted.
+func NewComboBehavior(matches ComboCriterion) cells.Behavior {
+	return &comboBehavior{
 		matches: matches,
 		events:  cells.NewEventDatas(0),
 	}
 }
 
 // Init implements the cells.Behavior interface.
-func (b *sequenceBehavior) Init(c cells.Cell) error {
+func (b *comboBehavior) Init(c cells.Cell) error {
 	b.cell = c
 	return nil
 }
 
 // Terminate implements the cells.Behavior interface.
-func (b *sequenceBehavior) Terminate() error {
+func (b *comboBehavior) Terminate() error {
 	return nil
 }
 
 // ProcessEvent implements the cells.Behavior interface.
-func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
+func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
 		b.events.Clear()
@@ -79,7 +79,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 }
 
 // Recover implements the cells.Behavior interface.
-func (b *sequenceBehavior) Recover(err interface{}) error {
+func (b *comboBehavior) Recover(err interface{}) error {
 	b.events.Clear()
 	return nil
 }
