@@ -24,13 +24,13 @@ import (
 // The collected events help the criterion to decide, if the new one
 // is a matching one. The second bool signals if a sequence is full and
 // and an event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
+type SequenceCriterion func(event cells.Event, collected cells.EventDatas) (bool, bool)
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	events  *cells.EventDatas
+	events  cells.EventDatas
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It checks the

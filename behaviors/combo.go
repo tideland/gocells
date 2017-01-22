@@ -24,13 +24,13 @@ import (
 // The collected events help the criterion to decide, if the new one
 // is a matching one. The second bool signals if a combo is full and
 // and an event shall be emitted.
-type ComboCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
+type ComboCriterion func(event cells.Event, collected cells.EventDatas) (bool, bool)
 
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
 	cell    cells.Cell
 	matches ComboCriterion
-	events  *cells.EventDatas
+	events  cells.EventDatas
 }
 
 // NewComboBehavior creates an event sequence behavior. It checks the

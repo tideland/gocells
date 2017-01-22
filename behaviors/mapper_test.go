@@ -30,7 +30,7 @@ import (
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	assertPayload := func(collected interface{}, index int, value string) {
-		eventDatas, ok := collected.(*cells.EventDatas)
+		eventDatas, ok := collected.(cells.EventDatas)
 		assert.True(ok)
 		payload, ok := eventDatas.PayloadAt(index)
 		assert.True(ok)

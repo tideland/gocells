@@ -340,20 +340,53 @@ func newEventData(event Event) EventData {
 
 // EventDatas stores a number of event datas. To be used
 // in behaviors.
-type EventDatas struct {
+type EventDatas interface {
+	// Add adds a new event data based on the passed event.
+	Add(event Event) int
+
+	// Len returns the number of stored event datas.
+	Len() int
+
+	// First returns the first of the collected event datas.
+	First() (*EventData, bool)
+
+	// Last returns the last of the collected event datas.
+	Last() (*EventData, bool)
+
+	// TimestampAt returns the collected timestamp at a given index.
+	TimestampAt(index int) (time.Time, bool)
+
+	// TopicAt returns the collected topic at a given index.
+	TopicAt(index int) (string, bool)
+
+	// PayloadAt returns the collected payload at a given index.
+	PayloadAt(index int) (Payload, bool)
+
+	// Do iterates over all collected event datas.
+	Do(doer func(index int, data *EventData) error) error
+
+	// Match checks if all event datas match the passed criterion.
+	Match(matcher func(index int, data *EventData) (bool, error)) (bool, error)
+
+	// Clear removes all collected event datas.
+	Clear()
+}
+
+// eventDatas implements the EventDatas interface.
+type eventDatas struct {
 	max   int
 	datas []*EventData
 }
 
 // NewEventDatas creates a store for event datas.
-func NewEventDatas(max int) *EventDatas {
-	return &EventDatas{
+func NewEventDatas(max int) EventDatas {
+	return &eventDatas{
 		max: max,
 	}
 }
 
-// Add adds a new event data based on the passed event.
-func (d *EventDatas) Add(event Event) *EventData {
+// Add implements the EventDatas interface.
+func (d *eventDatas) Add(event Event) int {
 	data := &EventData{
 		Timestamp: time.Now(),
 		Topic:     event.Topic(),
@@ -363,56 +396,56 @@ func (d *EventDatas) Add(event Event) *EventData {
 	if d.max > 0 && len(d.datas) > d.max {
 		d.datas = d.datas[1:]
 	}
-	return data
-}
-
-// Len returns the number of stored event datas.
-func (d *EventDatas) Len() int {
 	return len(d.datas)
 }
 
-// First returns the first of the collected event datas.
-func (d *EventDatas) First() (*EventData, bool) {
+// Len implements the EventDatas interface.
+func (d *eventDatas) Len() int {
+	return len(d.datas)
+}
+
+// First implements the EventDatas interface.
+func (d *eventDatas) First() (*EventData, bool) {
 	if len(d.datas) < 1 {
 		return nil, false
 	}
 	return d.datas[0], true
 }
 
-// Last returns the last of the collected event datas.
-func (d *EventDatas) Last() (*EventData, bool) {
+// Last implements the EventDatas interface.
+func (d *eventDatas) Last() (*EventData, bool) {
 	if len(d.datas) < 1 {
 		return nil, false
 	}
 	return d.datas[len(d.datas)-1], true
 }
 
-// TimestampAt returns the collected timestamp at a given index.
-func (d *EventDatas) TimestampAt(index int) (time.Time, bool) {
+// TimestampAt implements the EventDatas interface.
+func (d *eventDatas) TimestampAt(index int) (time.Time, bool) {
 	if index < 0 || index > len(d.datas)-1 {
 		return time.Time{}, false
 	}
 	return d.datas[index].Timestamp, true
 }
 
-// TopicAt returns the collected topic at a given index.
-func (d *EventDatas) TopicAt(index int) (string, bool) {
+// TopicAt implements the EventDatas interface.
+func (d *eventDatas) TopicAt(index int) (string, bool) {
 	if index < 0 || index > len(d.datas)-1 {
 		return "", false
 	}
 	return d.datas[index].Topic, true
 }
 
-// PayloadAt returns the collected payload at a given index.
-func (d *EventDatas) PayloadAt(index int) (Payload, bool) {
+// PayloadAt implements the EventDatas interface.
+func (d *eventDatas) PayloadAt(index int) (Payload, bool) {
 	if index < 0 || index > len(d.datas)-1 {
 		return nil, false
 	}
 	return d.datas[index].Payload, true
 }
 
-// Do iterates over all collected event datas.
-func (d *EventDatas) Do(doer func(index int, data *EventData) error) error {
+// Do implements the EventDatas interface.
+func (d *eventDatas) Do(doer func(index int, data *EventData) error) error {
 	for index, data := range d.datas {
 		if err := doer(index, data); err != nil {
 			return err
@@ -421,8 +454,8 @@ func (d *EventDatas) Do(doer func(index int, data *EventData) error) error {
 	return nil
 }
 
-// Match checks if all event datas match the passed criterion.
-func (d *EventDatas) Match(matcher func(index int, data *EventData) (bool, error)) (bool, error) {
+// Match implements the EventDatas interface.
+func (d *eventDatas) Match(matcher func(index int, data *EventData) (bool, error)) (bool, error) {
 	match := true
 	doer := func(mindex int, mdata *EventData) error {
 		ok, err := matcher(mindex, mdata)
@@ -437,8 +470,8 @@ func (d *EventDatas) Match(matcher func(index int, data *EventData) (bool, error
 	return match, err
 }
 
-// Clear removes all collected event datas.
-func (d *EventDatas) Clear() {
+// Clear implements tne EventDatas interface.
+func (d *eventDatas) Clear() {
 	d.datas = nil
 }
 
