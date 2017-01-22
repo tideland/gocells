@@ -23,7 +23,7 @@ import (
 type collectorBehavior struct {
 	cell      cells.Cell
 	max       int
-	collected *cells.EventDatas
+	collected cells.EventDatas
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
@@ -59,7 +59,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		}
 		b.collected = cells.NewEventDatas(b.max)
 	case cells.ResetTopic:
-		b.collected = cells.NewEventDatas(b.max)
+		b.collected.Clear()
 	default:
 		b.collected.Add(event)
 		b.cell.Emit(event)
@@ -69,7 +69,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *collectorBehavior) Recover(err interface{}) error {
-	b.collected = cells.NewEventDatas(b.max)
+	b.collected.Clear()
 	return nil
 }
 

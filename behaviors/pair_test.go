@@ -71,7 +71,7 @@ func TestPairBehavior(t *testing.T) {
 
 	collected, err := env.Request("positive-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(*cells.EventDatas)
+	events, ok := collected.(cells.EventDatas)
 	assert.True(ok)
 	assert.True(events.Len() >= 1)
 	assert.Logf("Positive Events: %d", events.Len())
@@ -88,7 +88,7 @@ func TestPairBehavior(t *testing.T) {
 
 	collected, err = env.Request("negative-collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok = collected.(*cells.EventDatas)
+	events, ok = collected.(cells.EventDatas)
 	assert.True(ok)
 	assert.True(events.Len() >= 1)
 	assert.Logf("Positive Events: %d", events.Len())

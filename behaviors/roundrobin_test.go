@@ -52,7 +52,7 @@ func TestRoundRobinBehavior(t *testing.T) {
 	test := func(id string) int {
 		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout)
 		assert.Nil(err)
-		events, ok := collected.(*cells.EventDatas)
+		events, ok := collected.(cells.EventDatas)
 		assert.True(ok)
 		assert.Length(events, 5)
 		return events.Len()

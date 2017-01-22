@@ -33,7 +33,7 @@ func TestSequenceBehavior(t *testing.T) {
 	defer env.Stop()
 
 	sequence := []string{"a", "b", "now"}
-	matches := func(event cells.Event, datas *cells.EventDatas) (bool, bool) {
+	matches := func(event cells.Event, datas cells.EventDatas) (bool, bool) {
 		matcher := func(index int, data *cells.EventData) (bool, error) {
 			ok := data.Topic == sequence[index]
 			return ok, nil
@@ -61,7 +61,7 @@ func TestSequenceBehavior(t *testing.T) {
 
 	collectedRaw, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
 	assert.Nil(err)
-	collected, ok := collectedRaw.(*cells.EventDatas)
+	collected, ok := collectedRaw.(cells.EventDatas)
 	assert.True(ok)
 	assert.True(collected.Len() > 0)
 	assert.Logf("Collected Sequences: %d", collected.Len())
@@ -69,7 +69,7 @@ func TestSequenceBehavior(t *testing.T) {
 		assert.Equal(data.Topic, behaviors.EventSequenceTopic)
 		csequenceRaw, ok := data.Payload.Get(behaviors.EventSequenceEventsPayload)
 		assert.True(ok)
-		csequence, ok := csequenceRaw.(*cells.EventDatas)
+		csequence, ok := csequenceRaw.(cells.EventDatas)
 		assert.True(ok)
 		assert.Length(csequence, 3)
 		return csequence.Do(func(cindex int, cdata *cells.EventData) error {
