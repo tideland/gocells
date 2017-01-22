@@ -33,19 +33,19 @@ func TestSequenceBehavior(t *testing.T) {
 	defer env.Stop()
 
 	sequence := []string{"a", "b", "now"}
-	matches := func(event cells.Event, datas cells.EventDatas) (bool, bool) {
+	matches := func(events cells.EventDatas) behaviors.CriterionMatch {
 		matcher := func(index int, data *cells.EventData) (bool, error) {
 			ok := data.Topic == sequence[index]
 			return ok, nil
 		}
-		matches, err := datas.Match(matcher)
+		matches, err := events.Match(matcher)
 		if err != nil || !matches {
-			return false, false
+			return behaviors.CriterionFailed
 		}
-		if datas.Len() == len(sequence)-1 && event.Topic() == sequence[len(sequence)-1] {
-			return true, true
+		if events.Len() == len(sequence) {
+			return behaviors.CriterionDone
 		}
-		return true, false
+		return behaviors.CriterionPartly
 	}
 	topics := []string{"a", "b", "c", "d", "now"}
 

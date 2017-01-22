@@ -11,8 +11,16 @@ package behaviors
 // CONSTANTS
 //--------------------
 
-// Topics and payload keys.
+// CriterionMatch signals, how a criterion matches.
+type CriterionMatch int
+
 const (
+	// Criterion matches.
+	CriterionDone CriterionMatch = iota + 1
+	CriterionPartly
+	CriterionFailed
+
+	// Topics.
 	ResetTopic             = "reset!"
 	ReadConfigurationTopic = "read-configuration!"
 	ConfigurationTopic     = "configuration"
@@ -23,6 +31,7 @@ const (
 	EventRateWindowTopic   = "event-rate-window!"
 	EventSequenceTopic     = "event-sequence!"
 
+	// Payload keys.
 	ConfigurationFilenamePayload    = "configuration:filename"
 	ConfigurationPayload            = "configuration"
 	TickerIDPayload                 = "ticker:id"

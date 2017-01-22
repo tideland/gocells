@@ -20,11 +20,9 @@ import (
 //--------------------
 
 // SequenceCriterion is used by the sequence behavior and has to return
-// true, if the passed event matches a criterion for sequence monitoring.
-// The collected events help the criterion to decide, if the new one
-// is a matching one. The second bool signals if a sequence is full and
-// and an event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected cells.EventDatas) (bool, bool)
+// true, if the passed event datas matches partly or totally the wanted
+// sequence.
+type SequenceCriterion func(collected cells.EventDatas) CriterionMatch
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
@@ -60,19 +58,20 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	case ResetTopic:
 		b.events.Clear()
 	default:
-		matches, done := b.matches(event, b.events)
-		if !matches {
-			// No match, so reset.
-			b.events.Clear()
-			return nil
-		}
 		b.events.Add(event)
-		if done {
-			// All matches collected.
+		matches := b.matches(b.events)
+		switch matches {
+		case CriterionDone:
+			// All done, emit and start over.
 			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
 				EventSequenceEventsPayload: b.events,
 			})
 			b.events = cells.NewEventDatas(0)
+		case CriterionFailed:
+			// Not in sequence, clear datas.
+			b.events.Clear()
+		case CriterionPartly:
+			// Continue, everything fine.
 		}
 	}
 	return nil
