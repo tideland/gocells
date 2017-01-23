@@ -383,6 +383,18 @@ func (e *event) String() string {
 // EVENT SINK
 //--------------------
 
+// EventSinkIterator can be used to check the events in a sink.
+type EventSinkIterator interface {
+	// Do iterates over all collected events.
+	Do(doer func(index int, event Event) error) error
+
+	// Match checks if all events match the passed criterion.
+	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
+}
+
+// EventSinkChecker can be used to check sinks for a criterion.
+type EventSinkChecker func(events EventSinkIterator) (bool, error)
+
 // EventSink stores a number of events ordered by adding. To be used
 // in behaviors for collecting sets of events and operate on them.
 type EventSink interface {
@@ -402,21 +414,19 @@ type EventSink interface {
 	// exists, otherwise nil and false.
 	At(index int) (Event, bool)
 
-	// Do iterates over all collected events.
-	Do(doer func(index int, event Event) error) error
-
-	// Match checks if all events match the passed criterion.
-	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
-
 	// Clear removes all collected events.
 	Clear()
+
+	EventSinkIterator
 }
 
 // eventSink implements the EventSink interface.
 type eventSink struct {
-	mutex  sync.RWMutex
-	max    int
-	events []Event
+	mutex   sync.RWMutex
+	max     int
+	events  []Event
+	checker EventSinkChecker
+	waiter  PayloadWaiter
 }
 
 // NewEventSink creates a sink for events.
@@ -426,13 +436,34 @@ func NewEventSink(max int) EventSink {
 	}
 }
 
+// NewCheckedEventSink creates a sink running a checker
+// after each change.
+func NewCheckedEventSink(max int, checker EventSinkChecker) (EventSink, PayloadWaiter) {
+	waiter := NewPayloadWaiter()
+	return &eventSink{
+		max:     max,
+		checker: checker,
+		waiter:  waiter,
+	}, waiter
+}
+
 // Add implements the EventSink interface.
 func (s *eventSink) Add(event Event) int {
 	s.mutex.Lock()
-	defer s.mutex.Unlock()
 	s.events = append(s.events, event)
 	if s.max > 0 && len(s.events) > s.max {
 		s.events = s.events[1:]
+	}
+	s.mutex.Unlock()
+	if s.checker != nil {
+		ok, err := s.checker(s)
+		if err != nil {
+			// TODO
+			return 0
+		}
+		if ok {
+			s.waiter.Set(NewPayload(s))
+		}
 	}
 	return len(s.events)
 }
@@ -474,7 +505,14 @@ func (s *eventSink) At(index int) (Event, bool) {
 	return s.events[index], true
 }
 
-// Do implements the EventSink interface.
+// Clear implements tne EventSink interface.
+func (s *eventSink) Clear() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.events = nil
+}
+
+// Do implements the EventSinkIterator interface.
 func (s *eventSink) Do(doer func(index int, event Event) error) error {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -486,7 +524,7 @@ func (s *eventSink) Do(doer func(index int, event Event) error) error {
 	return nil
 }
 
-// Match implements the EventSink interface.
+// Match implements the EventSinkIterator interface.
 func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (bool, error) {
 	match := true
 	doer := func(mindex int, mevent Event) error {
@@ -500,13 +538,6 @@ func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (b
 	}
 	err := s.Do(doer)
 	return match, err
-}
-
-// Clear implements tne EventSink interface.
-func (s *eventSink) Clear() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.events = nil
 }
 
 // EOF
