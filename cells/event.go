@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tideland/golib/errors"
@@ -64,6 +65,10 @@ type Payload interface {
 	// GetDuration returns one of the payload values as
 	// time.Duration. If it's no duration false is returned.
 	GetDuration(key string) (time.Duration, bool)
+
+	// GetWaiter returns a payload waiter to be used
+	// for answering with a payload.
+	GetWaiter(key string) (PayloadWaiter, bool)
 
 	// Keys return all keys of the payload.
 	Keys() []string
@@ -184,6 +189,16 @@ func (p *payload) GetDuration(key string) (time.Duration, bool) {
 	return value, ok
 }
 
+// GetWaiter implements the Payload interface.
+func (p *payload) GetWaiter(key string) (PayloadWaiter, bool) {
+	raw, ok := p.Get(key)
+	if !ok {
+		return nil, ok
+	}
+	value, ok := raw.(PayloadWaiter)
+	return value, ok
+}
+
 // Keys is specified on the Payload interface.
 func (p *payload) Keys() []string {
 	keys := []string{}
@@ -240,6 +255,56 @@ func (p *payload) String() string {
 	return strings.Join(ps, ", ")
 }
 
+// PayloadWaiter can be sent with an event as payload.
+// Once a payload is set by a behavior Wait() continues
+// and returns it.
+type PayloadWaiter interface {
+	// Set sets the payload somebody is waiting for.
+	Set(p Payload)
+
+	// Wait waits until the payload is set. A deadline
+	// or timeout set by the context may cancel the
+	// waiting.
+	Wait(ctx context.Context) (Payload, error)
+}
+
+// payloadWaiter implements the PayloadWaiter interface.
+type payloadWaiter struct {
+	payloadc chan Payload
+	once     sync.Once
+}
+
+// NewPayloadWaiter creates a new waiter for a payload
+// returned by a behavior.
+func NewPayloadWaiter() PayloadWaiter {
+	return &payloadWaiter{
+		payloadc: make(chan Payload, 1),
+	}
+}
+
+// Set implements the PayloadWaiter interface.
+func (w *payloadWaiter) Set(p Payload) {
+	w.once.Do(func() {
+		w.payloadc <- p
+	})
+}
+
+// Wait implements the PayloadWaiter interface.
+func (w *payloadWaiter) Wait(ctx context.Context) (Payload, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	for {
+		select {
+		case pl := <-w.payloadc:
+			return pl, nil
+		case <-ctx.Done():
+			err := ctx.Err()
+			return nil, err
+		}
+	}
+}
+
 //--------------------
 // EVENT
 //--------------------
@@ -248,217 +313,184 @@ func (p *payload) String() string {
 type Event interface {
 	fmt.Stringer
 
+	// Context returns a Context that possibly has been
+	// emitted with the event.
+	Context() context.Context
+
+	// Timestamp returns the UTC time the event has been created.
+	Timestamp() time.Time
+
 	// Topic returns the topic of the event.
 	Topic() string
 
 	// Payload returns the payload of the event.
 	Payload() Payload
-
-	// Scene returns a scene that is possibly emitted
-	// with the event.
-	Context() context.Context
-
-	// Respond responds to a request event emitted
-	// with Environment.RequestContext().
-	Respond(response interface{}) error
 }
 
 // event implements the Event interface.
 type event struct {
-	topic   string
-	payload Payload
-	ctx     context.Context
+	ctx       context.Context
+	timestamp time.Time
+	topic     string
+	payload   Payload
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(topic string, payload interface{}, ctx context.Context) (Event, error) {
+func NewEvent(ctx context.Context, topic string, payload interface{}) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
 	}
 	p := NewPayload(payload)
-	return &event{topic, p, ctx}, nil
+	return &event{
+		ctx:       ctx,
+		timestamp: time.Now().UTC(),
+		topic:     topic,
+		payload:   p,
+	}, nil
 }
 
-// Topic is specified on the Event interface.
+// Timestamp implements the Event interface.
+func (e *event) Timestamp() time.Time {
+	return e.timestamp
+}
+
+// Topic implements the Event interface.
 func (e *event) Topic() string {
 	return e.topic
 }
 
-// Payload is specified on the Event interface.
+// Payload implements the Event interface.
 func (e *event) Payload() Payload {
 	return e.payload
 }
 
-// Context is specified on the Event interface.
+// Context implements the Event interface.
 func (e *event) Context() context.Context {
 	return e.ctx
 }
 
-// Respond is specified on the Event interface.
-func (e *event) Respond(response interface{}) error {
-	responseChanPayload, ok := e.Payload().Get(ResponseChanPayload)
-	if !ok {
-		return errors.New(ErrInvalidResponseEvent, errorMessages, "no response channel")
-	}
-	responseChan, ok := responseChanPayload.(chan interface{})
-	if !ok {
-		return errors.New(ErrInvalidResponseEvent, errorMessages, "invalid response channel")
-	}
-	responseChan <- response
-	return nil
-}
-
-// String is specified on the Stringer interface.
+// String implements the Stringer interface.
 func (e *event) String() string {
-	if e.payload == nil {
-		return fmt.Sprintf("<event: %q>", e.topic)
+	timeStr := e.timestamp.Format(time.RFC3339Nano)
+	payloadStr := "none"
+	if e.payload != nil {
+		payloadStr = fmt.Sprintf("%v", e.payload)
 	}
-	return fmt.Sprintf("<topic: %q / payload: %v>", e.topic, e.payload)
+	return fmt.Sprintf("<timestamp: %s / topic: '%s' / payload: %s>", timeStr, e.topic, payloadStr)
 }
 
 //--------------------
-// EVENT DATA
+// EVENT SINK
 //--------------------
 
-// EventData represents the pure collected event data. To
-// be used in behaviors.
-type EventData struct {
-	Timestamp time.Time
-	Topic     string
-	Payload   Payload
-}
-
-// newEventData returns the passed event as event data to collect.
-func newEventData(event Event) EventData {
-	data := EventData{
-		Timestamp: time.Now(),
-		Topic:     event.Topic(),
-		Payload:   event.Payload(),
-	}
-	return data
-}
-
-// EventDatas stores a number of event datas. To be used
-// in behaviors.
-type EventDatas interface {
+// EventSink stores a number of events ordered by adding. To be used
+// in behaviors for collecting sets of events and operate on them.
+type EventSink interface {
 	// Add adds a new event data based on the passed event.
 	Add(event Event) int
 
-	// Len returns the number of stored event datas.
+	// Len returns the number of stored events.
 	Len() int
 
-	// First returns the first of the collected event datas.
-	First() (*EventData, bool)
+	// First returns the first of the collected events.
+	First() (Event, bool)
 
 	// Last returns the last of the collected event datas.
-	Last() (*EventData, bool)
+	Last() (Event, bool)
 
-	// TimestampAt returns the collected timestamp at a given index.
-	TimestampAt(index int) (time.Time, bool)
+	// At returns an event at a given index and true if it
+	// exists, otherwise nil and false.
+	At(index int) (Event, bool)
 
-	// TopicAt returns the collected topic at a given index.
-	TopicAt(index int) (string, bool)
+	// Do iterates over all collected events.
+	Do(doer func(index int, event Event) error) error
 
-	// PayloadAt returns the collected payload at a given index.
-	PayloadAt(index int) (Payload, bool)
+	// Match checks if all events match the passed criterion.
+	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
 
-	// Do iterates over all collected event datas.
-	Do(doer func(index int, data *EventData) error) error
-
-	// Match checks if all event datas match the passed criterion.
-	Match(matcher func(index int, data *EventData) (bool, error)) (bool, error)
-
-	// Clear removes all collected event datas.
+	// Clear removes all collected events.
 	Clear()
 }
 
-// eventDatas implements the EventDatas interface.
-type eventDatas struct {
-	max   int
-	datas []*EventData
+// eventSink implements the EventSink interface.
+type eventSink struct {
+	mutex  sync.RWMutex
+	max    int
+	events []Event
 }
 
-// NewEventDatas creates a store for event datas.
-func NewEventDatas(max int) EventDatas {
-	return &eventDatas{
+// NewEventSink creates a sink for events.
+func NewEventSink(max int) EventSink {
+	return &eventSink{
 		max: max,
 	}
 }
 
-// Add implements the EventDatas interface.
-func (d *eventDatas) Add(event Event) int {
-	data := &EventData{
-		Timestamp: time.Now(),
-		Topic:     event.Topic(),
-		Payload:   event.Payload(),
+// Add implements the EventSink interface.
+func (s *eventSink) Add(event Event) int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.events = append(s.events, event)
+	if s.max > 0 && len(s.events) > s.max {
+		s.events = s.events[1:]
 	}
-	d.datas = append(d.datas, data)
-	if d.max > 0 && len(d.datas) > d.max {
-		d.datas = d.datas[1:]
-	}
-	return len(d.datas)
+	return len(s.events)
 }
 
-// Len implements the EventDatas interface.
-func (d *eventDatas) Len() int {
-	return len(d.datas)
+// Len implements the EventSink interface.
+func (s *eventSink) Len() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return len(s.events)
 }
 
-// First implements the EventDatas interface.
-func (d *eventDatas) First() (*EventData, bool) {
-	if len(d.datas) < 1 {
+// First implements the EventSink interface.
+func (s *eventSink) First() (Event, bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	if len(s.events) < 1 {
 		return nil, false
 	}
-	return d.datas[0], true
+	return s.events[0], true
 }
 
-// Last implements the EventDatas interface.
-func (d *eventDatas) Last() (*EventData, bool) {
-	if len(d.datas) < 1 {
+// Last implements the EventSink interface.
+func (s *eventSink) Last() (Event, bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	if len(s.events) < 1 {
 		return nil, false
 	}
-	return d.datas[len(d.datas)-1], true
+	return s.events[len(s.events)-1], true
 }
 
-// TimestampAt implements the EventDatas interface.
-func (d *eventDatas) TimestampAt(index int) (time.Time, bool) {
-	if index < 0 || index > len(d.datas)-1 {
-		return time.Time{}, false
-	}
-	return d.datas[index].Timestamp, true
-}
-
-// TopicAt implements the EventDatas interface.
-func (d *eventDatas) TopicAt(index int) (string, bool) {
-	if index < 0 || index > len(d.datas)-1 {
-		return "", false
-	}
-	return d.datas[index].Topic, true
-}
-
-// PayloadAt implements the EventDatas interface.
-func (d *eventDatas) PayloadAt(index int) (Payload, bool) {
-	if index < 0 || index > len(d.datas)-1 {
+// At implements the EventSink interface.
+func (s *eventSink) At(index int) (Event, bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	if index < 0 || index > len(s.events)-1 {
 		return nil, false
 	}
-	return d.datas[index].Payload, true
+	return s.events[index], true
 }
 
-// Do implements the EventDatas interface.
-func (d *eventDatas) Do(doer func(index int, data *EventData) error) error {
-	for index, data := range d.datas {
-		if err := doer(index, data); err != nil {
+// Do implements the EventSink interface.
+func (s *eventSink) Do(doer func(index int, event Event) error) error {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for index, event := range s.events {
+		if err := doer(index, event); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// Match implements the EventDatas interface.
-func (d *eventDatas) Match(matcher func(index int, data *EventData) (bool, error)) (bool, error) {
+// Match implements the EventSink interface.
+func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (bool, error) {
 	match := true
-	doer := func(mindex int, mdata *EventData) error {
-		ok, err := matcher(mindex, mdata)
+	doer := func(mindex int, mevent Event) error {
+		ok, err := matcher(mindex, mevent)
 		if err != nil {
 			match = false
 			return err
@@ -466,13 +498,15 @@ func (d *eventDatas) Match(matcher func(index int, data *EventData) (bool, error
 		match = match && ok
 		return nil
 	}
-	err := d.Do(doer)
+	err := s.Do(doer)
 	return match, err
 }
 
-// Clear implements tne EventDatas interface.
-func (d *eventDatas) Clear() {
-	d.datas = nil
+// Clear implements tne EventSink interface.
+func (s *eventSink) Clear() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.events = nil
 }
 
 // EOF

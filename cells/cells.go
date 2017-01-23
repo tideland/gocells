@@ -53,16 +53,7 @@ type Environment interface {
 
 	// EmitNewContext creates an event with a context and emits it to the cell
 	// with a given ID.
-	EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error
-
-	// Request creates and emits an event with a context to the cell with the
-	// given ID. It is intended as request which has to be responded to with
-	// event.Respond().
-	Request(id, topic string, payload interface{}, timeout time.Duration) (interface{}, error)
-
-	// RequestContext creates and emits an event with a context to the cell with
-	// the given ID.
-	RequestContext(id, topic string, payload interface{}, timeout time.Duration, ctx context.Context) (interface{}, error)
+	EmitNewContext(ctx context.Context, id, topic string, payload interface{}) error
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
@@ -88,7 +79,7 @@ type Cell interface {
 	EmitNew(topic string, payload interface{}) error
 
 	// EmitNewContext creates an event and emits it to all subscribers of a cell.
-	EmitNewContext(topic string, payload interface{}, ctx context.Context) error
+	EmitNewContext(ctx context.Context, topic string, payload interface{}) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error
@@ -155,7 +146,7 @@ type Subscriber interface {
 	ProcessEvent(event Event) error
 
 	// ProcessNewEvent creates an event and tells the subscriber to process it.
-	ProcessNewEvent(topic string, payload interface{}, ctx context.Context) error
+	ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error
 }
 
 // EOF
