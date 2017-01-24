@@ -202,6 +202,24 @@ func TestCheckedEventSink(t *testing.T) {
 	cancel()
 }
 
+// TestCheckedEventSinkFailing tests the missing notification of a waiter
+// when a criterion in the sink does not match.
+func TestCheckedEventSinkFailing(t *testing.T) {
+	assert := audit.NewTestingAssertion(t, true)
+	checker := func(events cells.EventSinkIterator) (bool, cells.Payload, error) {
+		return false, nil, nil
+	}
+	sink, waiter := cells.NewCheckedEventSink(3, checker)
+
+	go addEvents(assert, 100, sink)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	payload, err := waiter.Wait(ctx)
+	assert.Nil(payload)
+	assert.ErrorMatch(err, "context deadline exceeded")
+	cancel()
+}
+
 //--------------------
 // HELPER
 //--------------------
