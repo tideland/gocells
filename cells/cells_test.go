@@ -12,6 +12,7 @@ package cells_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -19,93 +20,12 @@ import (
 	"github.com/tideland/golib/errors"
 	"github.com/tideland/golib/monitoring"
 
-	"context"
-
 	"github.com/tideland/gocells/cells"
 )
 
 //--------------------
 // TESTS
 //--------------------
-
-// TestEvent tests the event construction.
-func TestEvent(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-
-	event, err := cells.NewEvent(nil, "foo", "bar")
-	assert.Nil(err)
-	assert.Equal(event.Topic(), "foo")
-
-	bar, ok := event.Payload().Get(cells.DefaultPayload)
-	assert.True(ok)
-	assert.Equal(bar, "bar")
-
-	_, err = cells.NewEvent(nil, "", nil)
-	assert.True(cells.IsNoTopicError(err))
-
-	_, err = cells.NewEvent(nil, "yadda", nil)
-	assert.Nil(err)
-}
-
-// TestPayload tests the payload creation and access.
-func TestPayload(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-
-	now := time.Now()
-	dur := 30 * time.Second
-	pvs := cells.PayloadValues{
-		"bool":     true,
-		"int":      42,
-		"float64":  47.11,
-		"string":   "hello, world",
-		"time":     now,
-		"duration": dur,
-	}
-	pl := cells.NewPayload(pvs)
-
-	b := pl.GetBool("bool", false)
-	assert.True(b)
-	b = pl.GetBool("no-bool", false)
-	assert.False(b)
-
-	i := pl.GetInt("int", 0)
-	assert.Equal(i, 42)
-	i = pl.GetInt("no-int", 0)
-	assert.Equal(i, 0)
-
-	f := pl.GetFloat64("float64", 1.0)
-	assert.Equal(f, 47.11)
-	f = pl.GetFloat64("no-float64", 1.0)
-	assert.Equal(f, 1.0)
-
-	s := pl.GetString("string", "empty")
-	assert.Equal(s, "hello, world")
-	s = pl.GetString("no-string", "empty")
-	assert.Equal(s, "empty")
-
-	tt := pl.GetTime("time", now.Add(5*time.Minute))
-	assert.Equal(tt, now)
-	tt = pl.GetTime("no-time", now.Add(5*time.Minute))
-	assert.Equal(tt, now.Add(5*time.Minute))
-
-	td := pl.GetDuration("duration", 0*time.Second)
-	assert.Equal(td, dur)
-	td = pl.GetDuration("no-duration", 0*time.Second)
-	assert.Equal(td, 0*time.Minute)
-
-	pln := pl.Apply("foo")
-	s = pln.GetString(cells.DefaultPayload, "also empty")
-	assert.Equal(s, "foo")
-	assert.Length(pln, 7)
-
-	keys := pln.Keys()
-	assert.Contents("string", keys)
-	assert.Contents("int", keys)
-
-	plab := cells.NewPayload(map[string]interface{}{"a": 1, "b": 2})
-	plnab := pln.Apply(plab)
-	assert.Length(plnab, 9)
-}
 
 // TestEnvironment tests general environment methods.
 func TestEnvironment(t *testing.T) {
