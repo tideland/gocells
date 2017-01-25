@@ -63,28 +63,38 @@ func TestPayload(t *testing.T) {
 	}
 	pl := cells.NewPayload(pvs)
 
-	b, ok := pl.GetBool("bool")
-	assert.True(ok)
+	b := pl.GetBool("bool", false)
 	assert.True(b)
-	i, ok := pl.GetInt("int")
-	assert.True(ok)
+	b = pl.GetBool("no-bool", false)
+	assert.False(b)
+
+	i := pl.GetInt("int", 0)
 	assert.Equal(i, 42)
-	f, ok := pl.GetFloat64("float64")
-	assert.True(ok)
+	i = pl.GetInt("no-int", 0)
+	assert.Equal(i, 0)
+
+	f := pl.GetFloat64("float64", 1.0)
 	assert.Equal(f, 47.11)
-	s, ok := pl.GetString("string")
-	assert.True(ok)
+	f = pl.GetFloat64("no-float64", 1.0)
+	assert.Equal(f, 1.0)
+
+	s := pl.GetString("string", "empty")
 	assert.Equal(s, "hello, world")
-	tt, ok := pl.GetTime("time")
-	assert.True(ok)
+	s = pl.GetString("no-string", "empty")
+	assert.Equal(s, "empty")
+
+	tt := pl.GetTime("time", now.Add(5*time.Minute))
 	assert.Equal(tt, now)
-	td, ok := pl.GetDuration("duration")
-	assert.True(ok)
+	tt = pl.GetTime("no-time", now.Add(5*time.Minute))
+	assert.Equal(tt, now.Add(5*time.Minute))
+
+	td := pl.GetDuration("duration", 0*time.Second)
 	assert.Equal(td, dur)
+	td = pl.GetDuration("no-duration", 0*time.Second)
+	assert.Equal(td, 0*time.Minute)
 
 	pln := pl.Apply("foo")
-	s, ok = pln.GetString(cells.DefaultPayload)
-	assert.True(ok)
+	s = pln.GetString(cells.DefaultPayload, "also empty")
 	assert.Equal(s, "foo")
 	assert.Length(pln, 7)
 
