@@ -98,26 +98,10 @@ func (e *event) String() string {
 // EVENT SINK
 //--------------------
 
-// EventSinkIterator can be used to check the events in a sink.
-type EventSinkIterator interface {
+// EventSinkAccessor can be used to read the events in a sink.
+type EventSinkAccessor interface {
 	// Len returns the number of stored events.
 	Len() int
-
-	// Do iterates over all collected events.
-	Do(doer func(index int, event Event) error) error
-
-	// Match checks if all events match the passed criterion.
-	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
-}
-
-// EventSinkChecker can be used to check sinks for a criterion.
-type EventSinkChecker func(events EventSinkIterator) (bool, Payload, error)
-
-// EventSink stores a number of events ordered by adding. To be used
-// in behaviors for collecting sets of events and operate on them.
-type EventSink interface {
-	// Add adds a new event data based on the passed event.
-	Add(event Event) (int, error)
 
 	// First returns the first of the collected events.
 	First() (Event, bool)
@@ -129,10 +113,26 @@ type EventSink interface {
 	// exists, otherwise nil and false.
 	At(index int) (Event, bool)
 
+	// Do iterates over all collected events.
+	Do(doer func(index int, event Event) error) error
+
+	// Match checks if all events match the passed criterion.
+	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
+}
+
+// EventSinkChecker can be used to check sinks for a criterion.
+type EventSinkChecker func(events EventSinkAccessor) (bool, Payload, error)
+
+// EventSink stores a number of events ordered by adding. To be used
+// in behaviors for collecting sets of events and operate on them.
+type EventSink interface {
+	// Add adds a new event data based on the passed event.
+	Add(event Event) (int, error)
+
 	// Clear removes all collected events.
 	Clear() error
 
-	EventSinkIterator
+	EventSinkAccessor
 }
 
 // eventSink implements the EventSink interface.
@@ -173,7 +173,22 @@ func (s *eventSink) Add(event Event) (int, error) {
 	return len(s.events), s.check()
 }
 
-// First implements the EventSink interface.
+// Clear implements tne EventSink interface.
+func (s *eventSink) Clear() error {
+	s.mutex.Lock()
+	s.events = nil
+	s.mutex.Unlock()
+	return s.check()
+}
+
+// Len implements the EventSinkAccessor interface.
+func (s *eventSink) Len() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return len(s.events)
+}
+
+// First implements the EventSinkAccessor interface.
 func (s *eventSink) First() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -183,7 +198,7 @@ func (s *eventSink) First() (Event, bool) {
 	return s.events[0], true
 }
 
-// Last implements the EventSink interface.
+// Last implements the EventSinkAccessor interface.
 func (s *eventSink) Last() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -193,7 +208,7 @@ func (s *eventSink) Last() (Event, bool) {
 	return s.events[len(s.events)-1], true
 }
 
-// At implements the EventSink interface.
+// At implements the EventSinkAccessor interface.
 func (s *eventSink) At(index int) (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -203,22 +218,7 @@ func (s *eventSink) At(index int) (Event, bool) {
 	return s.events[index], true
 }
 
-// Clear implements tne EventSink interface.
-func (s *eventSink) Clear() error {
-	s.mutex.Lock()
-	s.events = nil
-	s.mutex.Unlock()
-	return s.check()
-}
-
-// Len implements the EventSinkIterator interface.
-func (s *eventSink) Len() int {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	return len(s.events)
-}
-
-// Do implements the EventSinkIterator interface.
+// Do implements the EventSinkAccessor interface.
 func (s *eventSink) Do(doer func(index int, event Event) error) error {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -230,7 +230,7 @@ func (s *eventSink) Do(doer func(index int, event Event) error) error {
 	return nil
 }
 
-// Match implements the EventSinkIterator interface.
+// Match implements the EventSinkAccessor interface.
 func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (bool, error) {
 	match := true
 	doer := func(mindex int, mevent Event) error {

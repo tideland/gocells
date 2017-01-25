@@ -41,28 +41,28 @@ type Payload interface {
 	Get(key string) (interface{}, bool)
 
 	// GetBool returns one of the payload values
-	// as bool. If it's no bool false is returned.
-	GetBool(key string) (bool, bool)
+	// as bool or the default value.
+	GetBool(key string, dv bool) bool
 
 	// GetInt returns one of the payload values
-	// as int. If it's no int false is returned.
-	GetInt(key string) (int, bool)
+	// as int or the default value.
+	GetInt(key string, dv int) int
 
 	// GetFloat64 returns one of the payload values
-	// as float64. If it's no float64 false is returned.
-	GetFloat64(key string) (float64, bool)
+	// as float64 or the default value.
+	GetFloat64(key string, dv float64) float64
 
 	// GetString returns one of the payload values
-	// as string. If it's no string false is returned.
-	GetString(key string) (string, bool)
+	// as string or the default value.
+	GetString(key, dv string) string
 
 	// GetTime returns one of the payload values
-	// as time.Time. If it's no time false is returned.
-	GetTime(key string) (time.Time, bool)
+	// as time.Time or the default value.
+	GetTime(key string, dv time.Time) time.Time
 
 	// GetDuration returns one of the payload values as
-	// time.Duration. If it's no duration false is returned.
-	GetDuration(key string) (time.Duration, bool)
+	// time.Duration or the default value.
+	GetDuration(key string, dv time.Duration) time.Duration
 
 	// GetWaiter returns a payload waiter to be used
 	// for answering with a payload.
@@ -128,63 +128,81 @@ func (p *payload) Get(key string) (interface{}, bool) {
 }
 
 // GetBool implementes the Payload interface.
-func (p *payload) GetBool(key string) (bool, bool) {
+func (p *payload) GetBool(key string, dv bool) bool {
 	raw, ok := p.Get(key)
 	if !ok {
-		return false, ok
+		return dv
 	}
 	value, ok := raw.(bool)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetInt implementes the Payload interface.
-func (p *payload) GetInt(key string) (int, bool) {
+func (p *payload) GetInt(key string, dv int) int {
 	raw, ok := p.Get(key)
 	if !ok {
-		return 0, ok
+		return dv
 	}
 	value, ok := raw.(int)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetFloat64 implementes the Payload interface.
-func (p *payload) GetFloat64(key string) (float64, bool) {
+func (p *payload) GetFloat64(key string, dv float64) float64 {
 	raw, ok := p.Get(key)
 	if !ok {
-		return 0.0, ok
+		return dv
 	}
 	value, ok := raw.(float64)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetString implementes the Payload interface.
-func (p *payload) GetString(key string) (string, bool) {
+func (p *payload) GetString(key, dv string) string {
 	raw, ok := p.Get(key)
 	if !ok {
-		return "", ok
+		return dv
 	}
 	value, ok := raw.(string)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetTime implementes the Payload interface.
-func (p *payload) GetTime(key string) (time.Time, bool) {
+func (p *payload) GetTime(key string, dv time.Time) time.Time {
 	raw, ok := p.Get(key)
 	if !ok {
-		return time.Time{}, ok
+		return dv
 	}
 	value, ok := raw.(time.Time)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetDuration implementes the Payload interface.
-func (p *payload) GetDuration(key string) (time.Duration, bool) {
+func (p *payload) GetDuration(key string, dv time.Duration) time.Duration {
 	raw, ok := p.Get(key)
 	if !ok {
-		return time.Duration(0), ok
+		return dv
 	}
 	value, ok := raw.(time.Duration)
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetWaiter implements the Payload interface.

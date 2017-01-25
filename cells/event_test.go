@@ -40,8 +40,7 @@ func TestPositiveWaitPayload(t *testing.T) {
 	ctx := context.Background()
 	payload, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	set, ok := payload.GetInt(cells.DefaultPayload)
-	assert.True(ok)
+	set := payload.GetInt(cells.DefaultPayload, 0)
 	assert.Equal(set, 4711)
 }
 
@@ -138,17 +137,16 @@ func TestEventSinkIteration(t *testing.T) {
 	assert.Length(sink, 10)
 	err := sink.Do(func(index int, event cells.Event) error {
 		assert.Contents(event.Topic(), topics)
-		payload, ok := event.Payload().GetInt(cells.DefaultPayload)
-		assert.True(ok)
+		payload := event.Payload().GetInt(cells.DefaultPayload, -1)
 		assert.Range(payload, 1, 10)
 		return nil
 	})
 	assert.Nil(err)
 	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
 		topicOK := event.Topic() >= "a" && event.Topic() <= "j"
-		payload, ok := event.Payload().GetInt(cells.DefaultPayload)
+		payload := event.Payload().GetInt(cells.DefaultPayload, -1)
 		payloadOK := payload >= 1 && payload <= 10
-		return topicOK && ok && payloadOK, nil
+		return topicOK && payloadOK, nil
 	})
 	assert.Nil(err)
 	assert.True(ok)
@@ -176,8 +174,11 @@ func TestEventSinkIterationError(t *testing.T) {
 // when a criterion in the sink matches.
 func TestCheckedEventSink(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	checker := func(events cells.EventSinkIterator) (bool, cells.Payload, error) {
+	checker := func(events cells.EventSinkAccessor) (bool, cells.Payload, error) {
 		wanted := []string{"f", "c", "c"}
+		if events.Len() < len(wanted) {
+			return false, nil, nil
+		}
 		ok, err := events.Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == wanted[index], nil
 		})
@@ -185,7 +186,13 @@ func TestCheckedEventSink(t *testing.T) {
 			return false, nil, err
 		}
 		if ok {
-			return true, cells.NewPayload("fcc"), nil
+			first, _ := events.First()
+			last, _ := events.Last()
+			payload := cells.NewPayload(cells.PayloadValues{
+				"first": first.Timestamp(),
+				"last":  last.Timestamp(),
+			})
+			return true, payload, nil
 		}
 		return false, nil, nil
 	}
@@ -193,12 +200,15 @@ func TestCheckedEventSink(t *testing.T) {
 
 	go addEvents(assert, 100, sink)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	payload, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	wanted, ok := payload.GetString(cells.DefaultPayload)
-	assert.True(ok)
-	assert.Equal(wanted, "fcc")
+	first := payload.GetTime("first", time.Time{})
+	last := payload.GetTime("last", time.Time{})
+	assert.Logf("First: %v", first)
+	assert.Logf("Last : %v", last)
+	assert.Logf("Duration: %v", last.Sub(first))
+	assert.True(last.UnixNano() > first.UnixNano())
 	cancel()
 }
 
@@ -206,7 +216,7 @@ func TestCheckedEventSink(t *testing.T) {
 // when a criterion in the sink does not match.
 func TestCheckedEventSinkFailing(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	checker := func(events cells.EventSinkIterator) (bool, cells.Payload, error) {
+	checker := func(events cells.EventSinkAccessor) (bool, cells.Payload, error) {
 		return false, nil, nil
 	}
 	sink, waiter := cells.NewCheckedEventSink(3, checker)
@@ -238,6 +248,7 @@ func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 		n, err := sink.Add(event)
 		assert.Nil(err)
 		assert.True(n > 0)
+		time.Sleep(2 * time.Millisecond)
 	}
 }
 
