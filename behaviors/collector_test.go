@@ -13,11 +13,8 @@ package behaviors_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/tideland/golib/audit"
-
-	"context"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
@@ -40,24 +37,14 @@ func TestCollectorBehavior(t *testing.T) {
 		env.EmitNew("collector", "collect", i)
 	}
 
-	ctx := context.WithTimeout(context.Background(), time.Second)
-	waiter := cells.NewPayloadWaiter()
-	env.EmitNew("collector", cells.CollectedTopic, waiter)
-	payload, err := waiter.Wait(ctx)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector")
 	assert.Nil(err)
-	accessor := payload.Default(nil).(cells.EventSinkAccessor)
-	assert.NotNil(accessor)
 	assert.Length(accessor, sink.Len())
 
 	env.EmitNew("collector", cells.ResetTopic, nil)
 
-	ctx = context.WithTimeout(context.Background(), time.Second)
-	waiter = cells.NewPayloadWaiter()
-	env.EmitNew("collector", cells.CollectedTopic, waiter)
-	payload, err = waiter.Wait(ctx)
+	accessor, err = behaviors.RequestCollectedAccessor(env, "collector")
 	assert.Nil(err)
-	accessor = payload.Default(nil).(cells.EventSinkAccessor)
-	assert.NotNil(accessor)
 	assert.Empty(accessor)
 }
 

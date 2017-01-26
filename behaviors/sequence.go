@@ -60,14 +60,14 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
-		matches := b.matches(b.events)
+		matches := b.matches(b.sink)
 		switch matches {
 		case CriterionDone:
 			// All done, emit and start over.
 			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
 				EventSequenceEventsPayload: b.sink,
 			})
-			b.sink = cells.NewEventSequence(0)
+			b.sink = cells.NewEventSink(0)
 		case CriterionKeep:
 			// So far ok.
 		case CriterionMove:
