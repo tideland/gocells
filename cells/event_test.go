@@ -39,8 +39,7 @@ func TestEvent(t *testing.T) {
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
 
-	bar, ok := event.Payload().Get(cells.DefaultPayload)
-	assert.True(ok)
+	bar := event.Payload().Default("-")
 	assert.Equal(bar, "bar")
 
 	_, err = cells.NewEvent(nil, "", nil)
@@ -174,16 +173,16 @@ func TestEventSink(t *testing.T) {
 
 	// Empty sink.
 	sink := cells.NewEventSink(0)
-	first, ok := sink.First()
+	first, ok := sink.PeekFirst()
 	assert.Nil(first)
 	assert.False(ok)
-	last, ok := sink.Last()
+	last, ok := sink.PeekLast()
 	assert.Nil(last)
 	assert.False(ok)
-	at, ok := sink.At(-1)
+	at, ok := sink.PeekAt(-1)
 	assert.Nil(at)
 	assert.False(ok)
-	at, ok = sink.At(4711)
+	at, ok = sink.PeekAt(4711)
 	assert.Nil(at)
 	assert.False(ok)
 
@@ -197,15 +196,15 @@ func TestEventSink(t *testing.T) {
 	addEvents(assert, 10, sink)
 	assert.Length(sink, 10)
 
-	first, ok = sink.First()
+	first, ok = sink.PeekFirst()
 	assert.True(ok)
 	checkTopic(first)
-	last, ok = sink.Last()
+	last, ok = sink.PeekLast()
 	assert.True(ok)
 	checkTopic(last)
 
 	for i := 0; i < sink.Len(); i++ {
-		at, ok = sink.At(i)
+		at, ok = sink.PeekAt(i)
 		assert.True(ok)
 		checkTopic(at)
 	}
@@ -269,8 +268,8 @@ func TestCheckedEventSink(t *testing.T) {
 			return false, nil, err
 		}
 		if ok {
-			first, _ := events.First()
-			last, _ := events.Last()
+			first, _ := events.PeekFirst()
+			last, _ := events.PeekLast()
 			payload := cells.NewPayload(cells.PayloadValues{
 				"first": first.Timestamp(),
 				"last":  last.Timestamp(),
@@ -288,8 +287,8 @@ func TestCheckedEventSink(t *testing.T) {
 	assert.Nil(err)
 	first := payload.GetTime("first", time.Time{})
 	last := payload.GetTime("last", time.Time{})
-	assert.Logf("First: %v", first)
-	assert.Logf("Last : %v", last)
+	assert.Logf("PeekFirst: %v", first)
+	assert.Logf("PeekLast : %v", last)
 	assert.Logf("Duration: %v", last.Sub(first))
 	assert.True(last.UnixNano() > first.UnixNano())
 	cancel()
@@ -328,7 +327,7 @@ func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 		payload := generator.Int(1, 10)
 		event, err := cells.NewEvent(nil, topic, payload)
 		assert.Nil(err)
-		n, err := sink.Add(event)
+		n, err := sink.Push(event)
 		assert.Nil(err)
 		assert.True(n > 0)
 		time.Sleep(2 * time.Millisecond)

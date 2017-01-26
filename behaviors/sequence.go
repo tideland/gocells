@@ -22,13 +22,13 @@ import (
 // SequenceCriterion is used by the sequence behavior and has to return
 // true, if the passed event datas matches partly or totally the wanted
 // sequence.
-type SequenceCriterion func(collected cells.EventDatas) CriterionMatch
+type SequenceCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	events  cells.EventDatas
+	sink    cells.EventSink
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It checks the
@@ -37,7 +37,7 @@ type sequenceBehavior struct {
 func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
 	return &sequenceBehavior{
 		matches: matches,
-		events:  cells.NewEventDatas(0),
+		sink:    cells.NewEventSink(0),
 	}
 }
 
@@ -49,6 +49,7 @@ func (b *sequenceBehavior) Init(c cells.Cell) error {
 
 // Terminate implements the cells.Behavior interface.
 func (b *sequenceBehavior) Terminate() error {
+	b.sink.Clear()
 	return nil
 }
 
@@ -56,22 +57,25 @@ func (b *sequenceBehavior) Terminate() error {
 func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
-		b.events.Clear()
+		b.sink.Clear()
 	default:
-		b.events.Add(event)
+		b.sink.Push(event)
 		matches := b.matches(b.events)
 		switch matches {
 		case CriterionDone:
 			// All done, emit and start over.
 			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
-				EventSequenceEventsPayload: b.events,
+				EventSequenceEventsPayload: b.sink,
 			})
-			b.events = cells.NewEventDatas(0)
-		case CriterionFailed:
-			// Not in sequence, clear datas.
-			b.events.Clear()
-		case CriterionPartly:
-			// Continue, everything fine.
+			b.sink = cells.NewEventSequence(0)
+		case CriterionKeep:
+			// So far ok.
+		case CriterionMove:
+			// Event window has to be moved.
+			b.sink.PullFirst()
+		case CriterionClear:
+			// Have to start from beginning.
+			b.sink.Clear()
 		}
 	}
 	return nil
@@ -79,7 +83,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover implements the cells.Behavior interface.
 func (b *sequenceBehavior) Recover(err interface{}) error {
-	b.events.Clear()
+	b.sink.Clear()
 	return nil
 }
 

@@ -21,21 +21,19 @@ import (
 
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
-	cell      cells.Cell
-	max       int
-	collected cells.EventDatas
+	cell cells.Cell
+	sink cells.EventSink
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
-// a configured maximum number events emitted directly or by subscription.
-// The event is passed through. The collected events can be requested with
-// the topic "collected?" and will be stored in the scene store named in
-// the events payload. Additionally the collection can be resetted with
-// "reset!".
-func NewCollectorBehavior(max int) cells.Behavior {
+// a number of events in the passed sink. The event is passed through.
+// The collected events can be requested with the topic "collected?"
+// and a payload waiter as default payload. A cells.EventSinkAccessor
+// will set in the waiter. Additionally the collection can be resetted
+// with "reset!".
+func NewCollectorBehavior(sink cells.EventSink) cells.Behavior {
 	return &collectorBehavior{
-		max:       max,
-		collected: cells.NewEventDatas(max),
+		sink: sink,
 	}
 }
 
@@ -54,14 +52,15 @@ func (b *collectorBehavior) Terminate() error {
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CollectedTopic:
-		if err := event.Respond(b.collected); err != nil {
-			return err
+		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		if ok {
+			accessor := cells.EventSinkAccessor(b.sink)
+			waiter.Set(cells.NewPayload(accessor))
 		}
-		b.collected = cells.NewEventDatas(b.max)
 	case cells.ResetTopic:
-		b.collected.Clear()
+		b.sink.Clear()
 	default:
-		b.collected.Add(event)
+		b.sink.Push(event)
 		b.cell.Emit(event)
 	}
 	return nil
@@ -69,7 +68,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *collectorBehavior) Recover(err interface{}) error {
-	b.collected.Clear()
+	b.sink.Clear()
 	return nil
 }
 

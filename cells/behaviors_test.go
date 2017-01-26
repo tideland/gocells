@@ -110,7 +110,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 		}
 		waiter.Set(cells.NewPayload(ids))
 	default:
-		b.sink.Add(event)
+		b.sink.Push(event)
 		return b.cell.Emit(event)
 	}
 	return nil
