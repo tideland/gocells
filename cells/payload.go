@@ -37,8 +37,11 @@ type Payload interface {
 	// Len returns the number of values.
 	Len() int
 
+	// Default returns the default payload value.
+	Default(dv interface{}) interface{}
+
 	// Get returns one of the payload values.
-	Get(key string) (interface{}, bool)
+	Get(key string, dv interface{}) interface{}
 
 	// GetBool returns one of the payload values
 	// as bool or the default value.
@@ -121,18 +124,23 @@ func (p *payload) Len() int {
 	return len(p.values)
 }
 
+// Default implementes the Payload interface.
+func (p *payload) Default(dv interface{}) interface{} {
+	return p.Get(DefaultPayload, dv)
+}
+
 // Get implementes the Payload interface.
-func (p *payload) Get(key string) (interface{}, bool) {
+func (p *payload) Get(key string, dv interface{}) interface{} {
 	value, ok := p.values[key]
-	return value, ok
+	if !ok {
+		return dv
+	}
+	return value
 }
 
 // GetBool implementes the Payload interface.
 func (p *payload) GetBool(key string, dv bool) bool {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(bool)
 	if !ok {
 		return dv
@@ -142,10 +150,7 @@ func (p *payload) GetBool(key string, dv bool) bool {
 
 // GetInt implementes the Payload interface.
 func (p *payload) GetInt(key string, dv int) int {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(int)
 	if !ok {
 		return dv
@@ -155,10 +160,7 @@ func (p *payload) GetInt(key string, dv int) int {
 
 // GetFloat64 implementes the Payload interface.
 func (p *payload) GetFloat64(key string, dv float64) float64 {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(float64)
 	if !ok {
 		return dv
@@ -168,10 +170,7 @@ func (p *payload) GetFloat64(key string, dv float64) float64 {
 
 // GetString implementes the Payload interface.
 func (p *payload) GetString(key, dv string) string {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(string)
 	if !ok {
 		return dv
@@ -181,10 +180,7 @@ func (p *payload) GetString(key, dv string) string {
 
 // GetTime implementes the Payload interface.
 func (p *payload) GetTime(key string, dv time.Time) time.Time {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(time.Time)
 	if !ok {
 		return dv
@@ -194,10 +190,7 @@ func (p *payload) GetTime(key string, dv time.Time) time.Time {
 
 // GetDuration implementes the Payload interface.
 func (p *payload) GetDuration(key string, dv time.Duration) time.Duration {
-	raw, ok := p.Get(key)
-	if !ok {
-		return dv
-	}
+	raw := p.Get(key, dv)
 	value, ok := raw.(time.Duration)
 	if !ok {
 		return dv
@@ -207,10 +200,7 @@ func (p *payload) GetDuration(key string, dv time.Duration) time.Duration {
 
 // GetWaiter implements the Payload interface.
 func (p *payload) GetWaiter(key string) (PayloadWaiter, bool) {
-	raw, ok := p.Get(key)
-	if !ok {
-		return nil, ok
-	}
+	raw := p.Get(key, nil)
 	value, ok := raw.(PayloadWaiter)
 	return value, ok
 }

@@ -17,14 +17,16 @@ type CriterionMatch int
 const (
 	// Criterion matches.
 	CriterionDone CriterionMatch = iota + 1
-	CriterionPartly
-	CriterionFailed
+	CriterionKeep
+	CriterionMove
+	CriterionClear
 
 	// Topics.
 	ResetTopic             = "reset!"
 	ReadConfigurationTopic = "read-configuration!"
 	ConfigurationTopic     = "configuration"
 	TickerTopic            = "tick!"
+	EventComboTopic        = "event-combo!"
 	EventPairTopic         = "event-pair!"
 	EventPairTimeoutTopic  = "event-pair-timeout!"
 	EventRateTopic         = "event-rate!"
@@ -36,6 +38,7 @@ const (
 	ConfigurationPayload            = "configuration"
 	TickerIDPayload                 = "ticker:id"
 	TickerTimePayload               = "ticker:time"
+	EventComboEventsPayload         = "event-como:events"
 	EventPairFirstTimePayload       = "event-pair:first:time"
 	EventPairSecondTimePayload      = "event-pair:second:time"
 	EventPairFirstDataPayload       = "event-pair:first:data"

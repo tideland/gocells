@@ -269,8 +269,7 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	response, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	ids, ok := response.Get(cells.DefaultPayload)
-	assert.True(ok)
+	ids := response.Default([]string{})
 	assert.Equal(ids, []string{"baz"})
 	cancel()
 }

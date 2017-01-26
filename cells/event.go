@@ -103,15 +103,15 @@ type EventSinkAccessor interface {
 	// Len returns the number of stored events.
 	Len() int
 
-	// First returns the first of the collected events.
-	First() (Event, bool)
+	// PeekFirst returns the first of the collected events.
+	PeekFirst() (Event, bool)
 
-	// Last returns the last of the collected event datas.
-	Last() (Event, bool)
+	// PeekLast returns the last of the collected event datas.
+	PeekLast() (Event, bool)
 
-	// At returns an event at a given index and true if it
+	// PeekAt returns an event at a given index and true if it
 	// exists, otherwise nil and false.
-	At(index int) (Event, bool)
+	PeekAt(index int) (Event, bool)
 
 	// Do iterates over all collected events.
 	Do(doer func(index int, event Event) error) error
@@ -123,11 +123,17 @@ type EventSinkAccessor interface {
 // EventSinkChecker can be used to check sinks for a criterion.
 type EventSinkChecker func(events EventSinkAccessor) (bool, Payload, error)
 
-// EventSink stores a number of events ordered by adding. To be used
-// in behaviors for collecting sets of events and operate on them.
+// EventSink stores a number of events ordered by adding them at the end. To
+// be used in behaviors for collecting sets of events and operate on them.
 type EventSink interface {
-	// Add adds a new event data based on the passed event.
-	Add(event Event) (int, error)
+	// Push adds a new event to the sink.
+	Push(event Event) (int, error)
+
+	// PullFirst returns and removed the first event of the sink.
+	PullFirst() (Event, error)
+
+	// PullLast returns and removed the last event of the sink.
+	PullLast() (Event, error)
 
 	// Clear removes all collected events.
 	Clear() error
@@ -162,8 +168,8 @@ func NewCheckedEventSink(max int, checker EventSinkChecker) (EventSink, PayloadW
 	}, waiter
 }
 
-// Add implements the EventSink interface.
-func (s *eventSink) Add(event Event) (int, error) {
+// Push implements the EventSink interface.
+func (s *eventSink) Push(event Event) (int, error) {
 	s.mutex.Lock()
 	s.events = append(s.events, event)
 	if s.max > 0 && len(s.events) > s.max {
@@ -171,6 +177,30 @@ func (s *eventSink) Add(event Event) (int, error) {
 	}
 	s.mutex.Unlock()
 	return len(s.events), s.check()
+}
+
+// PullFirst implements the EventSink interface.
+func (s *eventSink) PullFirst() (Event, error) {
+	var event Event
+	s.mutex.Lock()
+	if len(s.events) > 0 {
+		event = s.events[0]
+		s.events = s.events[1:]
+	}
+	s.mutex.Unlock()
+	return event, s.check()
+}
+
+// PullLast implements the EventSink interface.
+func (s *eventSink) PullLast() (Event, error) {
+	var event Event
+	s.mutex.Lock()
+	if len(s.events) > 0 {
+		event = s.events[len(s.events)-1]
+		s.events = s.events[:len(s.events)-1]
+	}
+	s.mutex.Unlock()
+	return event, s.check()
 }
 
 // Clear implements tne EventSink interface.
@@ -188,8 +218,8 @@ func (s *eventSink) Len() int {
 	return len(s.events)
 }
 
-// First implements the EventSinkAccessor interface.
-func (s *eventSink) First() (Event, bool) {
+// PeekFirst implements the EventSinkAccessor interface.
+func (s *eventSink) PeekFirst() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if len(s.events) < 1 {
@@ -198,8 +228,8 @@ func (s *eventSink) First() (Event, bool) {
 	return s.events[0], true
 }
 
-// Last implements the EventSinkAccessor interface.
-func (s *eventSink) Last() (Event, bool) {
+// PeekLast implements the EventSinkAccessor interface.
+func (s *eventSink) PeekLast() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if len(s.events) < 1 {
@@ -208,8 +238,8 @@ func (s *eventSink) Last() (Event, bool) {
 	return s.events[len(s.events)-1], true
 }
 
-// At implements the EventSinkAccessor interface.
-func (s *eventSink) At(index int) (Event, bool) {
+// PeekAt implements the EventSinkAccessor interface.
+func (s *eventSink) PeekAt(index int) (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if index < 0 || index > len(s.events)-1 {

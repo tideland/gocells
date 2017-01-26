@@ -17,6 +17,8 @@ import (
 
 	"github.com/tideland/golib/audit"
 
+	"context"
+
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
@@ -31,24 +33,32 @@ func TestCollectorBehavior(t *testing.T) {
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
+	sink := cells.NewEventSink(10)
+	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 
 	for i := 0; i < 25; i++ {
 		env.EmitNew("collector", "collect", i)
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	ctx := context.WithTimeout(context.Background(), time.Second)
+	waiter := cells.NewPayloadWaiter()
+	env.EmitNew("collector", cells.CollectedTopic, waiter)
+	payload, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	assert.Length(collected, 10)
+	accessor := payload.Default(nil).(cells.EventSinkAccessor)
+	assert.NotNil(accessor)
+	assert.Length(accessor, sink.Len())
 
-	err = env.EmitNew("collector", cells.ResetTopic, nil)
-	assert.Nil(err)
+	env.EmitNew("collector", cells.ResetTopic, nil)
 
-	collected, err = env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	ctx = context.WithTimeout(context.Background(), time.Second)
+	waiter = cells.NewPayloadWaiter()
+	env.EmitNew("collector", cells.CollectedTopic, waiter)
+	payload, err = waiter.Wait(ctx)
 	assert.Nil(err)
-	assert.Length(collected, 0)
+	accessor = payload.Default(nil).(cells.EventSinkAccessor)
+	assert.NotNil(accessor)
+	assert.Empty(accessor)
 }
 
 // EOF

@@ -20,17 +20,17 @@ import (
 //--------------------
 
 // ComboCriterion is used by the combo behavior and has to return
-// true, if the passed event matches a criterion for combo measuring.
-// The collected events help the criterion to decide, if the new one
-// is a matching one. The second bool signals if a combo is full and
-// and an event shall be emitted.
-type ComboCriterion func(event cells.Event, collected cells.EventDatas) (bool, bool)
+// true as first, if the passed events match a criterion for combo
+// measuring. If the first result is false the event will be dropped
+// again. The second bool signals if a combo is full and an event
+// shall be emitted.
+type ComboCriterion func(accessor cells.EventSinkAccessor) (bool, bool)
 
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
 	cell    cells.Cell
 	matches ComboCriterion
-	events  cells.EventDatas
+	sink    cells.EventSink
 }
 
 // NewComboBehavior creates an event sequence behavior. It checks the
@@ -39,7 +39,7 @@ type comboBehavior struct {
 func NewComboBehavior(matches ComboCriterion) cells.Behavior {
 	return &comboBehavior{
 		matches: matches,
-		events:  cells.NewEventDatas(0),
+		sink:    cells.NewEventSink(0),
 	}
 }
 
@@ -51,6 +51,7 @@ func (b *comboBehavior) Init(c cells.Cell) error {
 
 // Terminate implements the cells.Behavior interface.
 func (b *comboBehavior) Terminate() error {
+	b.sink.Clear()
 	return nil
 }
 
@@ -58,21 +59,21 @@ func (b *comboBehavior) Terminate() error {
 func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
-		b.events.Clear()
+		b.sink.Clear()
 	default:
-		matches, done := b.matches(event, b.events)
+		b.sink.Push(event)
+		matches, done := b.matches(b.sink)
 		if !matches {
-			// No match, so reset.
-			b.events.Clear()
+			// No match, so pull last.
+			b.sink.PullLast()
 			return nil
 		}
-		b.events.Add(event)
 		if done {
 			// All matches collected.
-			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
-				EventSequenceEventsPayload: b.events,
+			b.cell.EmitNew(EventComboTopic, cells.PayloadValues{
+				EventComboEventsPayload: b.sink,
 			})
-			b.events = cells.NewEventDatas(0)
+			b.sink = cells.NewEventSink(0)
 		}
 	}
 	return nil
@@ -80,7 +81,7 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover implements the cells.Behavior interface.
 func (b *comboBehavior) Recover(err interface{}) error {
-	b.events.Clear()
+	b.sink.Clear()
 	return nil
 }
 
