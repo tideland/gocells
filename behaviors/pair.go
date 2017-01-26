@@ -72,8 +72,8 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	case EventPairTimeoutTopic:
 		if b.hit != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit, ok := event.Payload().GetTime(EventPairFirstTimePayload)
-			if ok && hit.Equal(*b.hit) {
+			hit := event.Payload().GetTime(EventPairFirstTimePayload, time.Time{})
+			if hit.Equal(*b.hit) {
 				b.emitTimeout()
 				b.timeout = nil
 			}

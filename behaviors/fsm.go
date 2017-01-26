@@ -12,7 +12,7 @@ package behaviors
 //--------------------
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -25,15 +25,10 @@ import (
 // an event and returns the following state or an error.
 type FSMState func(cell cells.Cell, event cells.Event) (FSMState, error)
 
-// FSMStatus contains information about the current status of the FSM.
-type FSMStatus struct {
-	Done  bool
-	Error error
-}
-
-// String is specified on the Stringer interface.
-func (s FSMStatus) String() string {
-	return fmt.Sprintf("<FSM done: %v / error: %v>", s.Done, s.Error)
+// fsmStatus contains information about the current status of the FSM.
+type fsmStatus struct {
+	done bool
+	err  error
 }
 
 // fsmBehavior runs the finite state machine.
@@ -69,12 +64,13 @@ func (b *fsmBehavior) Terminate() error {
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.StatusTopic:
-		status := FSMStatus{
-			Done:  b.done,
-			Error: b.err,
-		}
-		if err := event.Respond(status); err != nil {
-			return err
+		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		if ok {
+			response := &fsmStatus{
+				done: b.done,
+				err:  b.err,
+			}
+			waiter.Set(cells.NewPayload(response))
 		}
 	default:
 		if b.done {
@@ -100,20 +96,23 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 }
 
 // RequestFSMStatus retrieves the status of a FSM cell.
-func RequestFSMStatus(env cells.Environment, id string) FSMStatus {
-	response, err := env.Request(id, cells.StatusTopic, nil, cells.DefaultTimeout)
+func RequestFSMStatus(env cells.Environment, id string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), cells.DefaultTimeout)
+	defer cancel()
+	waiter := cells.NewPayloadWaiter()
+	err := env.EmitNewContext(ctx, id, cells.StatusTopic, waiter)
 	if err != nil {
-		return FSMStatus{
-			Error: err,
-		}
+		return false, err
 	}
-	status, ok := response.(FSMStatus)
-	if !ok {
-		return FSMStatus{
-			Error: cells.NewInvalidResponseError(response),
-		}
+	payload, err := waiter.Wait(ctx)
+	if err != nil {
+		return false, err
 	}
-	return status
+	status := payload.Default(nil).(*fsmStatus)
+	if status == nil {
+		return false, cells.NewInvalidResponseError(payload)
+	}
+	return status.done, status.err
 }
 
 // EOF

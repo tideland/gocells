@@ -12,6 +12,8 @@ package behaviors
 //--------------------
 
 import (
+	"context"
+
 	"github.com/tideland/gocells/cells"
 )
 
@@ -70,6 +72,24 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 func (b *collectorBehavior) Recover(err interface{}) error {
 	b.sink.Clear()
 	return nil
+}
+
+// RequestCollectedAccessor retrieves the accessor to the
+// collected events.
+func RequestCollectedAccessor(env cells.Environment, id string) (cells.EventSinkAccessor, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), cells.DefaultTimeout)
+	defer cancel()
+	waiter := cells.NewPayloadWaiter()
+	err := env.EmitNewContext(ctx, id, cells.CollectedTopic, waiter)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := waiter.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	accessor := payload.Default(nil).(cells.EventSinkAccessor)
+	return accessor, nil
 }
 
 // EOF
