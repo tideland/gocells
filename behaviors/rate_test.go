@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"math/rand"
 	"testing"
 	"time"
@@ -29,6 +30,7 @@ import (
 // TestRateBehavior tests the event rate behavior.
 func TestRateBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("rate-behavior")
 	defer env.Stop()
 
@@ -36,30 +38,26 @@ func TestRateBehavior(t *testing.T) {
 		return event.Topic() == "now"
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
+	sink := cells.NewEventSink(10000)
 
 	env.StartCell("rater", behaviors.NewRateBehavior(matches, 100))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 	env.Subscribe("rater", "collector")
 
 	for i := 0; i < 10000; i++ {
 		topic := topics[rand.Intn(len(topics))]
-		env.EmitNew("rater", topic, nil)
+		env.EmitNew(ctx, "rater", topic, nil)
 		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
 	}
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(cells.EventDatas)
-	assert.True(ok)
-	assert.True(events.Len() <= 10000)
-	err = events.Do(func(index int, data *cells.EventData) error {
-		assert.Equal(data.Topic, "event-rate!")
-		hi, ok := data.Payload.GetDuration(behaviors.EventRateHighPayload)
-		assert.True(ok)
-		avg, ok := data.Payload.GetDuration(behaviors.EventRateAveragePayload)
-		assert.True(ok)
-		lo, ok := data.Payload.GetDuration(behaviors.EventRateLowPayload)
-		assert.True(ok)
+	assert.True(accessor.Len() <= 10000)
+	err = accessor.Do(func(index int, event cells.Event) error {
+		assert.Equal(event.Topic(), "event-rate!")
+		hi := event.Payload().GetDuration(behaviors.EventRateHighPayload, -1)
+		avg := event.Payload().GetDuration(behaviors.EventRateAveragePayload, -1)
+		lo := event.Payload().GetDuration(behaviors.EventRateLowPayload, -1)
 		assert.True(lo <= avg)
 		assert.True(avg <= hi)
 		return nil
