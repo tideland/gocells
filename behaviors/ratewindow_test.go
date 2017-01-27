@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 // TestRateWindowBehavior tests the event rate window behavior.
 func TestRateWindowBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	generator := audit.NewGenerator(audit.FixedRand())
 	env := cells.NewEnvironment("rate-window-behavior")
 	defer env.Stop()
@@ -39,39 +41,36 @@ func TestRateWindowBehavior(t *testing.T) {
 	interestingTopics := []string{"a", "b", "c", "d", "now"}
 	duration := 25 * time.Millisecond
 
+	sink := cells.NewEventSink(100)
+
 	env.StartCell("windower", behaviors.NewRateWindowBehavior(matches, 5, duration))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(100))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 	env.Subscribe("windower", "collector")
 
 	for i := 0; i < 10; i++ {
 		// Slow loop.
 		for j := 0; j < 100; j++ {
 			topic := generator.OneStringOf(boringTopics...)
-			env.EmitNew("windower", topic, nil)
+			env.EmitNew(ctx, "windower", topic, nil)
 			time.Sleep(1)
 		}
 		// Fast loop.
 		for j := 0; j < 10; j++ {
 			topic := generator.OneStringOf(interestingTopics...)
-			env.EmitNew("windower", topic, nil)
+			env.EmitNew(ctx, "windower", topic, nil)
 		}
 	}
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
-	events, ok := collected.(cells.EventDatas)
-	assert.True(ok)
-	assert.Logf("Window Events: %d", events.Len())
-	assert.True(events.Len() >= 1)
+	assert.True(accessor.Len() >= 1)
+	assert.Logf("Window Events: %d", accessor.Len())
 
-	err = events.Do(func(index int, data *cells.EventData) error {
-		count, ok := data.Payload.GetInt(behaviors.EventRateWindowCountPayload)
-		assert.True(ok)
+	err = accessor.Do(func(index int, event cells.Event) error {
+		count := event.Payload().GetInt(behaviors.EventRateWindowCountPayload, -1)
 		assert.Equal(count, 5)
-		first, ok := data.Payload.GetTime(behaviors.EventRateWindowFirstTimePayload)
-		assert.True(ok)
-		last, ok := data.Payload.GetTime(behaviors.EventRateWindowLastTimePayload)
-		assert.True(ok)
+		first := event.Payload().GetTime(behaviors.EventRateWindowFirstTimePayload, time.Time{})
+		last := event.Payload().GetTime(behaviors.EventRateWindowLastTimePayload, time.Time{})
 		difference := last.Sub(first)
 		assert.True(difference <= duration)
 		return nil

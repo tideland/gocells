@@ -12,7 +12,9 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -27,6 +29,7 @@ import (
 // TestCollectorBehavior tests the collector behavior.
 func TestCollectorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
@@ -34,16 +37,16 @@ func TestCollectorBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 
 	for i := 0; i < 25; i++ {
-		env.EmitNew("collector", "collect", i)
+		env.EmitNew(ctx, "collector", "collect", i)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector")
+	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, sink.Len())
 
-	env.EmitNew("collector", cells.ResetTopic, nil)
+	env.EmitNew(ctx, "collector", cells.ResetTopic, nil)
 
-	accessor, err = behaviors.RequestCollectedAccessor(env, "collector")
+	accessor, err = behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Empty(accessor)
 }

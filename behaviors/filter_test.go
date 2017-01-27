@@ -12,7 +12,9 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -27,6 +29,7 @@ import (
 // TestFilterBehavior tests the filter behavior.
 func TestFilterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("filter-behavior")
 	defer env.Stop()
 
@@ -42,11 +45,11 @@ func TestFilterBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 	env.Subscribe("filter", "collector")
 
-	env.EmitNew("filter", "a", "a")
-	env.EmitNew("filter", "a", "b")
-	env.EmitNew("filter", "b", "b")
+	env.EmitNew(ctx, "filter", "a", "a")
+	env.EmitNew(ctx, "filter", "a", "b")
+	env.EmitNew(ctx, "filter", "b", "b")
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector")
+	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, 2)
 }
