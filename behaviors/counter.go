@@ -13,6 +13,9 @@ package behaviors
 
 import (
 	"context"
+	"time"
+
+	"github.com/tideland/golib/errors"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -101,19 +104,15 @@ func (b *counterBehavior) copyCounters() Counters {
 
 // RequestCounterResults retrieves the results to the
 // behaviors counters.
-func RequestCounterResults(env cells.Environment, id string) (Counters, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), cells.DefaultTimeout)
-	defer cancel()
-	waiter := cells.NewPayloadWaiter()
-	err := env.EmitNewContext(ctx, id, cells.CountersTopic, waiter)
+func RequestCounterResults(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (Counters, error) {
+	payload, err := env.Request(ctx, id, cells.CountersTopic, timeout)
 	if err != nil {
 		return nil, err
 	}
-	payload, err := waiter.Wait(ctx)
-	if err != nil {
-		return nil, err
+	counters, ok := payload.GetDefault(nil).(Counters)
+	if !ok {
+		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
 	}
-	counters := payload.Default(nil).(Counters)
 	return counters, nil
 }
 

@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,27 +29,29 @@ import (
 // TestBroadcasterBehavior tests the broadcast behavior.
 func TestBroadcasterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
+	sinkA := cells.NewEventSink(10)
+	sinkB := cells.NewEventSink(10)
+
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
-	env.StartCell("test-1", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-2", behaviors.NewCollectorBehavior(10))
-	env.Subscribe("broadcast", "test-1", "test-2")
+	env.StartCell("test-a", behaviors.NewCollectorBehavior(sinkA))
+	env.StartCell("test-b", behaviors.NewCollectorBehavior(sinkB))
+	env.Subscribe("broadcast", "test-a", "test-b")
 
-	env.EmitNew("broadcast", "test", "a")
-	env.EmitNew("broadcast", "test", "b")
-	env.EmitNew("broadcast", "test", "c")
+	env.EmitNew(ctx, "broadcast", "test", "a")
+	env.EmitNew(ctx, "broadcast", "test", "b")
+	env.EmitNew(ctx, "broadcast", "test", "c")
 
-	time.Sleep(100 * time.Millisecond)
-
-	collected, err := env.Request("test-1", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "test-a", time.Second)
 	assert.Nil(err)
-	assert.Length(collected, 3)
+	assert.Length(accessor, 3)
 
-	collected, err = env.Request("test-2", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err = behaviors.RequestCollectedAccessor(ctx, env, "test-b", time.Second)
 	assert.Nil(err)
-	assert.Length(collected, 3)
+	assert.Length(accessor, 3)
 }
 
 // EOF

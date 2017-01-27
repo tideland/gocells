@@ -31,8 +31,7 @@ func TestCounterBehavior(t *testing.T) {
 	defer env.Stop()
 
 	cf := func(id string, event cells.Event) []string {
-		payload := event.Payload().Default([]string{})
-		return payload.([]string)
+		return event.Payload().GetDefault([]string{}).([]string)
 	}
 	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
 

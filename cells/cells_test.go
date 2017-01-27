@@ -169,7 +169,7 @@ func TestBehaviorEmitTimeoutError(t *testing.T) {
 
 	// Emit more events than queue can take while the subscriber works.
 	for i := 0; i < 25; i++ {
-		env.EmitNew("emitter", emitTopic, i)
+		env.EmitNew(context.Background(), "emitter", emitTopic, i)
 	}
 
 	time.Sleep(2 * time.Second)
@@ -264,12 +264,12 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 
 	// Expect only baz because bar is stopped.
 	waiter := cells.NewPayloadWaiter()
-	env.EmitNew("foo", subscribersTopic, waiter)
+	env.EmitNew(context.Background(), "foo", subscribersTopic, waiter)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	response, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	ids := response.Default([]string{})
+	ids := response.GetDefault([]string{})
 	assert.Equal(ids, []string{"baz"})
 	cancel()
 }
@@ -291,7 +291,7 @@ func TestEnvironmentSubscribersDo(t *testing.T) {
 
 	err := env.Subscribe("foo", "bar", "baz")
 	assert.Nil(err)
-	err = env.EmitNew("foo", iterateTopic, nil)
+	err = env.EmitNew(context.Background(), "foo", iterateTopic, nil)
 	assert.Nil(err)
 
 	time.Sleep(200 * time.Millisecond)
@@ -327,9 +327,9 @@ func TestEnvironmentScenario(t *testing.T) {
 	err = env.Subscribe("bar", "baz")
 	assert.Nil(err)
 
-	err = env.EmitNew("foo", "lorem", 4711)
+	err = env.EmitNew(context.Background(), "foo", "lorem", 4711)
 	assert.Nil(err)
-	err = env.EmitNew("foo", "ipsum", 1234)
+	err = env.EmitNew(context.Background(), "foo", "ipsum", 1234)
 	assert.Nil(err)
 
 	time.Sleep(200 * time.Millisecond)

@@ -13,6 +13,9 @@ package behaviors
 
 import (
 	"context"
+	"time"
+
+	"github.com/tideland/golib/errors"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -76,19 +79,15 @@ func (b *collectorBehavior) Recover(err interface{}) error {
 
 // RequestCollectedAccessor retrieves the accessor to the
 // collected events.
-func RequestCollectedAccessor(env cells.Environment, id string) (cells.EventSinkAccessor, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), cells.DefaultTimeout)
-	defer cancel()
-	waiter := cells.NewPayloadWaiter()
-	err := env.EmitNewContext(ctx, id, cells.CollectedTopic, waiter)
+func RequestCollectedAccessor(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
+	payload, err := env.Request(ctx, id, cells.CollectedTopic, timeout)
 	if err != nil {
 		return nil, err
 	}
-	payload, err := waiter.Wait(ctx)
-	if err != nil {
-		return nil, err
+	accessor, ok := payload.GetDefault(nil).(cells.EventSinkAccessor)
+	if !ok {
+		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
 	}
-	accessor := payload.Default(nil).(cells.EventSinkAccessor)
 	return accessor, nil
 }
 

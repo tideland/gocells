@@ -37,11 +37,11 @@ type Payload interface {
 	// Len returns the number of values.
 	Len() int
 
-	// Default returns the default payload value.
-	Default(dv interface{}) interface{}
-
 	// Get returns one of the payload values.
 	Get(key string, dv interface{}) interface{}
+
+	// GetDefault returns the default payload value.
+	GetDefault(dv interface{}) interface{}
 
 	// GetBool returns one of the payload values
 	// as bool or the default value.
@@ -124,11 +124,6 @@ func (p *payload) Len() int {
 	return len(p.values)
 }
 
-// Default implementes the Payload interface.
-func (p *payload) Default(dv interface{}) interface{} {
-	return p.Get(DefaultPayload, dv)
-}
-
 // Get implementes the Payload interface.
 func (p *payload) Get(key string, dv interface{}) interface{} {
 	value, ok := p.values[key]
@@ -136,6 +131,11 @@ func (p *payload) Get(key string, dv interface{}) interface{} {
 		return dv
 	}
 	return value
+}
+
+// GetDefault implementes the Payload interface.
+func (p *payload) GetDefault(dv interface{}) interface{} {
+	return p.Get(DefaultPayload, dv)
 }
 
 // GetBool implementes the Payload interface.
