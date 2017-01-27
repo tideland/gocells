@@ -13,7 +13,6 @@ package behaviors_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -32,26 +31,24 @@ func TestFilterBehavior(t *testing.T) {
 	defer env.Stop()
 
 	ff := func(id string, event cells.Event) bool {
-		dp, ok := event.Payload().Get(cells.DefaultPayload)
+		payload, ok := event.Payload().GetDefault(nil).(string)
 		if !ok {
 			return false
 		}
-		payload := dp.(string)
 		return event.Topic() == payload
 	}
+	sink := cells.NewEventSink(10)
 	env.StartCell("filter", behaviors.NewFilterBehavior(ff))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
 	env.Subscribe("filter", "collector")
 
 	env.EmitNew("filter", "a", "a")
 	env.EmitNew("filter", "a", "b")
 	env.EmitNew("filter", "b", "b")
 
-	time.Sleep(100 * time.Millisecond)
-
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector")
 	assert.Nil(err)
-	assert.Length(collected, 2, "two collected events")
+	assert.Length(accessor, 2)
 }
 
 // EOF

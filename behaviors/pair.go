@@ -86,7 +86,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hit = &now
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
+					b.cell.Environment().EmitNew(event.Context(), b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
 						EventPairFirstTimePayload: now,
 					})
 				})

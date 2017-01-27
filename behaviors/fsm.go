@@ -13,6 +13,9 @@ package behaviors
 
 import (
 	"context"
+	"time"
+
+	"github.com/tideland/golib/errors"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -96,21 +99,14 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 }
 
 // RequestFSMStatus retrieves the status of a FSM cell.
-func RequestFSMStatus(env cells.Environment, id string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), cells.DefaultTimeout)
-	defer cancel()
-	waiter := cells.NewPayloadWaiter()
-	err := env.EmitNewContext(ctx, id, cells.StatusTopic, waiter)
+func RequestFSMStatus(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (bool, error) {
+	payload, err := env.Request(ctx, id, cells.StatusTopic, timeout)
 	if err != nil {
 		return false, err
 	}
-	payload, err := waiter.Wait(ctx)
-	if err != nil {
-		return false, err
-	}
-	status := payload.Default(nil).(*fsmStatus)
-	if status == nil {
-		return false, cells.NewInvalidResponseError(payload)
+	status, ok := payload.GetDefault(nil).(*fsmStatus)
+	if !ok || status == nil {
+		return false, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
 	}
 	return status.done, status.err
 }

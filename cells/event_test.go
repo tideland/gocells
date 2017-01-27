@@ -39,7 +39,7 @@ func TestEvent(t *testing.T) {
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
 
-	bar := event.Payload().Default("-")
+	bar := event.Payload().GetDefault("-")
 	assert.Equal(bar, "bar")
 
 	_, err = cells.NewEvent(nil, "", nil)

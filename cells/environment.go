@@ -14,6 +14,7 @@ package cells
 import (
 	"context"
 	"runtime"
+	"time"
 
 	"github.com/tideland/golib/identifier"
 	"github.com/tideland/golib/logger"
@@ -92,12 +93,7 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(id, topic string, payload interface{}) error {
-	return env.EmitNewContext(context.Background(), id, topic, payload)
-}
-
-// EmitNewContext implements the Environment interface.
-func (env *environment) EmitNewContext(ctx context.Context, id, topic string, payload interface{}) error {
+func (env *environment) EmitNew(ctx context.Context, id, topic string, payload interface{}) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -106,6 +102,22 @@ func (env *environment) EmitNewContext(ctx context.Context, id, topic string, pa
 		return err
 	}
 	return env.Emit(id, event)
+}
+
+// Request implements the Environment interface.
+func (env *environment) Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	waiter := NewPayloadWaiter()
+	err := env.EmitNew(ctx, id, topic, waiter)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := waiter.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
 // Stop implements the Environment interface.

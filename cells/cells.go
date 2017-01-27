@@ -48,12 +48,13 @@ type Environment interface {
 	// Emit emits an event to the cell with a given ID.
 	Emit(id string, event Event) error
 
-	// EmitNew creates an event and emits it to the cell with a given ID.
-	EmitNew(id, topic string, payload interface{}) error
-
-	// EmitNewContext creates an event with a context and emits it to the cell
+	// EmitNew creates an event with a context and emits it to the cell
 	// with a given ID.
-	EmitNewContext(ctx context.Context, id, topic string, payload interface{}) error
+	EmitNew(ctx context.Context, id, topic string, payload interface{}) error
+
+	// Request sends a request containing a payload waiter to the
+	// cell with the given ID. The response will be returned as payload.
+	Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error)
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
