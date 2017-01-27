@@ -12,7 +12,9 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -27,6 +29,7 @@ import (
 // TestCounterBehavior tests the counting of events.
 func TestCounterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("counter-behavior")
 	defer env.Stop()
 
@@ -35,11 +38,11 @@ func TestCounterBehavior(t *testing.T) {
 	}
 	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
 
-	env.EmitNew("counter", "count", []string{"a", "b"})
-	env.EmitNew("counter", "count", []string{"a", "c", "d"})
-	env.EmitNew("counter", "count", []string{"a", "d"})
+	env.EmitNew(ctx, "counter", "count", []string{"a", "b"})
+	env.EmitNew(ctx, "counter", "count", []string{"a", "c", "d"})
+	env.EmitNew(ctx, "counter", "count", []string{"a", "d"})
 
-	counters, err := behaviors.RequestCounterResults(env, "counter")
+	counters, err := behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
 	assert.Nil(err)
 	assert.Length(counters, 4, "four counted events")
 
@@ -48,10 +51,10 @@ func TestCounterBehavior(t *testing.T) {
 	assert.Equal(counters["c"], int64(1))
 	assert.Equal(counters["d"], int64(2))
 
-	err = env.EmitNew("counter", cells.ResetTopic, nil)
+	err = env.EmitNew(ctx, "counter", cells.ResetTopic, nil)
 	assert.Nil(err)
 
-	counters, err = behaviors.RequestCounterResults(env, "counter")
+	counters, err = behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
 	assert.Nil(err)
 	assert.Empty(counters)
 }
