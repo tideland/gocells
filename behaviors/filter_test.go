@@ -40,16 +40,15 @@ func TestFilterBehavior(t *testing.T) {
 		}
 		return event.Topic() == payload
 	}
-	sink := cells.NewEventSink(10)
 	env.StartCell("filter", behaviors.NewFilterBehavior(ff))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("filter", "collector")
 
 	env.EmitNew(ctx, "filter", "a", "a")
 	env.EmitNew(ctx, "filter", "a", "b")
 	env.EmitNew(ctx, "filter", "b", "b")
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, 2)
 }

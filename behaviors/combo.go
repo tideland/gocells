@@ -70,7 +70,7 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		}
 		if done {
 			// All matches collected.
-			b.cell.EmitNew(EventComboTopic, cells.PayloadValues{
+			b.cell.EmitNew(event.Context(), EventComboTopic, cells.PayloadValues{
 				EventComboEventsPayload: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)

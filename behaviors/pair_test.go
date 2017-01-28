@@ -54,14 +54,12 @@ func TestPairBehavior(t *testing.T) {
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 	duration := time.Millisecond
-	positiveSink := cells.NewEventSink(1000)
-	negativeSink := cells.NewEventSink(1000)
 
 	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
 	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterFuncBuilder(true)))
 	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterFuncBuilder(false)))
-	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(positiveSink))
-	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(negativeSink))
+	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000))
+	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000))
 	env.Subscribe("pairer", "positive-filter", "negative-filter")
 	env.Subscribe("positive-filter", "positive-collector")
 	env.Subscribe("negative-filter", "negative-collector")
@@ -72,7 +70,7 @@ func TestPairBehavior(t *testing.T) {
 		generator.SleepOneOf(0, time.Millisecond, 2*time.Millisecond)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "positive-collector", cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "positive-collector", cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.True(accessor.Len() >= 1)
 	assert.Logf("Positive Events: %d", accessor.Len())
@@ -87,7 +85,7 @@ func TestPairBehavior(t *testing.T) {
 		return nil
 	})
 
-	accessor, err = behaviors.RequestCollectedAccessor(ctx, env, "negative-collector", cells.DefaultTimeout)
+	accessor, err = behaviors.RequestCollectedAccessor(env, "negative-collector", cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.True(accessor.Len() >= 1)
 	assert.Logf("Negative Events: %d", accessor.Len())

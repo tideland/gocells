@@ -77,10 +77,7 @@ type Cell interface {
 	Emit(event Event) error
 
 	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(topic string, payload interface{}) error
-
-	// EmitNewContext creates an event and emits it to all subscribers of a cell.
-	EmitNewContext(ctx context.Context, topic string, payload interface{}) error
+	EmitNew(ctx context.Context, topic string, payload interface{}) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error

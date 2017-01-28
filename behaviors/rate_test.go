@@ -38,10 +38,9 @@ func TestRateBehavior(t *testing.T) {
 		return event.Topic() == "now"
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
-	sink := cells.NewEventSink(10000)
 
 	env.StartCell("rater", behaviors.NewRateBehavior(matches, 100))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
 	env.Subscribe("rater", "collector")
 
 	for i := 0; i < 10000; i++ {
@@ -50,7 +49,7 @@ func TestRateBehavior(t *testing.T) {
 		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.True(accessor.Len() <= 10000)
 	err = accessor.Do(func(index int, event cells.Event) error {

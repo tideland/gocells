@@ -33,23 +33,20 @@ func TestBroadcasterBehavior(t *testing.T) {
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
-	sinkA := cells.NewEventSink(10)
-	sinkB := cells.NewEventSink(10)
-
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
-	env.StartCell("test-a", behaviors.NewCollectorBehavior(sinkA))
-	env.StartCell("test-b", behaviors.NewCollectorBehavior(sinkB))
+	env.StartCell("test-a", behaviors.NewCollectorBehavior(10))
+	env.StartCell("test-b", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("broadcast", "test-a", "test-b")
 
 	env.EmitNew(ctx, "broadcast", "test", "a")
 	env.EmitNew(ctx, "broadcast", "test", "b")
 	env.EmitNew(ctx, "broadcast", "test", "c")
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "test-a", time.Second)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "test-a", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, 3)
 
-	accessor, err = behaviors.RequestCollectedAccessor(ctx, env, "test-b", time.Second)
+	accessor, err = behaviors.RequestCollectedAccessor(env, "test-b", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, 3)
 }
