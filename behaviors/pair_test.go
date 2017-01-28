@@ -92,10 +92,10 @@ func TestPairBehavior(t *testing.T) {
 
 	err = accessor.Do(func(index int, event cells.Event) error {
 		first := event.Payload().GetTime(behaviors.EventPairFirstTimePayload, time.Time{})
-		second := event.Payload().GetTime(behaviors.EventPairSecondTimePayload, time.Time{})
-		difference := second.Sub(first)
+		timeout := event.Payload().GetTime(behaviors.EventPairTimeoutPayload, time.Time{})
+		difference := timeout.Sub(first)
 		assert.False(first.IsZero())
-		assert.False(second.IsZero())
+		assert.False(timeout.IsZero())
 		assert.True(difference > duration)
 		return nil
 	})

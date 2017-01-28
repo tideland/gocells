@@ -13,6 +13,7 @@ package behaviors_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,6 +34,7 @@ func TestFilterBehavior(t *testing.T) {
 	env := cells.NewEnvironment("filter-behavior")
 	defer env.Stop()
 
+	var wg sync.WaitGroup
 	ff := func(id string, event cells.Event) bool {
 		payload, ok := event.Payload().GetDefault(nil).(string)
 		if !ok {
@@ -40,14 +42,21 @@ func TestFilterBehavior(t *testing.T) {
 		}
 		return event.Topic() == payload
 	}
+	sf := func(c cells.Cell, event cells.Event) error {
+		wg.Done()
+		return nil
+	}
 	env.StartCell("filter", behaviors.NewFilterBehavior(ff))
+	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(sf))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
-	env.Subscribe("filter", "collector")
+	env.Subscribe("filter", "simple", "collector")
 
+	wg.Add(2)
 	env.EmitNew(ctx, "filter", "a", "a")
 	env.EmitNew(ctx, "filter", "a", "b")
 	env.EmitNew(ctx, "filter", "b", "b")
 
+	wg.Wait()
 	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Length(accessor, 2)
