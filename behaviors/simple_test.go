@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -28,6 +29,7 @@ import (
 // TestSimpleBehavior tests the simple processor behavior.
 func TestSimpleBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("simple-procesor-behavior")
 	defer env.Stop()
 
@@ -41,9 +43,9 @@ func TestSimpleBehavior(t *testing.T) {
 	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(spf))
 
 	wg.Add(3)
-	env.EmitNew("simple", "foo", "")
-	env.EmitNew("simple", "bar", "")
-	env.EmitNew("simple", "baz", "")
+	env.EmitNew(ctx, "simple", "foo", "")
+	env.EmitNew(ctx, "simple", "bar", "")
+	env.EmitNew(ctx, "simple", "baz", "")
 
 	wg.Wait()
 	assert.Length(topics, 3)

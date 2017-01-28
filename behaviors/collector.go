@@ -31,14 +31,13 @@ type collectorBehavior struct {
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
-// a number of events in the passed sink. The event is passed through.
-// The collected events can be requested with the topic "collected?"
-// and a payload waiter as default payload. A cells.EventSinkAccessor
-// will set in the waiter. Additionally the collection can be resetted
-// with "reset!".
-func NewCollectorBehavior(sink cells.EventSink) cells.Behavior {
+// a maximum number of events, each event is passed through. If the
+// maximum number is 0 it collects until the topic "reset!". An
+// access to the collected events can be retrieved with the topic
+// "collected?" and a payload waiter as default payload.
+func NewCollectorBehavior(max int) cells.Behavior {
 	return &collectorBehavior{
-		sink: sink,
+		sink: cells.NewEventSink(max),
 	}
 }
 
@@ -50,6 +49,7 @@ func (b *collectorBehavior) Init(c cells.Cell) error {
 
 // Terminate the behavior.
 func (b *collectorBehavior) Terminate() error {
+	b.sink.Clear()
 	return nil
 }
 
@@ -79,8 +79,8 @@ func (b *collectorBehavior) Recover(err interface{}) error {
 
 // RequestCollectedAccessor retrieves the accessor to the
 // collected events.
-func RequestCollectedAccessor(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
-	payload, err := env.Request(ctx, id, cells.CollectedTopic, timeout)
+func RequestCollectedAccessor(env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
+	payload, err := env.Request(context.Background(), id, cells.CollectedTopic, timeout)
 	if err != nil {
 		return nil, err
 	}

@@ -33,20 +33,19 @@ func TestCollectorBehavior(t *testing.T) {
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
-	sink := cells.NewEventSink(10)
-	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 
 	for i := 0; i < 25; i++ {
 		env.EmitNew(ctx, "collector", "collect", i)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
-	assert.Length(accessor, sink.Len())
+	assert.Length(accessor, 10)
 
 	env.EmitNew(ctx, "collector", cells.ResetTopic, nil)
 
-	accessor, err = behaviors.RequestCollectedAccessor(ctx, env, "collector", time.Second)
+	accessor, err = behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
 	assert.Empty(accessor)
 }

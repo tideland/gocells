@@ -57,7 +57,7 @@ func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
 			TickerIDPayload:   b.cell.ID(),
 			TickerTimePayload: time.Now(),
 		}
-		b.cell.EmitNew(TickerTopic, pvs)
+		b.cell.EmitNew(event.Context(), TickerTopic, pvs)
 	}
 	return nil
 }

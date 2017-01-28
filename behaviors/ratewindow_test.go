@@ -41,10 +41,8 @@ func TestRateWindowBehavior(t *testing.T) {
 	interestingTopics := []string{"a", "b", "c", "d", "now"}
 	duration := 25 * time.Millisecond
 
-	sink := cells.NewEventSink(100)
-
 	env.StartCell("windower", behaviors.NewRateWindowBehavior(matches, 5, duration))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(100))
 	env.Subscribe("windower", "collector")
 
 	for i := 0; i < 10; i++ {
@@ -61,7 +59,7 @@ func TestRateWindowBehavior(t *testing.T) {
 		}
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.True(accessor.Len() >= 1)
 	assert.Logf("Window Events: %d", accessor.Len())

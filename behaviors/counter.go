@@ -81,7 +81,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 					b.counters[cid] = 1
 				}
 				topic := "counter:" + cid
-				b.cell.EmitNewContext(event.Context(), topic, b.counters[cid])
+				b.cell.EmitNew(event.Context(), topic, b.counters[cid])
 			}
 		}
 	}

@@ -193,12 +193,7 @@ func (c *cell) Emit(event Event) error {
 }
 
 // EmitNew implements the Cell interface.
-func (c *cell) EmitNew(topic string, payload interface{}) error {
-	return c.EmitNewContext(context.Background(), topic, payload)
-}
-
-// EmitNewContext implements the Cell interface.
-func (c *cell) EmitNewContext(ctx context.Context, topic string, payload interface{}) error {
+func (c *cell) EmitNew(ctx context.Context, topic string, payload interface{}) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}

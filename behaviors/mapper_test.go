@@ -31,7 +31,6 @@ import (
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	ctx := context.Background()
-	sink := cells.NewEventSink(10)
 	assertPayload := func(accessor cells.EventSinkAccessor, index int, value string) {
 		event, ok := accessor.PeekAt(index)
 		assert.True(ok)
@@ -51,7 +50,7 @@ func TestMapperBehavior(t *testing.T) {
 	}
 
 	env.StartCell("mapper", behaviors.NewMapperBehavior(mf))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(sink))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("mapper", "collector")
 
 	env.EmitNew(ctx, "mapper", "a", "abc")
@@ -60,7 +59,7 @@ func TestMapperBehavior(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	accessor, err := behaviors.RequestCollectedAccessor(ctx, env, "collector", cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
 	assert.Length(accessor, 3)
 	assertPayload(accessor, 0, "ABC")

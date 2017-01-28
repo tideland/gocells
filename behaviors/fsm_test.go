@@ -180,7 +180,7 @@ func (m *lockMachine) Unlocked(cell cells.Cell, event cells.Event) (behaviors.FS
 		return m.Unlocked, nil
 	case "coin!":
 		cents := payloadCents(event)
-		cell.EmitNewContext(event.Context(), "return", cents)
+		cell.EmitNew(event.Context(), "return", cents)
 		return m.Unlocked, nil
 	case "button-press!":
 		cell.Environment().EmitNew(event.Context(), "restorer", "drop!", m.cents)
