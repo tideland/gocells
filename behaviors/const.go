@@ -18,7 +18,8 @@ const (
 	// Criterion matches.
 	CriterionDone CriterionMatch = iota + 1
 	CriterionKeep
-	CriterionMove
+	CriterionDropFirst
+	CriterionDropLast
 	CriterionClear
 
 	// Topics.

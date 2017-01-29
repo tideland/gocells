@@ -19,12 +19,13 @@ import (
 // SEQUENCE BEHAVIOR
 //--------------------
 
-// ComboCriterion is used by the combo behavior and has to return
-// true as first, if the passed events match a criterion for combo
-// measuring. If the first result is false the event will be dropped
-// again. The second bool signals if a combo is full and an event
-// shall be emitted.
-type ComboCriterion func(accessor cells.EventSinkAccessor) (bool, bool)
+// ComboCriterion is used by the combo behavior. It has to return
+// CriterionDone when a combination is complete, CriterionKeep when it
+// is so far okay but not complete, CriterionDropFirst when the first
+// event shall be dropped, CriterionDropLast when the last event shall
+// be dropped, and CriterionClear when the collected events have
+// to be cleared for starting over.
+type ComboCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
 
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
@@ -62,18 +63,25 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
-		matches, done := b.matches(b.sink)
-		if !matches {
-			// No match, so pull last.
-			b.sink.PullLast()
-			return nil
-		}
-		if done {
-			// All matches collected.
+		matches := b.matches(b.sink)
+		switch matches {
+		case CriterionDone:
+			// All done, emit and start over.
 			b.cell.EmitNew(event.Context(), EventComboTopic, cells.PayloadValues{
 				EventComboEventsPayload: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)
+		case CriterionKeep:
+			// So far ok.
+		case CriterionDropFirst:
+			// First event doesn't match.
+			b.sink.PullFirst()
+		case CriterionDropLast:
+			// First event doesn't match.
+			b.sink.PullLast()
+		default:
+			// Have to start from beginning.
+			b.sink.Clear()
 		}
 	}
 	return nil

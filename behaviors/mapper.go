@@ -19,19 +19,21 @@ import (
 // MAPPER BEHAVIOR
 //--------------------
 
-// MapFunc is a function type mapping an event to another one.
-type MapFunc func(id string, event cells.Event) (cells.Event, error)
+// Mapper is a function type mapping an event to another one.
+type Mapper func(id string, event cells.Event) (cells.Event, error)
 
 // mapperBehavior maps the received event to a new event.
 type mapperBehavior struct {
-	cell    cells.Cell
-	mapFunc MapFunc
+	cell   cells.Cell
+	mapper Mapper
 }
 
 // NewMapperBehavior creates a map behavior based on the passed function.
 // It emits the mapped events.
-func NewMapperBehavior(mf MapFunc) cells.Behavior {
-	return &mapperBehavior{nil, mf}
+func NewMapperBehavior(mapper Mapper) cells.Behavior {
+	return &mapperBehavior{
+		mapper: mapper,
+	}
 }
 
 // Init the behavior.
@@ -47,7 +49,7 @@ func (b *mapperBehavior) Terminate() error {
 
 // ProcessEvent maps the received event to a new one and emits it.
 func (b *mapperBehavior) ProcessEvent(event cells.Event) error {
-	mappedEvent, err := b.mapFunc(b.cell.ID(), event)
+	mappedEvent, err := b.mapper(b.cell.ID(), event)
 	if err != nil {
 		return err
 	}
