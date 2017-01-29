@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Counter
 //
-// Copyright (C) 2010-2017 Frank Mueller / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -12,6 +12,11 @@ package behaviors
 //--------------------
 
 import (
+	"context"
+	"time"
+
+	"github.com/tideland/golib/errors"
+
 	"github.com/tideland/gocells/cells"
 )
 
@@ -36,7 +41,8 @@ type counterBehavior struct {
 // NewCounterBehavior creates a counter behavior based on the passed
 // function. It increments and emits those counters named by the result
 // of the counter function. The counters can be retrieved with the
-// request "counters?" and reset with "reset!".
+// event "counters?" and a payload waiter as payload. It can be reset
+// with "reset!".
 func NewCounterBehavior(cf CounterFunc) cells.Behavior {
 	return &counterBehavior{nil, cf, make(Counters)}
 }
@@ -57,9 +63,10 @@ func (b *counterBehavior) Terminate() error {
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CountersTopic:
-		response := b.copyCounters()
-		if err := event.Respond(response); err != nil {
-			return err
+		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		if ok {
+			response := b.copyCounters()
+			waiter.Set(cells.NewPayload(response))
 		}
 	case cells.ResetTopic:
 		b.counters = make(map[string]int64)
@@ -74,7 +81,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 					b.counters[cid] = 1
 				}
 				topic := "counter:" + cid
-				b.cell.EmitNewContext(topic, b.counters[cid], event.Context())
+				b.cell.EmitNew(event.Context(), topic, b.counters[cid])
 			}
 		}
 	}
@@ -93,6 +100,20 @@ func (b *counterBehavior) copyCounters() Counters {
 		copiedCounters[key] = value
 	}
 	return copiedCounters
+}
+
+// RequestCounterResults retrieves the results to the
+// behaviors counters.
+func RequestCounterResults(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (Counters, error) {
+	payload, err := env.Request(ctx, id, cells.CountersTopic, timeout)
+	if err != nil {
+		return nil, err
+	}
+	counters, ok := payload.GetDefault(nil).(Counters)
+	if !ok {
+		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
+	}
+	return counters, nil
 }
 
 // EOF

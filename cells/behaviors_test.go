@@ -12,7 +12,6 @@ package cells_test
 //--------------------
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/tideland/gocells/cells"
@@ -60,19 +59,19 @@ func (b *nullBehavior) Recover(r interface{}) error { return nil }
 // on the topic "processed" and delets all collected on the
 // topic "reset".
 type collectBehavior struct {
-	c           cells.Cell
-	processed   []string
+	cell        cells.Cell
+	sink        cells.EventSink
 	recoverings int
 }
 
 var _ cells.Behavior = (*collectBehavior)(nil)
 
-func newCollectBehavior() *collectBehavior {
-	return &collectBehavior{nil, []string{}, 0}
+func newCollectBehavior(sink cells.EventSink) *collectBehavior {
+	return &collectBehavior{nil, sink, 0}
 }
 
-func (b *collectBehavior) Init(c cells.Cell) error {
-	b.c = c
+func (b *collectBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -83,22 +82,16 @@ func (b *collectBehavior) Terminate() error {
 func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.ProcessedTopic:
-		processed := make([]string, len(b.processed))
-		copy(processed, b.processed)
-		err := event.Respond(processed)
-		if err != nil {
-			return err
+		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		if !ok {
+			panic("illegal payload, need waiter")
 		}
+		waiter.Set(cells.NewPayload(b.sink))
 	case cells.ResetTopic:
-		b.processed = []string{}
-	case cells.PingTopic:
-		err := event.Respond(cells.PongResponse)
-		if err != nil {
-			return err
-		}
+		b.sink.Clear()
 	case iterateTopic:
-		err := b.c.SubscribersDo(func(s cells.Subscriber) error {
-			return s.ProcessNewEvent("love", b.c.ID()+" loves "+s.ID(), event.Context())
+		err := b.cell.SubscribersDo(func(s cells.Subscriber) error {
+			return s.ProcessNewEvent(event.Context(), "love", b.cell.ID()+" loves "+s.ID())
 		})
 		if err != nil {
 			return err
@@ -107,17 +100,18 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 		panic("Ouch!")
 	case subscribersTopic:
 		var ids []string
-		b.c.SubscribersDo(func(s cells.Subscriber) error {
+		b.cell.SubscribersDo(func(s cells.Subscriber) error {
 			ids = append(ids, s.ID())
 			return nil
 		})
-		err := event.Respond(ids)
-		if err != nil {
-			return err
+		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		if !ok {
+			panic("illegal payload, need waiter")
 		}
+		waiter.Set(cells.NewPayload(ids))
 	default:
-		b.processed = append(b.processed, fmt.Sprintf("%v", event))
-		return b.c.Emit(event)
+		b.sink.Push(event)
+		return b.cell.Emit(event)
 	}
 	return nil
 }
@@ -125,7 +119,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 func (b *collectBehavior) Recover(r interface{}) error {
 	b.recoverings++
 	if b.recoverings > 5 {
-		return cells.NewCannotRecoverError(b.c.ID(), r)
+		return cells.NewCannotRecoverError(b.cell.ID(), r)
 	}
 	return nil
 }
@@ -140,9 +134,9 @@ type testEventBufferBehavior struct {
 
 var _ cells.BehaviorEventBufferSize = (*testEventBufferBehavior)(nil)
 
-func newEventBufferBehavior(size int) cells.Behavior {
+func newEventBufferBehavior(size int, sink cells.EventSink) cells.Behavior {
 	return &testEventBufferBehavior{
-		collectBehavior: newCollectBehavior(),
+		collectBehavior: newCollectBehavior(sink),
 		size:            size,
 	}
 }
@@ -162,9 +156,9 @@ type recoveringFrequencyBehavior struct {
 
 var _ cells.BehaviorRecoveringFrequency = (*recoveringFrequencyBehavior)(nil)
 
-func newRecoveringFrequencyBehavior(number int, duration time.Duration) cells.Behavior {
+func newRecoveringFrequencyBehavior(number int, duration time.Duration, sink cells.EventSink) cells.Behavior {
 	return &recoveringFrequencyBehavior{
-		collectBehavior: newCollectBehavior(),
+		collectBehavior: newCollectBehavior(sink),
 		number:          number,
 		duration:        duration,
 	}
@@ -184,9 +178,9 @@ type emitTimeoutBehavior struct {
 
 var _ cells.BehaviorEmitTimeout = (*emitTimeoutBehavior)(nil)
 
-func newEmitTimeoutBehavior(timeout time.Duration) cells.Behavior {
+func newEmitTimeoutBehavior(timeout time.Duration, sink cells.EventSink) cells.Behavior {
 	return &emitTimeoutBehavior{
-		collectBehavior: newCollectBehavior(),
+		collectBehavior: newCollectBehavior(sink),
 		timeout:         timeout,
 	}
 }

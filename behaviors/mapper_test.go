@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -29,46 +30,41 @@ import (
 // TestMapperBehavior tests the mapping of events.
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	assertPayload := func(collected interface{}, index int, value string) {
-		eventDatas, ok := collected.(*cells.EventDatas)
+	ctx := context.Background()
+	assertPayload := func(accessor cells.EventSinkAccessor, index int, value string) {
+		event, ok := accessor.PeekAt(index)
 		assert.True(ok)
-		payload, ok := eventDatas.PayloadAt(index)
-		assert.True(ok)
-		upperText, ok := payload.Get("upper-text")
-		assert.True(ok)
+		upperText := event.Payload().GetString("upper-text", "<none>")
 		assert.Equal(upperText, value)
 	}
 	env := cells.NewEnvironment("mapper-behavior")
 	defer env.Stop()
 
-	mf := func(id string, event cells.Event) (cells.Event, error) {
-		text, ok := event.Payload().Get(cells.DefaultPayload)
-		if !ok {
-			return event, nil
-		}
+	mapper := func(id string, event cells.Event) (cells.Event, error) {
+		text := event.Payload().GetString(cells.DefaultPayload, "")
 		pv := cells.PayloadValues{
-			"upper-text": strings.ToUpper(text.(string)),
+			"upper-text": strings.ToUpper(text),
 		}
 		payload := event.Payload().Apply(pv)
-		return cells.NewEvent(event.Topic(), payload, event.Context())
+		return cells.NewEvent(event.Context(), event.Topic(), payload)
 	}
 
-	env.StartCell("mapper", behaviors.NewMapperBehavior(mf))
+	env.StartCell("mapper", behaviors.NewMapperBehavior(mapper))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("mapper", "collector")
 
-	env.EmitNew("mapper", "a", "abc")
-	env.EmitNew("mapper", "b", "def")
-	env.EmitNew("mapper", "c", "ghi")
+	env.EmitNew(ctx, "mapper", "a", "abc")
+	env.EmitNew(ctx, "mapper", "b", "def")
+	env.EmitNew(ctx, "mapper", "c", "ghi")
 
 	time.Sleep(100 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
-	assert.Length(collected, 3, "three mapped events")
-	assertPayload(collected, 0, "ABC")
-	assertPayload(collected, 1, "DEF")
-	assertPayload(collected, 2, "GHI")
+	assert.Length(accessor, 3)
+	assertPayload(accessor, 0, "ABC")
+	assertPayload(accessor, 1, "DEF")
+	assertPayload(accessor, 2, "GHI")
 }
 
 // EOF

@@ -12,6 +12,7 @@ package cells_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -25,76 +26,6 @@ import (
 //--------------------
 // TESTS
 //--------------------
-
-// TestEvent tests the event construction.
-func TestEvent(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-
-	event, err := cells.NewEvent("foo", "bar", nil)
-	assert.Nil(err)
-	assert.Equal(event.Topic(), "foo")
-	assert.Equal(event.String(), "<topic: \"foo\" / payload: <\"default\": bar>>")
-
-	bar, ok := event.Payload().Get(cells.DefaultPayload)
-	assert.True(ok)
-	assert.Equal(bar, "bar")
-
-	_, err = cells.NewEvent("", nil, nil)
-	assert.True(cells.IsNoTopicError(err))
-
-	_, err = cells.NewEvent("yadda", nil, nil)
-	assert.Nil(err)
-}
-
-// TestPayload tests the payload creation and access.
-func TestPayload(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-
-	now := time.Now()
-	dur := 30 * time.Second
-	pvs := cells.PayloadValues{
-		"bool":     true,
-		"int":      42,
-		"float64":  47.11,
-		"string":   "hello, world",
-		"time":     now,
-		"duration": dur,
-	}
-	pl := cells.NewPayload(pvs)
-
-	b, ok := pl.GetBool("bool")
-	assert.True(ok)
-	assert.True(b)
-	i, ok := pl.GetInt("int")
-	assert.True(ok)
-	assert.Equal(i, 42)
-	f, ok := pl.GetFloat64("float64")
-	assert.True(ok)
-	assert.Equal(f, 47.11)
-	s, ok := pl.GetString("string")
-	assert.True(ok)
-	assert.Equal(s, "hello, world")
-	tt, ok := pl.GetTime("time")
-	assert.True(ok)
-	assert.Equal(tt, now)
-	td, ok := pl.GetDuration("duration")
-	assert.True(ok)
-	assert.Equal(td, dur)
-
-	pln := pl.Apply("foo")
-	s, ok = pln.GetString(cells.DefaultPayload)
-	assert.True(ok)
-	assert.Equal(s, "foo")
-	assert.Length(pln, 7)
-
-	keys := pln.Keys()
-	assert.Contents("string", keys)
-	assert.Contents("int", keys)
-
-	plab := cells.NewPayload(map[string]interface{}{"a": 1, "b": 2})
-	plnab := pln.Apply(plab)
-	assert.Length(plnab, 9)
-}
 
 // TestEnvironment tests general environment methods.
 func TestEnvironment(t *testing.T) {
@@ -121,7 +52,8 @@ func TestEnvironmentStartStopCell(t *testing.T) {
 	env := cells.NewEnvironment("start-stop")
 	defer env.Stop()
 
-	err := env.StartCell("foo", newCollectBehavior())
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("foo", newCollectBehavior(sink))
 	assert.Nil(err)
 
 	hasFoo := env.HasCell("foo")
@@ -148,17 +80,18 @@ func TestBehaviorEventBufferSize(t *testing.T) {
 	env := cells.NewEnvironment("event-buffer")
 	defer env.Stop()
 
-	err := env.StartCell("negative", newEventBufferBehavior(-8))
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("negative", newEventBufferBehavior(-8, sink))
 	assert.Nil(err)
 	ci := cells.InspectCell(env, "negative")
 	assert.Equal(ci.EventBufferSize(), cells.MinEventBufferSize)
 
-	err = env.StartCell("low", newEventBufferBehavior(1))
+	err = env.StartCell("low", newEventBufferBehavior(1, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "low")
 	assert.Equal(ci.EventBufferSize(), cells.MinEventBufferSize)
 
-	err = env.StartCell("high", newEventBufferBehavior(2*cells.MinEventBufferSize))
+	err = env.StartCell("high", newEventBufferBehavior(2*cells.MinEventBufferSize, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "high")
 	assert.Equal(ci.EventBufferSize(), 2*cells.MinEventBufferSize)
@@ -172,19 +105,20 @@ func TestBehaviorRecoveringFrequency(t *testing.T) {
 	env := cells.NewEnvironment("recovering-frequency")
 	defer env.Stop()
 
-	err := env.StartCell("negative", newRecoveringFrequencyBehavior(-1, time.Second))
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("negative", newRecoveringFrequencyBehavior(-1, time.Second, sink))
 	assert.Nil(err)
 	ci := cells.InspectCell(env, "negative")
 	assert.Equal(ci.RecoveringNumber(), cells.MinRecoveringNumber)
 	assert.Equal(ci.RecoveringDuration(), cells.MinRecoveringDuration)
 
-	err = env.StartCell("low", newRecoveringFrequencyBehavior(10, time.Millisecond))
+	err = env.StartCell("low", newRecoveringFrequencyBehavior(10, time.Millisecond, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "low")
 	assert.Equal(ci.RecoveringNumber(), cells.MinRecoveringNumber)
 	assert.Equal(ci.RecoveringDuration(), cells.MinRecoveringDuration)
 
-	err = env.StartCell("high", newRecoveringFrequencyBehavior(12, time.Minute))
+	err = env.StartCell("high", newRecoveringFrequencyBehavior(12, time.Minute, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "high")
 	assert.Equal(ci.RecoveringNumber(), 12)
@@ -201,17 +135,18 @@ func TestBehaviorEmitTimeoutSetting(t *testing.T) {
 	env := cells.NewEnvironment("emit-timeout-setting")
 	defer env.Stop()
 
-	err := env.StartCell("low", newEmitTimeoutBehavior(time.Millisecond))
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("low", newEmitTimeoutBehavior(time.Millisecond, sink))
 	assert.Nil(err)
 	ci := cells.InspectCell(env, "low")
 	assert.Equal(ci.EmitTimeout(), minSeconds)
 
-	err = env.StartCell("correct", newEmitTimeoutBehavior(10*time.Second))
+	err = env.StartCell("correct", newEmitTimeoutBehavior(10*time.Second, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "correct")
 	assert.Equal(ci.EmitTimeout(), 2)
 
-	err = env.StartCell("high", newEmitTimeoutBehavior(2*cells.MaxEmitTimeout))
+	err = env.StartCell("high", newEmitTimeoutBehavior(2*cells.MaxEmitTimeout, sink))
 	assert.Nil(err)
 	ci = cells.InspectCell(env, "high")
 	assert.Equal(ci.EmitTimeout(), maxSeconds)
@@ -234,7 +169,7 @@ func TestBehaviorEmitTimeoutError(t *testing.T) {
 
 	// Emit more events than queue can take while the subscriber works.
 	for i := 0; i < 25; i++ {
-		env.EmitNew("emitter", emitTopic, i)
+		env.EmitNew(context.Background(), "emitter", emitTopic, i)
 	}
 
 	time.Sleep(2 * time.Second)
@@ -247,9 +182,10 @@ func TestEnvironmentSubscribeStop(t *testing.T) {
 	env := cells.NewEnvironment("subscribe-unsubscribe-stop")
 	defer env.Stop()
 
-	assert.Nil(env.StartCell("foo", newCollectBehavior()))
-	assert.Nil(env.StartCell("bar", newCollectBehavior()))
-	assert.Nil(env.StartCell("baz", newCollectBehavior()))
+	sink := cells.NewEventSink(0)
+	assert.Nil(env.StartCell("foo", newCollectBehavior(sink)))
+	assert.Nil(env.StartCell("bar", newCollectBehavior(sink)))
+	assert.Nil(env.StartCell("baz", newCollectBehavior(sink)))
 
 	assert.Nil(env.Subscribe("foo", "bar", "baz"))
 	assert.Nil(env.Subscribe("bar", "foo", "baz"))
@@ -267,13 +203,14 @@ func TestEnvironmentSubscribeUnsubscribe(t *testing.T) {
 	env := cells.NewEnvironment("subscribe-unsubscribe")
 	defer env.Stop()
 
-	err := env.StartCell("foo", newCollectBehavior())
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("foo", newCollectBehavior(sink))
 	assert.Nil(err)
-	err = env.StartCell("bar", newCollectBehavior())
+	err = env.StartCell("bar", newCollectBehavior(sink))
 	assert.Nil(err)
-	err = env.StartCell("baz", newCollectBehavior())
+	err = env.StartCell("baz", newCollectBehavior(sink))
 	assert.Nil(err)
-	err = env.StartCell("yadda", newCollectBehavior())
+	err = env.StartCell("yadda", newCollectBehavior(sink))
 	assert.Nil(err)
 
 	err = env.Subscribe("humpf", "foo")
@@ -309,11 +246,14 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	env := cells.NewEnvironment("stop-unsubscribe")
 	defer env.Stop()
 
-	err := env.StartCell("foo", newCollectBehavior())
+	fooSink := cells.NewEventSink(0)
+	barSink := cells.NewEventSink(0)
+	bazSink := cells.NewEventSink(0)
+	err := env.StartCell("foo", newCollectBehavior(fooSink))
 	assert.Nil(err)
-	err = env.StartCell("bar", newCollectBehavior())
+	err = env.StartCell("bar", newCollectBehavior(barSink))
 	assert.Nil(err)
-	err = env.StartCell("baz", newCollectBehavior())
+	err = env.StartCell("baz", newCollectBehavior(bazSink))
 	assert.Nil(err)
 
 	err = env.Subscribe("foo", "bar", "baz")
@@ -323,9 +263,15 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert.Nil(err)
 
 	// Expect only baz because bar is stopped.
-	response, err := env.Request("foo", subscribersTopic, nil, cells.DefaultTimeout)
+	waiter := cells.NewPayloadWaiter()
+	env.EmitNew(context.Background(), "foo", subscribersTopic, waiter)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	response, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	assert.Equal(response, []string{"baz"})
+	ids := response.GetDefault([]string{})
+	assert.Equal(ids, []string{"baz"})
+	cancel()
 }
 
 // TestEnvironmentSubscribersDo tests the iteration over
@@ -336,28 +282,30 @@ func TestEnvironmentSubscribersDo(t *testing.T) {
 	env := cells.NewEnvironment("subscribers-do")
 	defer env.Stop()
 
-	err := env.StartCell("foo", newCollectBehavior())
-	assert.Nil(err)
-	err = env.StartCell("bar", newCollectBehavior())
-	assert.Nil(err)
-	err = env.StartCell("baz", newCollectBehavior())
-	assert.Nil(err)
+	fooSink := cells.NewEventSink(0)
+	barSink := cells.NewEventSink(0)
+	bazSink := cells.NewEventSink(0)
+	env.StartCell("foo", newCollectBehavior(fooSink))
+	env.StartCell("bar", newCollectBehavior(barSink))
+	env.StartCell("baz", newCollectBehavior(bazSink))
 
-	err = env.Subscribe("foo", "bar", "baz")
+	err := env.Subscribe("foo", "bar", "baz")
 	assert.Nil(err)
-	err = env.EmitNew("foo", iterateTopic, nil)
+	err = env.EmitNew(context.Background(), "foo", iterateTopic, nil)
 	assert.Nil(err)
 
 	time.Sleep(200 * time.Millisecond)
 
-	collected, err := env.Request("bar", cells.ProcessedTopic, nil, cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.Length(collected, 1)
-	assert.Contents(`<topic: "love" / payload: <"default": foo loves bar>>`, collected)
-	collected, err = env.Request("baz", cells.ProcessedTopic, nil, cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.Length(collected, 1)
-	assert.Contents(`<topic: "love" / payload: <"default": foo loves baz>>`, collected)
+	assert.Length(barSink, 1)
+	assert.Length(bazSink, 1)
+	barSink.Do(func(index int, event cells.Event) error {
+		assert.Equal(event.Topic(), "love")
+		return nil
+	})
+	bazSink.Do(func(index int, event cells.Event) error {
+		assert.Equal(event.Topic(), "love")
+		return nil
+	})
 }
 
 // TestEnvironmentScenario tests creating and using the
@@ -367,33 +315,36 @@ func TestEnvironmentScenario(t *testing.T) {
 	env := cells.NewEnvironment("scenario")
 	defer env.Stop()
 
-	err := env.StartCell("foo", newCollectBehavior())
+	fooSink := cells.NewEventSink(0)
+	barSink := cells.NewEventSink(0)
+	bazSink := cells.NewEventSink(0)
+	env.StartCell("foo", newCollectBehavior(fooSink))
+	env.StartCell("bar", newCollectBehavior(barSink))
+	env.StartCell("baz", newCollectBehavior(bazSink))
+
+	err := env.Subscribe("foo", "bar")
 	assert.Nil(err)
-	err = env.StartCell("bar", newCollectBehavior())
-	assert.Nil(err)
-	err = env.StartCell("collector", newCollectBehavior())
+	err = env.Subscribe("bar", "baz")
 	assert.Nil(err)
 
-	err = env.Subscribe("foo", "bar")
+	err = env.EmitNew(context.Background(), "foo", "lorem", 4711)
 	assert.Nil(err)
-	err = env.Subscribe("bar", "collector")
+	err = env.EmitNew(context.Background(), "foo", "ipsum", 1234)
 	assert.Nil(err)
-
-	err = env.EmitNew("foo", "lorem", 4711)
-	assert.Nil(err)
-	err = env.EmitNew("foo", "ipsum", 1234)
-	assert.Nil(err)
-	response, err := env.Request("foo", cells.PingTopic, nil, cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.Equal(response, cells.PongResponse)
 
 	time.Sleep(200 * time.Millisecond)
 
-	collected, err := env.Request("collector", cells.ProcessedTopic, nil, cells.DefaultTimeout)
+	assert.Length(bazSink, 2)
+	ok, err := bazSink.Match(func(index int, event cells.Event) (bool, error) {
+		switch event.Topic() {
+		case "lorem", "ipsum":
+			return true, nil
+		default:
+			return false, nil
+		}
+	})
 	assert.Nil(err)
-	assert.Length(collected, 2, "two collected events")
-	assert.Contents(`<topic: "lorem" / payload: <"default": 4711>>`, collected)
-	assert.Contents(`<topic: "ipsum" / payload: <"default": 1234>>`, collected)
+	assert.True(ok)
 }
 
 //--------------------
@@ -409,7 +360,7 @@ func BenchmarkSmpleEmitNullMonitoring(b *testing.B) {
 
 	env.StartCell("null", &nullBehavior{})
 
-	event, _ := cells.NewEvent("foo", "bar", nil)
+	event, _ := cells.NewEvent(nil, "foo", "bar")
 
 	for i := 0; i < b.N; i++ {
 		env.Emit("null", event)
@@ -425,7 +376,7 @@ func BenchmarkSmpleEmitStandardMonitoring(b *testing.B) {
 
 	env.StartCell("null", &nullBehavior{})
 
-	event, _ := cells.NewEvent("foo", "bar", nil)
+	event, _ := cells.NewEvent(nil, "foo", "bar")
 
 	for i := 0; i < b.N; i++ {
 		env.Emit("null", event)

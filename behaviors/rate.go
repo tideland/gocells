@@ -82,7 +82,7 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 				}
 			}
 			avg := total / time.Duration(len(b.durations))
-			return b.cell.EmitNew(EventRateTopic, cells.PayloadValues{
+			return b.cell.EmitNew(event.Context(), EventRateTopic, cells.PayloadValues{
 				EventRateTimePayload:     current,
 				EventRateDurationPayload: duration,
 				EventRateAveragePayload:  avg,

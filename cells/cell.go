@@ -193,16 +193,11 @@ func (c *cell) Emit(event Event) error {
 }
 
 // EmitNew implements the Cell interface.
-func (c *cell) EmitNew(topic string, payload interface{}) error {
-	return c.EmitNewContext(topic, payload, context.Background())
-}
-
-// EmitNewContext implements the Cell interface.
-func (c *cell) EmitNewContext(topic string, payload interface{}, ctx context.Context) error {
+func (c *cell) EmitNew(ctx context.Context, topic string, payload interface{}) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	event, err := NewEvent(topic, payload, ctx)
+	event, err := NewEvent(ctx, topic, payload)
 	if err != nil {
 		return err
 	}
@@ -229,8 +224,8 @@ func (c *cell) ProcessEvent(event Event) error {
 }
 
 // ProcessNewEvent implements the Subscriber interface.
-func (c *cell) ProcessNewEvent(topic string, payload interface{}, ctx context.Context) error {
-	event, err := NewEvent(topic, payload, ctx)
+func (c *cell) ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error {
+	event, err := NewEvent(ctx, topic, payload)
 	if err != nil {
 		return err
 	}
