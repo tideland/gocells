@@ -13,11 +13,9 @@ package cells
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"time"
 
-	"github.com/tideland/golib/errors"
 	"github.com/tideland/golib/identifier"
 	"github.com/tideland/golib/logger"
 )
@@ -95,16 +93,11 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(id, topic string, payload interface{}) error {
-	return env.EmitNewContext(id, topic, payload, context.Background())
-}
-
-// EmitNewContext implements the Environment interface.
-func (env *environment) EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error {
+func (env *environment) EmitNew(ctx context.Context, id, topic string, payload interface{}) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	event, err := NewEvent(topic, payload, ctx)
+	event, err := NewEvent(ctx, topic, payload)
 	if err != nil {
 		return err
 	}
@@ -112,37 +105,19 @@ func (env *environment) EmitNewContext(id, topic string, payload interface{}, ct
 }
 
 // Request implements the Environment interface.
-func (env *environment) Request(
-	id, topic string,
-	payload interface{},
-	timeout time.Duration,
-) (interface{}, error) {
-	return env.RequestContext(id, topic, payload, timeout, context.Background())
-}
-
-// RequestContext implements the Environment interface.
-func (env *environment) RequestContext(
-	id, topic string,
-	payload interface{},
-	timeout time.Duration,
-	ctx context.Context,
-) (interface{}, error) {
-	responseChan := make(chan interface{}, 1)
-	p := NewPayload(payload).Apply(PayloadValues{ResponseChanPayload: responseChan})
-	err := env.EmitNewContext(id, topic, p, ctx)
+func (env *environment) Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	waiter := NewPayloadWaiter()
+	err := env.EmitNew(ctx, id, topic, waiter)
 	if err != nil {
 		return nil, err
 	}
-	select {
-	case response := <-responseChan:
-		if err, ok := response.(error); ok {
-			return nil, err
-		}
-		return response, nil
-	case <-time.After(timeout):
-		op := fmt.Sprintf("requesting %q from %q", topic, id)
-		return nil, errors.New(ErrTimeout, errorMessages, op)
+	payload, err := waiter.Wait(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return payload, nil
 }
 
 // Stop implements the Environment interface.

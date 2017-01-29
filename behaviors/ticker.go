@@ -12,6 +12,7 @@ package behaviors
 //--------------------
 
 import (
+	"context"
 	"time"
 
 	"github.com/tideland/gocells/cells"
@@ -56,7 +57,7 @@ func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
 			TickerIDPayload:   b.cell.ID(),
 			TickerTimePayload: time.Now(),
 		}
-		b.cell.EmitNew(TickerTopic, pvs)
+		b.cell.EmitNew(event.Context(), TickerTopic, pvs)
 	}
 	return nil
 }
@@ -75,7 +76,7 @@ func (b *tickerBehavior) tickerLoop(l loop.Loop) error {
 		case now := <-time.After(b.duration):
 			// Notify myself, action there to avoid
 			// race when subscribers are updated.
-			b.cell.Environment().EmitNew(b.cell.ID(), TickerTopic, now)
+			b.cell.Environment().EmitNew(context.Background(), b.cell.ID(), TickerTopic, now)
 		}
 	}
 }

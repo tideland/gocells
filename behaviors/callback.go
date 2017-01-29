@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Callback
 //
-// Copyright (C) 2010-2017 Frank Mueller / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -21,20 +21,20 @@ import (
 // CALLBACK BEHAVIOR
 //--------------------
 
-// CallbackFunc is a function called by the behavior when it recieves an event.
-type CallbackFunc func(topic string, payload cells.Payload) error
+// ProcessCallback is a function called by the behavior when it recieves an event.
+type ProcessCallback func(topic string, payload cells.Payload) error
 
 // callbackBehavior is an event processor calling all stored functions
 // if it receives an event.
 type callbackBehavior struct {
-	cell          cells.Cell
-	callbackFuncs []CallbackFunc
+	cell      cells.Cell
+	callbacks []ProcessCallback
 }
 
 // NewCallbackBehavior creates a behavior with a number of callback functions.
 // Each time an event is received those functions are called in the same order
 // they have been passed.
-func NewCallbackBehavior(cbfs ...CallbackFunc) cells.Behavior {
+func NewCallbackBehavior(cbfs ...ProcessCallback) cells.Behavior {
 	if len(cbfs) == 0 {
 		logger.Errorf("callback created without callback functions")
 	}
@@ -54,8 +54,8 @@ func (b *callbackBehavior) Terminate() error {
 
 // ProcessEvent calls a callback functions with the event data.
 func (b *callbackBehavior) ProcessEvent(event cells.Event) error {
-	for _, callbackFunc := range b.callbackFuncs {
-		if err := callbackFunc(event.Topic(), event.Payload()); err != nil {
+	for _, callback := range b.callbacks {
+		if err := callback(event.Topic(), event.Payload()); err != nil {
 			return err
 		}
 	}

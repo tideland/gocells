@@ -12,6 +12,7 @@ package behaviors
 //--------------------
 
 import (
+	"context"
 	"time"
 
 	"github.com/tideland/gocells/cells"
@@ -72,9 +73,9 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	case EventPairTimeoutTopic:
 		if b.hit != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit, ok := event.Payload().GetTime(EventPairFirstTimePayload)
-			if ok && hit.Equal(*b.hit) {
-				b.emitTimeout()
+			hit := event.Payload().GetTime(EventPairFirstTimePayload, time.Time{})
+			if hit.Equal(*b.hit) {
+				b.emitTimeout(event.Context())
 				b.timeout = nil
 			}
 		}
@@ -86,7 +87,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hit = &now
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
+					b.cell.Environment().EmitNew(event.Context(), b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
 						EventPairFirstTimePayload: now,
 					})
 				})
@@ -96,9 +97,9 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.timeout.Stop()
 				b.timeout = nil
 				if now.Sub(*b.hit) > b.duration {
-					b.emitTimeout()
+					b.emitTimeout(event.Context())
 				} else {
-					b.emitPair(now, hitData)
+					b.emitPair(event.Context(), now, hitData)
 				}
 			}
 		}
@@ -112,8 +113,8 @@ func (b *pairBehavior) Recover(err interface{}) error {
 }
 
 // emitPair emits the event for a successful pair.
-func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
-	b.cell.EmitNew(EventPairTopic, cells.PayloadValues{
+func (b *pairBehavior) emitPair(ctx context.Context, timestamp time.Time, data interface{}) {
+	b.cell.EmitNew(ctx, EventPairTopic, cells.PayloadValues{
 		EventPairFirstTimePayload:  *b.hit,
 		EventPairFirstDataPayload:  b.hitData,
 		EventPairSecondTimePayload: timestamp,
@@ -123,8 +124,8 @@ func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
 }
 
 // emitTimeout emits the event for a pairing timeout.
-func (b *pairBehavior) emitTimeout() {
-	b.cell.EmitNew(EventPairTimeoutTopic, cells.PayloadValues{
+func (b *pairBehavior) emitTimeout(ctx context.Context) {
+	b.cell.EmitNew(ctx, EventPairTimeoutTopic, cells.PayloadValues{
 		EventPairFirstTimePayload: *b.hit,
 		EventPairFirstDataPayload: b.hitData,
 		EventPairTimeoutPayload:   time.Now(),

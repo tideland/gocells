@@ -32,14 +32,14 @@ func TestTickerBehavior(t *testing.T) {
 	defer env.Stop()
 
 	env.StartCell("ticker", behaviors.NewTickerBehavior(50*time.Millisecond))
-	env.StartCell("test", behaviors.NewCollectorBehavior(10))
-	env.Subscribe("ticker", "test")
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
+	env.Subscribe("ticker", "collector")
 
 	time.Sleep(125 * time.Millisecond)
 
-	collected, err := env.Request("test", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
 	assert.Nil(err)
-	assert.Length(collected, 2)
+	assert.Length(accessor, 2)
 }
 
 // EOF

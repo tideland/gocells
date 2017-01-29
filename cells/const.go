@@ -23,20 +23,15 @@ const (
 	// Often used standard topics.
 	CollectedTopic = "collected?"
 	CountersTopic  = "counters?"
-	PingTopic      = "ping?"
 	ProcessedTopic = "processed?"
 	ResetTopic     = "reset!"
 	StatusTopic    = "status?"
 	TickTopic      = "tick!"
 
 	// Standard payload keys.
-	DefaultPayload      = "default"
-	ResponseChanPayload = "response-channel"
-	TickerIDPayload     = "ticker:id"
-	TickerTimePayload   = "ticker:time"
-
-	// Special responses.
-	PongResponse = "pong!"
+	DefaultPayload    = "default"
+	TickerIDPayload   = "ticker:id"
+	TickerTimePayload = "ticker:time"
 
 	// Default timeout for requests to cells.
 	DefaultTimeout = 5 * time.Second

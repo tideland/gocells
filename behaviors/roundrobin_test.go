@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 // TestRoundRobinBehavior tests the round robin behavior.
 func TestRoundRobinBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("round-robin-behavior")
 	defer env.Stop()
 
@@ -43,19 +45,17 @@ func TestRoundRobinBehavior(t *testing.T) {
 
 	// Just 23 to let two cells receive less events.
 	for i := 0; i < 25; i++ {
-		err := env.EmitNew("round-robin", "round", i)
+		err := env.EmitNew(ctx, "round-robin", "round", i)
 		assert.Nil(err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
 	test := func(id string) int {
-		collected, err := env.Request(id, cells.CollectedTopic, nil, cells.DefaultTimeout)
+		accessor, err := behaviors.RequestCollectedAccessor(env, id, cells.DefaultTimeout)
 		assert.Nil(err)
-		events, ok := collected.(*cells.EventDatas)
-		assert.True(ok)
-		assert.Length(events, 5)
-		return events.Len()
+		assert.Length(accessor, 5)
+		return accessor.Len()
 	}
 
 	l1 := test("round-robin-1")

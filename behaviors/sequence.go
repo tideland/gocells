@@ -11,31 +11,34 @@ package behaviors
 // IMPORTS
 //--------------------
 
-import "github.com/tideland/gocells/cells"
+import (
+	"github.com/tideland/gocells/cells"
+)
 
 //--------------------
 // SEQUENCE BEHAVIOR
 //--------------------
 
-// SequenceCriterion is used by the sequence behavior and has to return
-// true, if the passed event matches a criterion for sequence measuring.
-// The collected events help the criterion to decide, if the new one
-// is a matching one. The second bool signals if a sequence is full and
-// and event shall be emitted.
-type SequenceCriterion func(event cells.Event, collected *cells.EventDatas) (bool, bool)
+// SequenceCriterion is used by the sequence behavior. It has to return
+// CriterionDone when a sequence is complete, CriterionKeep when it is
+// so far okay but not complete, and CriterionClear when the sequence
+// doesn't match and has to be cleared.
+type SequenceCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	events  *cells.EventDatas
+	sink    cells.EventSink
 }
 
-// NewSequenceBehavior creates an event sequence behavior. It ...
+// NewSequenceBehavior creates an event sequence behavior. It checks the
+// event stream for a sequence defined by the criterion. In this case an
+// event containing the sequence is emitted.
 func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
 	return &sequenceBehavior{
 		matches: matches,
-		events:  cells.NewEventDatas(0),
+		sink:    cells.NewEventSink(0),
 	}
 }
 
@@ -47,6 +50,7 @@ func (b *sequenceBehavior) Init(c cells.Cell) error {
 
 // Terminate implements the cells.Behavior interface.
 func (b *sequenceBehavior) Terminate() error {
+	b.sink.Clear()
 	return nil
 }
 
@@ -54,21 +58,22 @@ func (b *sequenceBehavior) Terminate() error {
 func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case ResetTopic:
-		b.events.Clear()
+		b.sink.Clear()
 	default:
-		matches, done := b.matches(event, b.events)
-		if !matches {
-			// No match, so reset.
-			b.events.Clear()
-			return nil
-		}
-		b.events.Add(event)
-		if done {
-			// All matches collected.
-			b.cell.EmitNew(EventSequenceTopic, cells.PayloadValues{
-				EventSequenceEventsPayload: b.events,
+		b.sink.Push(event)
+		matches := b.matches(b.sink)
+		switch matches {
+		case CriterionDone:
+			// All done, emit and start over.
+			b.cell.EmitNew(event.Context(), EventSequenceTopic, cells.PayloadValues{
+				EventSequenceEventsPayload: b.sink,
 			})
-			b.events = cells.NewEventDatas(0)
+			b.sink = cells.NewEventSink(0)
+		case CriterionKeep:
+			// So far ok.
+		default:
+			// Have to start from beginning.
+			b.sink.Clear()
 		}
 	}
 	return nil
@@ -76,7 +81,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover implements the cells.Behavior interface.
 func (b *sequenceBehavior) Recover(err interface{}) error {
-	b.events.Clear()
+	b.sink.Clear()
 	return nil
 }
 

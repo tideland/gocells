@@ -1,6 +1,6 @@
 // Tideland Go Cells - Behaviors - Unit Tests - Callback
 //
-// Copyright (C) 2010-2017 Frank Mueller / Oldenburg / Germany
+// Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
 // All rights reserved. Use of this source code is governed
 // by the new BSD license.
@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 // TestCallbackBehavior tests the callback behavior.
 func TestCallbackBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("callback-behavior")
 	defer env.Stop()
 
@@ -51,9 +53,9 @@ func TestCallbackBehavior(t *testing.T) {
 
 	env.StartCell("callback", behaviors.NewCallbackBehavior(cbfA, cbfB, cbfC))
 
-	env.EmitNew("callback", "foo", nil)
-	env.EmitNew("callback", "bar", nil)
-	env.EmitNew("callback", "baz", nil)
+	env.EmitNew(ctx, "callback", "foo", nil)
+	env.EmitNew(ctx, "callback", "bar", nil)
+	env.EmitNew(ctx, "callback", "baz", nil)
 
 	assert.Wait(sigc, true, time.Second)
 	assert.Equal(cbdA, []string{"foo", "bar", "baz"})

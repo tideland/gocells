@@ -33,26 +33,22 @@ const (
 	ErrStopping
 	ErrTimeout
 	ErrMissingScene
-	ErrInvalidResponseEvent
-	ErrInvalidResponse
 )
 
 var errorMessages = map[int]string{
-	ErrCellInit:             "cell %q cannot initialize",
-	ErrCannotRecover:        "cannot recover cell %q: %v",
-	ErrDuplicateID:          "cell with ID %q is already registered",
-	ErrInvalidID:            "cell with ID %q does not exist",
-	ErrExecuteID:            "cannot %s with cell %q",
-	ErrEventRecovering:      "cell cannot recover after error %v",
-	ErrRecoveredTooOften:    "cell needs too much recoverings, last error",
-	ErrNoTopic:              "event has no topic",
-	ErrNoRequest:            "cannot respond, event is no request",
-	ErrInactive:             "cell %q is inactive",
-	ErrStopping:             "%s is stopping",
-	ErrTimeout:              "needed too long for %v",
-	ErrMissingScene:         "missing scene for request",
-	ErrInvalidResponseEvent: "event not valid for a response: %v",
-	ErrInvalidResponse:      "request returned invalid response: %v",
+	ErrCellInit:          "cell %q cannot initialize",
+	ErrCannotRecover:     "cannot recover cell %q: %v",
+	ErrDuplicateID:       "cell with ID %q is already registered",
+	ErrInvalidID:         "cell with ID %q does not exist",
+	ErrExecuteID:         "cannot %s with cell %q",
+	ErrEventRecovering:   "cell cannot recover after error %v",
+	ErrRecoveredTooOften: "cell needs too much recoverings, last error",
+	ErrNoTopic:           "event has no topic",
+	ErrNoRequest:         "cannot respond, event is no request",
+	ErrInactive:          "cell %q is inactive",
+	ErrStopping:          "%s is stopping",
+	ErrTimeout:           "needed too long for %v",
+	ErrMissingScene:      "missing scene for request",
 }
 
 //--------------------
@@ -125,25 +121,6 @@ func IsTimeoutError(err error) bool {
 // without a scene.
 func IsMissingSceneError(err error) bool {
 	return errors.IsError(err, ErrMissingScene)
-}
-
-// IsInvalidResponseEventError checks if an error signals an event
-// used for a response but containing no storeID as payload and/or
-// no scene.
-func IsInvalidResponseEventError(err error) bool {
-	return errors.IsError(err, ErrInvalidResponseEvent)
-}
-
-// NewInvalidResponseError returns an error showing that a
-// response to a request has an illegal type.
-func NewInvalidResponseError(response interface{}) error {
-	return errors.New(ErrInvalidResponse, errorMessages, response)
-}
-
-// IsInvalidResponseError checks if an error signals an
-// invalid response.
-func IsInvalidResponseError(err error) bool {
-	return errors.IsError(err, ErrInvalidResponse)
 }
 
 // EOF

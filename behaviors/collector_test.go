@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,27 +29,25 @@ import (
 // TestCollectorBehavior tests the collector behavior.
 func TestCollectorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 
 	for i := 0; i < 25; i++ {
-		env.EmitNew("collector", "collect", i)
+		env.EmitNew(ctx, "collector", "collect", i)
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
-	collected, err := env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
-	assert.Length(collected, 10)
+	assert.Length(accessor, 10)
 
-	err = env.EmitNew("collector", cells.ResetTopic, nil)
-	assert.Nil(err)
+	env.EmitNew(ctx, "collector", cells.ResetTopic, nil)
 
-	collected, err = env.Request("collector", cells.CollectedTopic, nil, cells.DefaultTimeout)
+	accessor, err = behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
-	assert.Length(collected, 0)
+	assert.Empty(accessor)
 }
 
 // EOF

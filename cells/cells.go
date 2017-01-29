@@ -48,21 +48,13 @@ type Environment interface {
 	// Emit emits an event to the cell with a given ID.
 	Emit(id string, event Event) error
 
-	// EmitNew creates an event and emits it to the cell with a given ID.
-	EmitNew(id, topic string, payload interface{}) error
-
-	// EmitNewContext creates an event with a context and emits it to the cell
+	// EmitNew creates an event with a context and emits it to the cell
 	// with a given ID.
-	EmitNewContext(id, topic string, payload interface{}, ctx context.Context) error
+	EmitNew(ctx context.Context, id, topic string, payload interface{}) error
 
-	// Request creates and emits an event with a context to the cell with the
-	// given ID. It is intended as request which has to be responded to with
-	// event.Respond().
-	Request(id, topic string, payload interface{}, timeout time.Duration) (interface{}, error)
-
-	// RequestContext creates and emits an event with a context to the cell with
-	// the given ID.
-	RequestContext(id, topic string, payload interface{}, timeout time.Duration, ctx context.Context) (interface{}, error)
+	// Request sends a request containing a payload waiter to the
+	// cell with the given ID. The response will be returned as payload.
+	Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error)
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
@@ -85,10 +77,7 @@ type Cell interface {
 	Emit(event Event) error
 
 	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(topic string, payload interface{}) error
-
-	// EmitNewContext creates an event and emits it to all subscribers of a cell.
-	EmitNewContext(topic string, payload interface{}, ctx context.Context) error
+	EmitNew(ctx context.Context, topic string, payload interface{}) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error
@@ -155,7 +144,7 @@ type Subscriber interface {
 	ProcessEvent(event Event) error
 
 	// ProcessNewEvent creates an event and tells the subscriber to process it.
-	ProcessNewEvent(topic string, payload interface{}, ctx context.Context) error
+	ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error
 }
 
 // EOF
