@@ -40,7 +40,7 @@ func TestMapperBehavior(t *testing.T) {
 	env := cells.NewEnvironment("mapper-behavior")
 	defer env.Stop()
 
-	mf := func(id string, event cells.Event) (cells.Event, error) {
+	mapper := func(id string, event cells.Event) (cells.Event, error) {
 		text := event.Payload().GetString(cells.DefaultPayload, "")
 		pv := cells.PayloadValues{
 			"upper-text": strings.ToUpper(text),
@@ -49,7 +49,7 @@ func TestMapperBehavior(t *testing.T) {
 		return cells.NewEvent(event.Context(), event.Topic(), payload)
 	}
 
-	env.StartCell("mapper", behaviors.NewMapperBehavior(mf))
+	env.StartCell("mapper", behaviors.NewMapperBehavior(mapper))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("mapper", "collector")
 

@@ -19,9 +19,10 @@ import (
 // SEQUENCE BEHAVIOR
 //--------------------
 
-// SequenceCriterion is used by the sequence behavior and has to return
-// true, if the passed event datas matches partly or totally the wanted
-// sequence.
+// SequenceCriterion is used by the sequence behavior. It has to return
+// CriterionDone when a sequence is complete, CriterionKeep when it is
+// so far okay but not complete, and CriterionClear when the sequence
+// doesn't match and has to be cleared.
 type SequenceCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
 
 // sequenceBehavior implements the sequence behavior.
@@ -70,10 +71,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 			b.sink = cells.NewEventSink(0)
 		case CriterionKeep:
 			// So far ok.
-		case CriterionMove:
-			// Event window has to be moved.
-			b.sink.PullFirst()
-		case CriterionClear:
+		default:
 			// Have to start from beginning.
 			b.sink.Clear()
 		}

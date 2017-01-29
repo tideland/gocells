@@ -52,7 +52,7 @@ func TestSequenceBehavior(t *testing.T) {
 	topics := []string{"a", "b", "c", "d", "now"}
 
 	env.StartCell("sequencer", behaviors.NewSequenceBehavior(matches))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(100))
 	env.Subscribe("sequencer", "collector")
 
 	for i := 0; i < 1000; i++ {
