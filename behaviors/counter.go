@@ -63,10 +63,10 @@ func (b *counterBehavior) Terminate() error {
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CountersTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
 			response := b.copyCounters()
-			waiter.Set(cells.NewPayload(response))
+			payload.GetWaiter().Set(cells.NewPayload(response))
 		}
 	case cells.ResetTopic:
 		b.counters = make(map[string]int64)

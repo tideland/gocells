@@ -67,13 +67,13 @@ func (b *fsmBehavior) Terminate() error {
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.StatusTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
 			response := &fsmStatus{
 				done: b.done,
 				err:  b.err,
 			}
-			waiter.Set(cells.NewPayload(response))
+			payload.GetWaiter().Set(cells.NewPayload(response))
 		}
 	default:
 		if b.done {
