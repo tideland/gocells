@@ -76,7 +76,7 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 			done: b.done,
 			err:  b.err,
 		}
-		payload.GetWaiter().Set(cells.NewPayload(response))
+		payload.GetWaiter().Set(response)
 	default:
 		if b.done {
 			return nil

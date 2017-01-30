@@ -63,7 +63,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 			logger.Warningf("retrieving collected events from '%s' not possible without payload waiter", b.cell.ID())
 		}
 		accessor := cells.EventSinkAccessor(b.sink)
-		payload.GetWaiter().Set(cells.NewPayload(accessor))
+		payload.GetWaiter().Set(accessor)
 	case cells.ResetTopic:
 		b.sink.Clear()
 	default:
