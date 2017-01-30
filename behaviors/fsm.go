@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/tideland/golib/errors"
+	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -68,13 +69,14 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.StatusTopic:
 		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			response := &fsmStatus{
-				done: b.done,
-				err:  b.err,
-			}
-			payload.GetWaiter().Set(cells.NewPayload(response))
+		if !ok {
+			logger.Warningf("retrieving status from '%s' not possible without payload waiter", b.cell.ID())
 		}
+		response := &fsmStatus{
+			done: b.done,
+			err:  b.err,
+		}
+		payload.GetWaiter().Set(cells.NewPayload(response))
 	default:
 		if b.done {
 			return nil
