@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/tideland/golib/errors"
+	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -58,10 +59,11 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CollectedTopic:
 		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			accessor := cells.EventSinkAccessor(b.sink)
-			payload.GetWaiter().Set(cells.NewPayload(accessor))
+		if !ok {
+			logger.Warningf("retrieving collected events from '%s' not possible without payload waiter", b.cell.ID())
 		}
+		accessor := cells.EventSinkAccessor(b.sink)
+		payload.GetWaiter().Set(cells.NewPayload(accessor))
 	case cells.ResetTopic:
 		b.sink.Clear()
 	default:

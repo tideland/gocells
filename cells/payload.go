@@ -81,6 +81,9 @@ type Payload interface {
 	// payload are overwritten by those which are passed
 	// if they share the key.
 	Apply(values interface{}) Payload
+
+	// Error returns an error if this is the payload.
+	Error() error
 }
 
 // WaiterPayload extends the Payload by a PayloadWaiter it carries.
@@ -97,6 +100,7 @@ type WaiterPayload interface {
 type payload struct {
 	waiter PayloadWaiter
 	values PayloadValues
+	err    error
 }
 
 // NewPayload creates a new payload containing the passed
@@ -115,6 +119,8 @@ func NewPayload(values interface{}) Payload {
 		return p
 	}
 	switch vs := values.(type) {
+	case error:
+		p.err = vs
 	case PayloadValues:
 		for key, value := range vs {
 			p.values[key] = value
@@ -246,6 +252,7 @@ func (p *payload) Apply(values interface{}) Payload {
 	applied := &payload{
 		waiter: p.waiter,
 		values: PayloadValues{},
+		err:    p.err,
 	}
 	for key, value := range p.values {
 		applied.values[key] = value
@@ -268,6 +275,11 @@ func (p *payload) Apply(values interface{}) Payload {
 		applied.values[DefaultPayload] = values
 	}
 	return applied
+}
+
+// Error implements the Payload interface.
+func (p *payload) Error() error {
+	return p.err
 }
 
 // String implements the fmt.Stringer interface.

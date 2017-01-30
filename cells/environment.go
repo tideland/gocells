@@ -117,6 +117,9 @@ func (env *environment) Request(ctx context.Context, id, topic string, timeout t
 	if err != nil {
 		return nil, err
 	}
+	if payloadOut.Error() != nil {
+		return nil, payloadOut.Error()
+	}
 	return payloadOut, nil
 }
 
