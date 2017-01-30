@@ -67,10 +67,6 @@ type Payload interface {
 	// time.Duration or the default value.
 	GetDuration(key string, dv time.Duration) time.Duration
 
-	// GetWaiter returns a payload waiter to be used
-	// for answering with a payload.
-	GetWaiter(key string) (PayloadWaiter, bool)
-
 	// Keys return all keys of the payload.
 	Keys() []string
 
@@ -87,8 +83,19 @@ type Payload interface {
 	Apply(values interface{}) Payload
 }
 
+// WaiterPayload extends the Payload by a PayloadWaiter it carries.
+// It is used for requests and their respondings.
+type WaiterPayload interface {
+	Payload
+
+	// GetWaiter returns a payload waiter to be used
+	// for answering with a payload.
+	GetWaiter() PayloadWaiter
+}
+
 // payload implements the Payload interface.
 type payload struct {
+	waiter PayloadWaiter
 	values PayloadValues
 }
 
@@ -104,6 +111,9 @@ func NewPayload(values interface{}) Payload {
 	p := &payload{
 		values: PayloadValues{},
 	}
+	if values == nil {
+		return p
+	}
 	switch vs := values.(type) {
 	case PayloadValues:
 		for key, value := range vs {
@@ -117,6 +127,15 @@ func NewPayload(values interface{}) Payload {
 		p.values[DefaultPayload] = values
 	}
 	return p
+}
+
+// NewPayloadWaiter creates a new payload with an explicit waiter.
+func NewWaiterPayload() (WaiterPayload, PayloadWaiter) {
+	p := &payload{
+		waiter: NewPayloadWaiter(),
+		values: PayloadValues{},
+	}
+	return p, p.waiter
 }
 
 // Len implementes the Payload interface.
@@ -198,11 +217,9 @@ func (p *payload) GetDuration(key string, dv time.Duration) time.Duration {
 	return value
 }
 
-// GetWaiter implements the Payload interface.
-func (p *payload) GetWaiter(key string) (PayloadWaiter, bool) {
-	raw := p.Get(key, nil)
-	value, ok := raw.(PayloadWaiter)
-	return value, ok
+// GetWaiter implements the WaiterPayload interface.
+func (p *payload) GetWaiter() PayloadWaiter {
+	return p.waiter
 }
 
 // Keys is specified on the Payload interface.
@@ -227,6 +244,7 @@ func (p *payload) Do(f func(key string, value interface{}) error) error {
 // Apply implementes the Payload interface.
 func (p *payload) Apply(values interface{}) Payload {
 	applied := &payload{
+		waiter: p.waiter,
 		values: PayloadValues{},
 	}
 	for key, value := range p.values {
@@ -252,13 +270,24 @@ func (p *payload) Apply(values interface{}) Payload {
 	return applied
 }
 
-// String returns the payload represented as string.
+// String implements the fmt.Stringer interface.
 func (p *payload) String() string {
 	ps := []string{}
 	for key, value := range p.values {
 		ps = append(ps, fmt.Sprintf("<%q: %v>", key, value))
 	}
 	return strings.Join(ps, ", ")
+}
+
+// HasWaiterPayload returns a potential waiter payload of
+// an event. In case the payload is no waiter payload nil
+// and false are returned.
+func HasWaiterPayload(event Event) (WaiterPayload, bool) {
+	payload, ok := event.Payload().(WaiterPayload)
+	if !ok {
+		return nil, false
+	}
+	return payload, true
 }
 
 //--------------------

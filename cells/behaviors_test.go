@@ -82,11 +82,11 @@ func (b *collectBehavior) Terminate() error {
 func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.ProcessedTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			panic("illegal payload, need waiter")
 		}
-		waiter.Set(cells.NewPayload(b.sink))
+		payload.GetWaiter().Set(cells.NewPayload(b.sink))
 	case cells.ResetTopic:
 		b.sink.Clear()
 	case iterateTopic:
@@ -104,11 +104,11 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 			ids = append(ids, s.ID())
 			return nil
 		})
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			panic("illegal payload, need waiter")
 		}
-		waiter.Set(cells.NewPayload(ids))
+		payload.GetWaiter().Set(cells.NewPayload(ids))
 	default:
 		b.sink.Push(event)
 		return b.cell.Emit(event)
@@ -210,7 +210,7 @@ func (b *emitBehavior) Terminate() error {
 }
 
 func (b *emitBehavior) ProcessEvent(event cells.Event) error {
-	return b.c.EmitNew(sleepTopic, event.Payload())
+	return b.c.EmitNew(event.Context(), sleepTopic, event.Payload())
 }
 
 func (b *emitBehavior) Recover(r interface{}) error {
