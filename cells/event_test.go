@@ -115,8 +115,8 @@ func TestPositiveWaitPayload(t *testing.T) {
 
 	go func() {
 		time.Sleep(250 * time.Millisecond)
-		waiter.Set(cells.NewPayload(4711))
-		waiter.Set(cells.NewPayload(1174))
+		waiter.Set(4711)
+		waiter.Set(1174)
 	}()
 
 	ctx := context.Background()
@@ -134,7 +134,7 @@ func TestWaitPayloadTimeout(t *testing.T) {
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		waiter.Set(cells.NewPayload(4711))
+		waiter.Set(4711)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -152,7 +152,7 @@ func TestWaitPayloadCancel(t *testing.T) {
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		waiter.Set(cells.NewPayload(4711))
+		waiter.Set(4711)
 	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
