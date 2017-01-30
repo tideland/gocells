@@ -242,6 +242,7 @@ func TestEnvironmentSubscribeUnsubscribe(t *testing.T) {
 // it is stopped.
 func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 
 	env := cells.NewEnvironment("stop-unsubscribe")
 	defer env.Stop()
@@ -263,15 +264,9 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert.Nil(err)
 
 	// Expect only baz because bar is stopped.
-	waiter := cells.NewPayloadWaiter()
-	env.EmitNew(context.Background(), "foo", subscribersTopic, waiter)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	response, err := waiter.Wait(ctx)
-	assert.Nil(err)
+	response, err := env.Request(ctx, "foo", subscribersTopic, time.Second)
 	ids := response.GetDefault([]string{})
 	assert.Equal(ids, []string{"baz"})
-	cancel()
 }
 
 // TestEnvironmentSubscribersDo tests the iteration over
