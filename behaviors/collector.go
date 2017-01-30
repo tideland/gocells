@@ -57,10 +57,10 @@ func (b *collectorBehavior) Terminate() error {
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CollectedTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
 			accessor := cells.EventSinkAccessor(b.sink)
-			waiter.Set(cells.NewPayload(accessor))
+			payload.GetWaiter().Set(cells.NewPayload(accessor))
 		}
 	case cells.ResetTopic:
 		b.sink.Clear()
