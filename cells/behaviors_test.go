@@ -12,6 +12,7 @@ package cells_test
 //--------------------
 
 import (
+	"errors"
 	"time"
 
 	"github.com/tideland/gocells/cells"
@@ -24,6 +25,9 @@ import (
 const (
 	// iterateTopic lets the test behavior iterate over its subscribers.
 	iterateTopic = "iterate!"
+
+	// ouchTopic is used in a request returning an error..
+	ouchTopic = "ouch?"
 
 	// panicTopic lets the test behavior panic to check recovering.
 	panicTopic = "panic!"
@@ -82,11 +86,11 @@ func (b *collectBehavior) Terminate() error {
 func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.ProcessedTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			panic("illegal payload, need waiter")
 		}
-		waiter.Set(cells.NewPayload(b.sink))
+		payload.GetWaiter().Set(b.sink)
 	case cells.ResetTopic:
 		b.sink.Clear()
 	case iterateTopic:
@@ -96,19 +100,25 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 		if err != nil {
 			return err
 		}
+	case ouchTopic:
+		payload, ok := cells.HasWaiterPayload(event)
+		if !ok {
+			panic("illegal payload, need waiter")
+		}
+		payload.GetWaiter().Set(errors.New("ouch!"))
 	case panicTopic:
-		panic("Ouch!")
+		panic("ouch!")
 	case subscribersTopic:
 		var ids []string
 		b.cell.SubscribersDo(func(s cells.Subscriber) error {
 			ids = append(ids, s.ID())
 			return nil
 		})
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			panic("illegal payload, need waiter")
 		}
-		waiter.Set(cells.NewPayload(ids))
+		payload.GetWaiter().Set(ids)
 	default:
 		b.sink.Push(event)
 		return b.cell.Emit(event)
@@ -210,7 +220,7 @@ func (b *emitBehavior) Terminate() error {
 }
 
 func (b *emitBehavior) ProcessEvent(event cells.Event) error {
-	return b.c.EmitNew(sleepTopic, event.Payload())
+	return b.c.EmitNew(event.Context(), sleepTopic, event.Payload())
 }
 
 func (b *emitBehavior) Recover(r interface{}) error {

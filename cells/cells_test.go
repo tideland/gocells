@@ -175,6 +175,23 @@ func TestBehaviorEmitTimeoutError(t *testing.T) {
 	time.Sleep(2 * time.Second)
 }
 
+// TestRequestError tests returning an error in a request.
+func TestRequestError(t *testing.T) {
+	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
+
+	env := cells.NewEnvironment("request-error")
+	defer env.Stop()
+
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("foo", newCollectBehavior(sink))
+	assert.Nil(err)
+
+	payload, err := env.Request(ctx, "foo", ouchTopic, time.Second)
+	assert.Nil(payload)
+	assert.ErrorMatch(err, "ouch!")
+}
+
 // TestEnvironmentSubscribeStop subscribing and stopping
 func TestEnvironmentSubscribeStop(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
@@ -242,6 +259,7 @@ func TestEnvironmentSubscribeUnsubscribe(t *testing.T) {
 // it is stopped.
 func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
 
 	env := cells.NewEnvironment("stop-unsubscribe")
 	defer env.Stop()
@@ -263,15 +281,9 @@ func TestEnvironmentStopUnsubscribe(t *testing.T) {
 	assert.Nil(err)
 
 	// Expect only baz because bar is stopped.
-	waiter := cells.NewPayloadWaiter()
-	env.EmitNew(context.Background(), "foo", subscribersTopic, waiter)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	response, err := waiter.Wait(ctx)
-	assert.Nil(err)
+	response, err := env.Request(ctx, "foo", subscribersTopic, time.Second)
 	ids := response.GetDefault([]string{})
 	assert.Equal(ids, []string{"baz"})
-	cancel()
 }
 
 // TestEnvironmentSubscribersDo tests the iteration over

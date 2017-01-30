@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/tideland/golib/errors"
+	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -63,11 +64,12 @@ func (b *counterBehavior) Terminate() error {
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.CountersTopic:
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
-		if ok {
-			response := b.copyCounters()
-			waiter.Set(cells.NewPayload(response))
+		payload, ok := cells.HasWaiterPayload(event)
+		if !ok {
+			logger.Warningf("retrieving counters from '%s' not possible without payload waiter", b.cell.ID())
 		}
+		response := b.copyCounters()
+		payload.GetWaiter().Set(response)
 	case cells.ResetTopic:
 		b.counters = make(map[string]int64)
 	default:

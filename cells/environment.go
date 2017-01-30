@@ -108,16 +108,19 @@ func (env *environment) EmitNew(ctx context.Context, id, topic string, payload i
 func (env *environment) Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	waiter := NewPayloadWaiter()
-	err := env.EmitNew(ctx, id, topic, waiter)
+	payloadIn, waiter := NewWaiterPayload()
+	err := env.EmitNew(ctx, id, topic, payloadIn)
 	if err != nil {
 		return nil, err
 	}
-	payload, err := waiter.Wait(ctx)
+	payloadOut, err := waiter.Wait(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return payload, nil
+	if payloadOut.Error() != nil {
+		return nil, payloadOut.Error()
+	}
+	return payloadOut, nil
 }
 
 // Stop implements the Environment interface.
