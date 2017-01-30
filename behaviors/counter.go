@@ -69,7 +69,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 			logger.Warningf("retrieving counters from '%s' not possible without payload waiter", b.cell.ID())
 		}
 		response := b.copyCounters()
-		payload.GetWaiter().Set(cells.NewPayload(response))
+		payload.GetWaiter().Set(response)
 	case cells.ResetTopic:
 		b.counters = make(map[string]int64)
 	default:

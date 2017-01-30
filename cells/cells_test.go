@@ -175,6 +175,23 @@ func TestBehaviorEmitTimeoutError(t *testing.T) {
 	time.Sleep(2 * time.Second)
 }
 
+// TestRequestError tests returning an error in a request.
+func TestRequestError(t *testing.T) {
+	assert := audit.NewTestingAssertion(t, true)
+	ctx := context.Background()
+
+	env := cells.NewEnvironment("request-error")
+	defer env.Stop()
+
+	sink := cells.NewEventSink(0)
+	err := env.StartCell("foo", newCollectBehavior(sink))
+	assert.Nil(err)
+
+	payload, err := env.Request(ctx, "foo", ouchTopic, time.Second)
+	assert.Nil(payload)
+	assert.ErrorMatch(err, "ouch!")
+}
+
 // TestEnvironmentSubscribeStop subscribing and stopping
 func TestEnvironmentSubscribeStop(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)

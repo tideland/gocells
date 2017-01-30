@@ -311,7 +311,7 @@ func HasWaiterPayload(event Event) (WaiterPayload, bool) {
 // and returns it.
 type PayloadWaiter interface {
 	// Set sets the payload somebody is waiting for.
-	Set(p Payload)
+	Set(values interface{})
 
 	// Wait waits until the payload is set. A deadline
 	// or timeout set by the context may cancel the
@@ -334,9 +334,9 @@ func NewPayloadWaiter() PayloadWaiter {
 }
 
 // Set implements the PayloadWaiter interface.
-func (w *payloadWaiter) Set(p Payload) {
+func (w *payloadWaiter) Set(values interface{}) {
 	w.once.Do(func() {
-		w.payloadc <- p
+		w.payloadc <- NewPayload(values)
 	})
 }
 
