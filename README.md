@@ -11,7 +11,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-01-29
+Version 6.0.0-beta.2017-01-31
 
 ## Packages
 
@@ -48,6 +48,7 @@ still growing.
 - **Simple Processor** allows to not implement a behavior but only use
   one function for event processing.
 - **Ticker** emits tick events in a defined interval.
+- **Waiter** sets the payload of the first received event to a payload waiter.
 
 [![GoDoc](https://godoc.org/github.com/tideland/gocells/behaviors?status.svg)](https://godoc.org/github.com/tideland/gocells/behaviors)
 
