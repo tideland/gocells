@@ -24,12 +24,14 @@ const (
 	ErrCannotReadConfiguration = iota + 1
 	ErrCannotValidateConfiguration
 	ErrInvalidPayload
+	ErrMissingPayloadWaiter
 )
 
 var errorMessages = errors.Messages{
 	ErrCannotReadConfiguration:     "cannot read configuration",
 	ErrCannotValidateConfiguration: "configuration validation failed",
 	ErrInvalidPayload:              "payload '%v' does not exist or has wrong type",
+	ErrMissingPayloadWaiter:        "cell '%s' has no configured waiter",
 }
 
 // EOF
