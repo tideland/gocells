@@ -27,9 +27,9 @@ type waiterBehavior struct {
 	waiter cells.PayloadWaiter
 }
 
-// NewPayloadWaiter creates a behavior where the cell stores the payload
+// NewWaiterBehavior creates a behavior where the cell stores the payload
 // of the first received event in the passed waiter.
-func NewPayloadWaiter(waiter cells.PayloadWaiter) cells.Behavior {
+func NewWaiterBehavior(waiter cells.PayloadWaiter) cells.Behavior {
 	return &waiterBehavior{
 		waiter: waiter,
 	}
