@@ -17,7 +17,11 @@ Version 6.0.0-beta.2017-01-31
 
 ### Cells
 
-Major package providing the infrastructure for event based applications.
+Major package providing the infrastructure for event based applications. It
+is organized as an environment of networked cells. Each cell is controlled
+by its behavior. It receives events, processes them, and can emit a number
+of new events during this time. Those events are then received by those
+cells which subscribed to the individual cell.
 
 [![GoDoc](https://godoc.org/github.com/tideland/gocells/cells?status.svg)](https://godoc.org/github.com/tideland/gocells/cells)
 

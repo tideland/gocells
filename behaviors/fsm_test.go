@@ -126,16 +126,16 @@ type lockMachine struct {
 func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) (behaviors.FSMState, error) {
 	switch event.Topic() {
 	case "cents?":
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
-			waiter.Set(cells.NewPayload(m.cents))
+			payload.GetWaiter().Set(m.cents)
 		}
 		return m.Locked, nil
 	case "info?":
 		info := fmt.Sprintf("state 'locked' with %d cents", m.cents)
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
-			waiter.Set(cells.NewPayload(info))
+			payload.GetWaiter().Set(info)
 		}
 		return m.Locked, nil
 	case "coin!":
@@ -166,16 +166,16 @@ func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) (behaviors.FSMS
 func (m *lockMachine) Unlocked(cell cells.Cell, event cells.Event) (behaviors.FSMState, error) {
 	switch event.Topic() {
 	case "cents?":
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
-			waiter.Set(cells.NewPayload(m.cents))
+			payload.GetWaiter().Set(m.cents)
 		}
 		return m.Unlocked, nil
 	case "info?":
 		info := fmt.Sprintf("state 'unlocked' with %d cents", m.cents)
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
-			waiter.Set(cells.NewPayload(info))
+			payload.GetWaiter().Set(info)
 		}
 		return m.Unlocked, nil
 	case "coin!":
@@ -213,9 +213,9 @@ func (b *restorerBehavior) ProcessEvent(event cells.Event) error {
 	case "grab!":
 		cents := b.cents
 		b.cents = 0
-		waiter, ok := event.Payload().GetWaiter(cells.DefaultPayload)
+		payload, ok := cells.HasWaiterPayload(event)
 		if ok {
-			waiter.Set(cells.NewPayload(cents))
+			payload.GetWaiter().Set(cents)
 		}
 	case "drop!":
 		b.cents += payloadCents(event)
