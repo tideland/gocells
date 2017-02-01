@@ -52,12 +52,12 @@ func (b *tickerBehavior) Terminate() error {
 // PrecessEvent emits a ticker event each time the
 // defined duration elapsed.
 func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
-	if event.Topic() == TickerTopic {
+	if event.Topic() == TopicTicker {
 		pvs := cells.PayloadValues{
-			TickerIDPayload:   b.cell.ID(),
-			TickerTimePayload: time.Now(),
+			PayloadTickerID:   b.cell.ID(),
+			PayloadTickerTime: time.Now(),
 		}
-		b.cell.EmitNew(event.Context(), TickerTopic, pvs)
+		b.cell.EmitNew(event.Context(), TopicTicker, pvs)
 	}
 	return nil
 }
@@ -76,7 +76,7 @@ func (b *tickerBehavior) tickerLoop(l loop.Loop) error {
 		case now := <-time.After(b.duration):
 			// Notify myself, action there to avoid
 			// race when subscribers are updated.
-			b.cell.Environment().EmitNew(context.Background(), b.cell.ID(), TickerTopic, now)
+			b.cell.Environment().EmitNew(context.Background(), b.cell.ID(), TopicTicker, now)
 		}
 	}
 }

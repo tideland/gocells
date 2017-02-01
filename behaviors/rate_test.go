@@ -54,9 +54,9 @@ func TestRateBehavior(t *testing.T) {
 	assert.True(accessor.Len() <= 10000)
 	err = accessor.Do(func(index int, event cells.Event) error {
 		assert.Equal(event.Topic(), "event-rate!")
-		hi := event.Payload().GetDuration(behaviors.EventRateHighPayload, -1)
-		avg := event.Payload().GetDuration(behaviors.EventRateAveragePayload, -1)
-		lo := event.Payload().GetDuration(behaviors.EventRateLowPayload, -1)
+		hi := event.Payload().GetDuration(behaviors.PayloadRateHigh, -1)
+		avg := event.Payload().GetDuration(behaviors.PayloadRateAverage, -1)
+		lo := event.Payload().GetDuration(behaviors.PayloadRateLow, -1)
 		assert.True(lo <= avg)
 		assert.True(avg <= hi)
 		return nil

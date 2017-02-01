@@ -63,7 +63,7 @@ func (b *rateWindowBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case ResetTopic:
+	case TopicReset:
 		b.timestamps = collections.NewRingBuffer(b.count)
 	default:
 		if b.matches(event) {
@@ -76,10 +76,10 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 				difference := current.Sub(first)
 				if difference <= b.duration {
 					// We've got a burst!
-					b.cell.EmitNew(event.Context(), EventRateWindowTopic, cells.PayloadValues{
-						EventRateWindowCountPayload:     b.count,
-						EventRateWindowFirstTimePayload: first,
-						EventRateWindowLastTimePayload:  current,
+					b.cell.EmitNew(event.Context(), TopicRateWindow, cells.PayloadValues{
+						PayloadRateWindowCount:     b.count,
+						PayloadRateWindowFirstTime: first,
+						PayloadRateWindowLastTime:  current,
 					})
 				}
 			}

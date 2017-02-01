@@ -24,14 +24,14 @@ const (
 	CollectedTopic = "collected?"
 	CountersTopic  = "counters?"
 	ProcessedTopic = "processed?"
-	ResetTopic     = "reset!"
+	TopicReset     = "reset!"
 	StatusTopic    = "status?"
 	TickTopic      = "tick!"
 
 	// Standard payload keys.
 	DefaultPayload    = "default"
-	TickerIDPayload   = "ticker:id"
-	TickerTimePayload = "ticker:time"
+	PayloadTickerID   = "ticker:id"
+	PayloadTickerTime = "ticker:time"
 
 	// Default timeout for requests to cells.
 	DefaultTimeout = 5 * time.Second

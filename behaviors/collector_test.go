@@ -43,7 +43,7 @@ func TestCollectorBehavior(t *testing.T) {
 	assert.Nil(err)
 	assert.Length(accessor, 10)
 
-	env.EmitNew(ctx, "collector", cells.ResetTopic, nil)
+	env.EmitNew(ctx, "collector", cells.TopicReset, nil)
 
 	accessor, err = behaviors.RequestCollectedAccessor(env, "collector", time.Second)
 	assert.Nil(err)
