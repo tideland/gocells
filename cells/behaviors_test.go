@@ -91,7 +91,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 			panic("illegal payload, need waiter")
 		}
 		payload.GetWaiter().Set(b.sink)
-	case cells.ResetTopic:
+	case cells.TopicReset:
 		b.sink.Clear()
 	case iterateTopic:
 		err := b.cell.SubscribersDo(func(s cells.Subscriber) error {

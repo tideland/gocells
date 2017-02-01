@@ -38,7 +38,7 @@ func TestConfigurationRead(t *testing.T) {
 
 	sigc := audit.MakeSigChan()
 	spf := func(c cells.Cell, event cells.Event) error {
-		if event.Topic() == behaviors.ConfigurationTopic {
+		if event.Topic() == behaviors.TopicConfiguration {
 			cfg := behaviors.Configuration(event)
 			v := cfg.ValueAsString("foo", "0815")
 			assert.Equal(v, "42")
@@ -53,9 +53,9 @@ func TestConfigurationRead(t *testing.T) {
 	env.Subscribe("configurator", "simple")
 
 	pvs := cells.PayloadValues{
-		behaviors.ConfigurationFilenamePayload: filename,
+		behaviors.PayloadConfigurationFilename: filename,
 	}
-	env.EmitNew(context.Background(), "configurator", behaviors.ReadConfigurationTopic, pvs)
+	env.EmitNew(context.Background(), "configurator", behaviors.TopicConfigurationRead, pvs)
 	assert.Wait(sigc, true, 100*time.Millisecond)
 }
 
@@ -87,17 +87,17 @@ func TestConfigurationValidation(t *testing.T) {
 
 	// First run with success as key has the valid value "foo"
 	pvs := cells.PayloadValues{
-		behaviors.ConfigurationFilenamePayload: filename,
+		behaviors.PayloadConfigurationFilename: filename,
 	}
 	key = "foo"
-	env.EmitNew(context.Background(), "configurator", behaviors.ReadConfigurationTopic, pvs)
+	env.EmitNew(context.Background(), "configurator", behaviors.TopicConfigurationRead, pvs)
 	assert.Wait(sigc, true, 100*time.Millisecond)
 
 	// Second run also will succeed, even with "bar" as invalid value.
 	// See definition of validator cv above. But validationError is not
 	// nil.
 	key = "bar"
-	env.EmitNew(context.Background(), "configurator", behaviors.ReadConfigurationTopic, pvs)
+	env.EmitNew(context.Background(), "configurator", behaviors.TopicConfigurationRead, pvs)
 	assert.Wait(sigc, false, 100*time.Millisecond)
 }
 

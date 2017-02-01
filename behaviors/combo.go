@@ -59,7 +59,7 @@ func (b *comboBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case ResetTopic:
+	case TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
@@ -67,8 +67,8 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case CriterionDone:
 			// All done, emit and start over.
-			b.cell.EmitNew(event.Context(), EventComboTopic, cells.PayloadValues{
-				EventComboEventsPayload: b.sink,
+			b.cell.EmitNew(event.Context(), TopicCombo, cells.PayloadValues{
+				PayloadComboEvents: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)
 		case CriterionKeep:

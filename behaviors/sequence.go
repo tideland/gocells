@@ -57,7 +57,7 @@ func (b *sequenceBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case ResetTopic:
+	case TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
@@ -65,8 +65,8 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case CriterionDone:
 			// All done, emit and start over.
-			b.cell.EmitNew(event.Context(), EventSequenceTopic, cells.PayloadValues{
-				EventSequenceEventsPayload: b.sink,
+			b.cell.EmitNew(event.Context(), TopicSequence, cells.PayloadValues{
+				PayloadSequenceEvents: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)
 		case CriterionKeep:

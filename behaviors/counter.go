@@ -70,7 +70,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 		}
 		response := b.copyCounters()
 		payload.GetWaiter().Set(response)
-	case cells.ResetTopic:
+	case cells.TopicReset:
 		b.counters = make(map[string]int64)
 	default:
 		cids := b.counterFunc(b.cell.ID(), event)

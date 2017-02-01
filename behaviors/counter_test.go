@@ -51,7 +51,7 @@ func TestCounterBehavior(t *testing.T) {
 	assert.Equal(counters["c"], int64(1))
 	assert.Equal(counters["d"], int64(2))
 
-	err = env.EmitNew(ctx, "counter", cells.ResetTopic, nil)
+	err = env.EmitNew(ctx, "counter", cells.TopicReset, nil)
 	assert.Nil(err)
 
 	counters, err = behaviors.RequestCounterResults(ctx, env, "counter", time.Second)

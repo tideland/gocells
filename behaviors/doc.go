@@ -33,7 +33,7 @@
 //
 // Configurator
 //
-// After receiving a ReadConfigurationTopic with a filename as
+// After receiving a TopicConfigurationRead with a filename as
 // payload the configuration behavior reads this configuration
 // and emits it. If it is started with a validator the configuration
 // is validated after the reading.
