@@ -19,30 +19,30 @@ import (
 // EVALUATOR BEHAVIOR
 //--------------------
 
-// Evaluator is a function returning a rate for each received event.
+// Evaluator is a function returning a rating for each received event.
 type Evaluator func(event cells.Event) (float64, error)
 
 // evaluatorBehavior implements the evaluator behavior.
 type evaluatorBehavior struct {
-	cell     cells.Cell
-	evaluate Evaluator
-	count    int
-	minRate  float64
-	maxRate  float64
-	avgRate  float64
+	cell      cells.Cell
+	evaluate  Evaluator
+	count     int
+	minRating float64
+	maxRating float64
+	avgRating float64
 }
 
-// NewEvaluatorBehavior creates a behavior rating received events based
-// on the passed function. This function returns a rate. Their minimum,
+// NewEvaluatorBehavior creates a behavior evaluating received events based
+// on the passed function. This function returns a rating. Their minimum,
 // maximum, average, and number of events are emitted. A "reset!" topic
 // sets all values to zero again.
 func NewEvaluatorBehavior(evaluator Evaluator) cells.Behavior {
 	return &evaluatorBehavior{
-		evaluate: evaluator,
-		count:    0,
-		minRate:  0.0,
-		maxRate:  0.0,
-		avgRate:  0.0,
+		evaluate:  evaluator,
+		count:     0,
+		minRating: 0.0,
+		maxRating: 0.0,
+		avgRating: 0.0,
 	}
 }
 
@@ -62,36 +62,36 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
 		b.count = 0
-		b.minRate = 0.0
-		b.maxRate = 0.0
-		b.avgRate = 0.0
+		b.minRating = 0.0
+		b.maxRating = 0.0
+		b.avgRating = 0.0
 	default:
-		rate, err := b.evaluate(event)
+		rating, err := b.evaluate(event)
 		if err != nil {
 			return err
 		}
 		// Calculate values.
 		if b.count == 0 {
 			b.count = 1
-			b.minRate = rate
-			b.maxRate = rate
-			b.avgRate = rate
+			b.minRating = rating
+			b.maxRating = rating
+			b.avgRating = rating
 		} else {
-			b.avgRate = (b.avgRate*float64(b.count) + rate) / float64(b.count+1)
+			b.avgRating = (b.avgRating*float64(b.count) + rating) / float64(b.count+1)
 			b.count = b.count + 1
-			if rate > b.maxRate {
-				b.maxRate = rate
+			if rating > b.maxRating {
+				b.maxRating = rating
 			}
-			if rate < b.minRate {
-				b.minRate = rate
+			if rating < b.minRating {
+				b.minRating = rating
 			}
 		}
 		// Emit value.
 		b.cell.EmitNew(event.Context(), TopicEvaluation, cells.PayloadValues{
 			PayloadEvaluationCount: b.count,
-			PayloadEvaluationAvg:   b.avgRate,
-			PayloadEvaluationMax:   b.maxRate,
-			PayloadEvaluationMin:   b.minRate,
+			PayloadEvaluationAvg:   b.avgRating,
+			PayloadEvaluationMax:   b.maxRating,
+			PayloadEvaluationMin:   b.minRating,
 		})
 	}
 	return nil
@@ -100,9 +100,9 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 // Recover from an error.
 func (b *evaluatorBehavior) Recover(err interface{}) error {
 	b.count = 0
-	b.minRate = 0.0
-	b.maxRate = 0.0
-	b.avgRate = 0.0
+	b.minRating = 0.0
+	b.maxRating = 0.0
+	b.avgRating = 0.0
 	return nil
 }
 
