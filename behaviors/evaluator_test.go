@@ -15,6 +15,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -43,7 +44,8 @@ func TestEvaluatorBehavior(t *testing.T) {
 	}
 	matches := func(accessor cells.EventSinkAccessor) behaviors.CriterionMatch {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
-			return true, nil
+			avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAvg, 0.0)
+			return avg > 6.0, nil
 		})
 		assert.Nil(err)
 		if !ok {
@@ -54,7 +56,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 		}
 		return behaviors.CriterionDone
 	}
-	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
+	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 	waiter := cells.NewPayloadWaiter()
 
 	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluate))
@@ -63,10 +65,26 @@ func TestEvaluatorBehavior(t *testing.T) {
 	env.Subscribe("evaluator", "combo")
 	env.Subscribe("combo", "waiter")
 
-	for i := 0; i < 10000; i++ {
-		topic := generator.OneStringOf(topics...)
-		env.EmitNew(ctx, "evaluator", topic, nil)
-	}
+	go func() {
+		for i := 0; i < 10000; i++ {
+			topic := generator.OneStringOf(topics...)
+			env.EmitNew(ctx, "evaluator", topic, nil)
+		}
+	}()
+
+	waitCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	payload, err := waiter.Wait(waitCtx)
+	assert.Nil(err)
+	accessor, ok := payload.Get(behaviors.PayloadComboEvents, nil).(cells.EventSinkAccessor)
+	assert.True(ok)
+	assert.Length(accessor, 3)
+	accessor.Match(func(index int, event cells.Event) (bool, error) {
+		avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAvg, 0.0)
+		assert.True(avg > 6.0)
+		assert.Logf("avg: %f", avg)
+		return false, nil
+	})
 }
 
 // EOF
