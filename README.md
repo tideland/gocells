@@ -11,7 +11,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-01-31
+Version 6.0.0-beta.2017-02-02
 
 ## Packages
 
@@ -36,6 +36,8 @@ still growing.
 - **Combo** waits for a user-defined combination of events.
 - **Configurator** reads a configuration file based on an event and emits it.
 - **Counter** counts events, the counters can be retrieved.
+- **Evaluator** evaluates events based on a user-defined function which
+  returns a rating.
 - **Filter** emits received events based on a user-defined filter.
 - **Finite State Machine** allows to build finite state machines for events.
 - **Logger** logs received events with level INFO.

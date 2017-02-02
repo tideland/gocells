@@ -60,7 +60,7 @@ func TestComboBehavior(t *testing.T) {
 		return behaviors.CriterionDone
 	}
 	mapper := func(id string, event cells.Event) (cells.Event, error) {
-		sink, ok := event.Payload().Get(behaviors.EventComboEventsPayload, nil).(cells.EventSink)
+		sink, ok := event.Payload().Get(behaviors.PayloadComboEvents, nil).(cells.EventSink)
 		if !ok {
 			assert.Fail("illegal payload")
 		}

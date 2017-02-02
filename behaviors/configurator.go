@@ -26,7 +26,7 @@ import (
 // Configuration returns the configuration payload
 // of the passed event or an empty configuration.
 func Configuration(event cells.Event) etc.Etc {
-	payload := event.Payload().Get(ConfigurationPayload, nil)
+	payload := event.Payload().Get(PayloadConfiguration, nil)
 	if payload == nil {
 		logger.Warningf("event does not contain configuration payload")
 		cfg, _ := etc.ReadString("{etc}")
@@ -79,9 +79,9 @@ func (b *configuratorBehavior) Terminate() error {
 // ProcessEvent reads, validates and emits a configuration.
 func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case ReadConfigurationTopic:
+	case TopicConfigurationRead:
 		// Read configuration
-		filename := event.Payload().GetString(ConfigurationFilenamePayload, "")
+		filename := event.Payload().GetString(PayloadConfigurationFilename, "")
 		if filename == "" {
 			logger.Errorf("cannot read configuration without filename")
 			return nil
@@ -100,9 +100,9 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 		}
 		// All done, emit it.
 		pvs := cells.PayloadValues{
-			ConfigurationPayload: cfg,
+			PayloadConfiguration: cfg,
 		}
-		b.cell.EmitNew(event.Context(), ConfigurationTopic, pvs)
+		b.cell.EmitNew(event.Context(), TopicConfiguration, pvs)
 	}
 	return nil
 }

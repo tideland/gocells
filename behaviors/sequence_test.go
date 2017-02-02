@@ -66,8 +66,8 @@ func TestSequenceBehavior(t *testing.T) {
 	assert.NotEmpty(accessor)
 	assert.Logf("Collected Sequences: %d", accessor.Len())
 	err = accessor.Do(func(index int, event cells.Event) error {
-		assert.Equal(event.Topic(), behaviors.EventSequenceTopic)
-		csequenceRaw := event.Payload().Get(behaviors.EventSequenceEventsPayload, nil)
+		assert.Equal(event.Topic(), behaviors.TopicSequence)
+		csequenceRaw := event.Payload().Get(behaviors.PayloadSequenceEvents, nil)
 		csequence, ok := csequenceRaw.(cells.EventSink)
 		assert.True(ok)
 		assert.Length(csequence, 3)

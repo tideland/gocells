@@ -70,10 +70,10 @@ func (b *pairBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case EventPairTimeoutTopic:
+	case TopicPairTimeout:
 		if b.hit != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit := event.Payload().GetTime(EventPairFirstTimePayload, time.Time{})
+			hit := event.Payload().GetTime(PayloadPairFirstTime, time.Time{})
 			if hit.Equal(*b.hit) {
 				b.emitTimeout(event.Context())
 				b.timeout = nil
@@ -87,8 +87,8 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hit = &now
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(event.Context(), b.cell.ID(), EventPairTimeoutTopic, cells.PayloadValues{
-						EventPairFirstTimePayload: now,
+					b.cell.Environment().EmitNew(event.Context(), b.cell.ID(), TopicPairTimeout, cells.PayloadValues{
+						PayloadPairFirstTime: now,
 					})
 				})
 			} else {
@@ -114,21 +114,21 @@ func (b *pairBehavior) Recover(err interface{}) error {
 
 // emitPair emits the event for a successful pair.
 func (b *pairBehavior) emitPair(ctx context.Context, timestamp time.Time, data interface{}) {
-	b.cell.EmitNew(ctx, EventPairTopic, cells.PayloadValues{
-		EventPairFirstTimePayload:  *b.hit,
-		EventPairFirstDataPayload:  b.hitData,
-		EventPairSecondTimePayload: timestamp,
-		EventPairSecondDataPayload: data,
+	b.cell.EmitNew(ctx, TopicPair, cells.PayloadValues{
+		PayloadPairFirstTime:  *b.hit,
+		PayloadPairFirstData:  b.hitData,
+		PayloadPairSecondTime: timestamp,
+		PayloadPairSecondData: data,
 	})
 	b.hit = nil
 }
 
 // emitTimeout emits the event for a pairing timeout.
 func (b *pairBehavior) emitTimeout(ctx context.Context) {
-	b.cell.EmitNew(ctx, EventPairTimeoutTopic, cells.PayloadValues{
-		EventPairFirstTimePayload: *b.hit,
-		EventPairFirstDataPayload: b.hitData,
-		EventPairTimeoutPayload:   time.Now(),
+	b.cell.EmitNew(ctx, TopicPairTimeout, cells.PayloadValues{
+		PayloadPairFirstTime: *b.hit,
+		PayloadPairFirstData: b.hitData,
+		PayloadPairTimeout:   time.Now(),
 	})
 	b.hit = nil
 }

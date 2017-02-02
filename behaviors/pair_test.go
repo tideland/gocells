@@ -44,9 +44,9 @@ func TestPairBehavior(t *testing.T) {
 	filterFuncBuilder := func(positive bool) behaviors.FilterFunc {
 		var topic string
 		if positive {
-			topic = behaviors.EventPairTopic
+			topic = behaviors.TopicPair
 		} else {
-			topic = behaviors.EventPairTimeoutTopic
+			topic = behaviors.TopicPairTimeout
 		}
 		return func(id string, event cells.Event) bool {
 			return event.Topic() == topic
@@ -76,8 +76,8 @@ func TestPairBehavior(t *testing.T) {
 	assert.Logf("Positive Events: %d", accessor.Len())
 
 	err = accessor.Do(func(index int, event cells.Event) error {
-		first := event.Payload().GetTime(behaviors.EventPairFirstTimePayload, time.Time{})
-		second := event.Payload().GetTime(behaviors.EventPairSecondTimePayload, time.Time{})
+		first := event.Payload().GetTime(behaviors.PayloadPairFirstTime, time.Time{})
+		second := event.Payload().GetTime(behaviors.PayloadPairSecondTime, time.Time{})
 		difference := second.Sub(first)
 		assert.False(first.IsZero())
 		assert.False(second.IsZero())
@@ -91,8 +91,8 @@ func TestPairBehavior(t *testing.T) {
 	assert.Logf("Negative Events: %d", accessor.Len())
 
 	err = accessor.Do(func(index int, event cells.Event) error {
-		first := event.Payload().GetTime(behaviors.EventPairFirstTimePayload, time.Time{})
-		timeout := event.Payload().GetTime(behaviors.EventPairTimeoutPayload, time.Time{})
+		first := event.Payload().GetTime(behaviors.PayloadPairFirstTime, time.Time{})
+		timeout := event.Payload().GetTime(behaviors.PayloadPairTimeout, time.Time{})
 		difference := timeout.Sub(first)
 		assert.False(first.IsZero())
 		assert.False(timeout.IsZero())
