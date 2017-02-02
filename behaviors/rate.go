@@ -57,7 +57,7 @@ func (b *rateBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case ResetTopic:
+	case TopicReset:
 		b.last = time.Now()
 		b.durations = []time.Duration{}
 	default:
@@ -82,12 +82,12 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 				}
 			}
 			avg := total / time.Duration(len(b.durations))
-			return b.cell.EmitNew(event.Context(), EventRateTopic, cells.PayloadValues{
-				EventRateTimePayload:     current,
-				EventRateDurationPayload: duration,
-				EventRateAveragePayload:  avg,
-				EventRateHighPayload:     high,
-				EventRateLowPayload:      low,
+			return b.cell.EmitNew(event.Context(), TopicRate, cells.PayloadValues{
+				PayloadRateTime:     current,
+				PayloadRateDuration: duration,
+				PayloadRateAverage:  avg,
+				PayloadRateHigh:     high,
+				PayloadRateLow:      low,
 			})
 		}
 	}

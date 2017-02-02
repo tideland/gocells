@@ -64,7 +64,7 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		}
 		accessor := cells.EventSinkAccessor(b.sink)
 		payload.GetWaiter().Set(accessor)
-	case cells.ResetTopic:
+	case cells.TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)

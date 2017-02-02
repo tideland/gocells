@@ -65,10 +65,10 @@ func TestRateWindowBehavior(t *testing.T) {
 	assert.Logf("Window Events: %d", accessor.Len())
 
 	err = accessor.Do(func(index int, event cells.Event) error {
-		count := event.Payload().GetInt(behaviors.EventRateWindowCountPayload, -1)
+		count := event.Payload().GetInt(behaviors.PayloadRateWindowCount, -1)
 		assert.Equal(count, 5)
-		first := event.Payload().GetTime(behaviors.EventRateWindowFirstTimePayload, time.Time{})
-		last := event.Payload().GetTime(behaviors.EventRateWindowLastTimePayload, time.Time{})
+		first := event.Payload().GetTime(behaviors.PayloadRateWindowFirstTime, time.Time{})
+		last := event.Payload().GetTime(behaviors.PayloadRateWindowLastTime, time.Time{})
 		difference := last.Sub(first)
 		assert.True(difference <= duration)
 		return nil
