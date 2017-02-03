@@ -19,17 +19,29 @@ import (
 // CONSTANTS
 //--------------------
 
+// CriterionMatch signals, how a criterion matches.
+type CriterionMatch int
+
+const (
+	// Criterion matches.
+	CriterionDone CriterionMatch = iota + 1
+	CriterionKeep
+	CriterionDropFirst
+	CriterionDropLast
+	CriterionClear
+)
+
 const (
 	// Often used standard topics.
-	CollectedTopic = "collected?"
-	CountersTopic  = "counters?"
-	ProcessedTopic = "processed?"
+	TopicCollected = "collected?"
+	TopicCounters  = "counters?"
+	TopicProcessed = "processed?"
 	TopicReset     = "reset!"
-	StatusTopic    = "status?"
-	TickTopic      = "tick!"
+	TopicStatus    = "status?"
+	TopicTick      = "tick!"
 
 	// Standard payload keys.
-	DefaultPayload    = "default"
+	PayloadDefault    = "default"
 	PayloadTickerID   = "ticker:id"
 	PayloadTickerTime = "ticker:time"
 

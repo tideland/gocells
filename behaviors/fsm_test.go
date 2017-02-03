@@ -113,7 +113,7 @@ func TestFSMBehavior(t *testing.T) {
 
 // cents retrieves the cents out of the payload of an event.
 func payloadCents(event cells.Event) int {
-	return event.Payload().GetInt(cells.DefaultPayload, -1)
+	return event.Payload().GetInt(cells.PayloadDefault, -1)
 }
 
 // lockMachine will be unlocked if enough money is inserted. After

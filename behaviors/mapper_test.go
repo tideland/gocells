@@ -41,7 +41,7 @@ func TestMapperBehavior(t *testing.T) {
 	defer env.Stop()
 
 	mapper := func(id string, event cells.Event) (cells.Event, error) {
-		text := event.Payload().GetString(cells.DefaultPayload, "")
+		text := event.Payload().GetString(cells.PayloadDefault, "")
 		pv := cells.PayloadValues{
 			"upper-text": strings.ToUpper(text),
 		}
