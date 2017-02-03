@@ -57,7 +57,7 @@ func (b *collectorBehavior) Terminate() error {
 // ProcessEvent collects and re-emits events.
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.CollectedTopic:
+	case cells.TopicCollected:
 		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			logger.Warningf("retrieving collected events from '%s' not possible without payload waiter", b.cell.ID())
@@ -82,13 +82,13 @@ func (b *collectorBehavior) Recover(err interface{}) error {
 // RequestCollectedAccessor retrieves the accessor to the
 // collected events.
 func RequestCollectedAccessor(env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
-	payload, err := env.Request(context.Background(), id, cells.CollectedTopic, timeout)
+	payload, err := env.Request(context.Background(), id, cells.TopicCollected, timeout)
 	if err != nil {
 		return nil, err
 	}
 	accessor, ok := payload.GetDefault(nil).(cells.EventSinkAccessor)
 	if !ok {
-		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
+		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
 	}
 	return accessor, nil
 }

@@ -23,7 +23,6 @@ const (
 	CriterionClear
 
 	// Topics.
-	TopicCombo             = "combo"
 	TopicConfiguration     = "configuration"
 	TopicConfigurationRead = "read-configuration!"
 	TopicEvaluation        = "evaluation"
@@ -36,7 +35,6 @@ const (
 	TopicTicker            = "tick!"
 
 	// Payload keys.
-	PayloadComboEvents           = "combo:events"
 	PayloadConfiguration         = "configuration"
 	PayloadConfigurationFilename = "configuration:filename"
 	PayloadEvaluationCount       = "evaluation:count"

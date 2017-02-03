@@ -42,19 +42,19 @@ func TestEvaluatorBehavior(t *testing.T) {
 		assert.Nil(err)
 		return float64(i), nil
 	}
-	matches := func(accessor cells.EventSinkAccessor) behaviors.CriterionMatch {
+	matches := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
 			avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAvg, 0.0)
 			return avg > 6.0, nil
 		})
 		assert.Nil(err)
 		if !ok {
-			return behaviors.CriterionDropLast
+			return cells.CriterionDropLast
 		}
 		if accessor.Len() < 3 {
-			return behaviors.CriterionKeep
+			return cells.CriterionKeep
 		}
-		return behaviors.CriterionDone
+		return cells.CriterionDone
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 	waiter := cells.NewPayloadWaiter()

@@ -57,7 +57,7 @@ func (b *evaluatorBehavior) Terminate() error {
 	return nil
 }
 
-// ProcessEvent calls the simple processor function.
+// ProcessEvent evaluates the event.
 func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
