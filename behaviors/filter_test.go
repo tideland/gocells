@@ -35,18 +35,18 @@ func TestFilterBehavior(t *testing.T) {
 	defer env.Stop()
 
 	var wg sync.WaitGroup
-	ff := func(id string, event cells.Event) bool {
+	matches := func(event cells.Event) (bool, error) {
 		payload, ok := event.Payload().GetDefault(nil).(string)
 		if !ok {
-			return false
+			return false, nil
 		}
-		return event.Topic() == payload
+		return event.Topic() == payload, nil
 	}
 	sf := func(c cells.Cell, event cells.Event) error {
 		wg.Done()
 		return nil
 	}
-	env.StartCell("filter", behaviors.NewFilterBehavior(ff))
+	env.StartCell("filter", behaviors.NewFilterBehavior(matches))
 	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(sf))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
 	env.Subscribe("filter", "simple", "collector")

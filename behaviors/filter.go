@@ -11,36 +11,28 @@ package behaviors
 // IMPORTS
 //--------------------
 
-import (
-	"github.com/tideland/golib/logger"
-
-	"github.com/tideland/gocells/cells"
-)
+import "github.com/tideland/gocells/cells"
 
 //--------------------
 // FILTER BEHAVIOR
 //--------------------
 
-// FilterFunc is a function type checking if an event shall be filtered.
-type FilterFunc func(id string, event cells.Event) bool
+// Filter is a function type checking if an event shall be filtered.
+type Filter func(event cells.Event) (bool, error)
 
 // filterBehavior is a simple repeater using the filter
 // function to check if an event shall be emitted.
 type filterBehavior struct {
-	cell       cells.Cell
-	filterFunc FilterFunc
+	cell    cells.Cell
+	matches Filter
 }
 
 // NewFilterBehavior creates a filter behavior based on the passed function.
 // It emits every received event for which the filter function returns true.
-func NewFilterBehavior(ff FilterFunc) cells.Behavior {
-	if ff == nil {
-		ff = func(id string, event cells.Event) bool {
-			logger.Errorf("filter processor %q used without function to handle event %v", id, event)
-			return true
-		}
+func NewFilterBehavior(matches Filter) cells.Behavior {
+	return &filterBehavior{
+		matches: matches,
 	}
-	return &filterBehavior{nil, ff}
 }
 
 // Init the behavior.
@@ -56,7 +48,11 @@ func (b *filterBehavior) Terminate() error {
 
 // ProcessEvent emits the event when the filter func returns true.
 func (b *filterBehavior) ProcessEvent(event cells.Event) error {
-	if b.filterFunc(b.cell.ID(), event) {
+	ok, err := b.matches(event)
+	if err != nil {
+		return err
+	}
+	if ok {
 		b.cell.Emit(event)
 	}
 	return nil
