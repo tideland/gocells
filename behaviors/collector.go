@@ -79,6 +79,10 @@ func (b *collectorBehavior) Recover(err interface{}) error {
 	return nil
 }
 
+//--------------------
+// CONVENIENCE
+//--------------------
+
 // RequestCollectedAccessor retrieves the accessor to the
 // collected events.
 func RequestCollectedAccessor(env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
