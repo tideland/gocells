@@ -23,25 +23,12 @@ const (
 	CriterionClear
 
 	// Topics.
-	TopicEvaluation  = "evaluation"
-	TopicPair        = "pair"
-	TopicPairTimeout = "pair-timeout"
-	TopicRate        = "rate"
-	TopicRateWindow  = "rate-window"
-	TopicReset       = "reset!"
-	TopicSequence    = "sequence"
-	TopicTicker      = "tick!"
+	TopicRate       = "rate"
+	TopicRateWindow = "rate-window"
+	TopicSequence   = "sequence"
+	TopicTicker     = "tick!"
 
 	// Payload keys.
-	PayloadEvaluationCount     = "evaluation:count"
-	PayloadEvaluationAvg       = "evaluation:avg"
-	PayloadEvaluationMax       = "evaluation:max"
-	PayloadEvaluationMin       = "evaluation:min"
-	PayloadPairFirstData       = "pair:first:data"
-	PayloadPairFirstTime       = "pair:first:time"
-	PayloadPairSecondData      = "pair:second:data"
-	PayloadPairSecondTime      = "pair:second:time"
-	PayloadPairTimeout         = "pair:timeout"
 	PayloadRateDuration        = "rate:duration"
 	PayloadRateTime            = "rate:time"
 	PayloadRateAverage         = "rate:average"

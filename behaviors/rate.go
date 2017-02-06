@@ -57,7 +57,7 @@ func (b *rateBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.last = time.Now()
 		b.durations = []time.Duration{}
 	default:
