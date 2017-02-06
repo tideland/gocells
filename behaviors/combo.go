@@ -71,7 +71,7 @@ func (b *comboBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)

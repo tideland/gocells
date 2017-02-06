@@ -44,7 +44,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 	}
 	matches := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
-			avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAvg, 0.0)
+			avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAverage, 0.0)
 			return avg > 6.0, nil
 		})
 		assert.Nil(err)
@@ -80,7 +80,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 	assert.True(ok)
 	assert.Length(accessor, 3)
 	accessor.Match(func(index int, event cells.Event) (bool, error) {
-		avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAvg, 0.0)
+		avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAverage, 0.0)
 		assert.True(avg > 6.0)
 		assert.Logf("avg: %f", avg)
 		return false, nil

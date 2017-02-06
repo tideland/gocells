@@ -63,7 +63,7 @@ func (b *rateWindowBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.timestamps = collections.NewRingBuffer(b.count)
 	default:
 		if b.matches(event) {
