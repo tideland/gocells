@@ -19,12 +19,32 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicRateWindow signals a detected event rate window.
+	TopicRateWindow = "rate-window"
+
+	// PayloadRateWindowCount contains the number of matching events.
+	PayloadRateWindowCount = "rate-window:count"
+
+	// PayloadRateWindowFirstTime contains the first time a
+	// matching event has been detected.
+	PayloadRateWindowFirstTime = "rate-window:first:time"
+
+	// PayloadRateWindowLastTime contains the last time a
+	// matching event has been detected.
+	PayloadRateWindowLastTime = "rate-window:last:time"
+)
+
+//--------------------
 // RATE BEHAVIOR
 //--------------------
 
 // RateWindowCriterion is used by the rate window behavior and has to return
 // true, if the passed event matches a criterion for rate window measuring.
-type RateWindowCriterion func(event cells.Event) bool
+type RateWindowCriterion func(event cells.Event) (bool, error)
 
 // rateWindowBehavior implements the rate window behavior.
 type rateWindowBehavior struct {
@@ -66,7 +86,11 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 	case cells.TopicReset:
 		b.timestamps = collections.NewRingBuffer(b.count)
 	default:
-		if b.matches(event) {
+		ok, err := b.matches(event)
+		if err != nil {
+			return err
+		}
+		if ok {
 			current := time.Now()
 			b.timestamps.Push(current)
 			if b.timestamps.Len() == b.timestamps.Cap() {

@@ -23,23 +23,13 @@ const (
 	CriterionClear
 
 	// Topics.
-	TopicRate       = "rate"
-	TopicRateWindow = "rate-window"
-	TopicSequence   = "sequence"
-	TopicTicker     = "tick!"
+	TopicSequence = "sequence"
+	TopicTicker   = "tick!"
 
 	// Payload keys.
-	PayloadRateDuration        = "rate:duration"
-	PayloadRateTime            = "rate:time"
-	PayloadRateAverage         = "rate:average"
-	PayloadRateHigh            = "rate:high"
-	PayloadRateLow             = "rate:low"
-	PayloadRateWindowCount     = "rate-window:count"
-	PayloadRateWindowFirstTime = "rate-window:first:time"
-	PayloadRateWindowLastTime  = "rate-window:last:time"
-	PayloadSequenceEvents      = "sequence:events"
-	PayloadTickerID            = "ticker:id"
-	PayloadTickerTime          = "ticker:time"
+	PayloadSequenceEvents = "sequence:events"
+	PayloadTickerID       = "ticker:id"
+	PayloadTickerTime     = "ticker:time"
 )
 
 // EOF
