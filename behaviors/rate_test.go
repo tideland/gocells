@@ -34,8 +34,8 @@ func TestRateBehavior(t *testing.T) {
 	env := cells.NewEnvironment("rate-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event) bool {
-		return event.Topic() == "now"
+	matches := func(event cells.Event) (bool, error) {
+		return event.Topic() == "now", nil
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
