@@ -34,8 +34,8 @@ func TestRateWindowBehavior(t *testing.T) {
 	env := cells.NewEnvironment("rate-window-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event) bool {
-		return event.Topic() == "now"
+	matches := func(event cells.Event) (bool, error) {
+		return event.Topic() == "now", nil
 	}
 	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	interestingTopics := []string{"a", "b", "c", "d", "now"}

@@ -77,7 +77,7 @@ type Payload interface {
 	// of this one and the passed values. Allowed are
 	// PayloadValues, map[string]interface{}, and any
 	// other single value. The latter will be stored
-	// with the cells.DefaultPayload key. Values of this
+	// with the cells.PayloadDefault key. Values of this
 	// payload are overwritten by those which are passed
 	// if they share the key.
 	Apply(values interface{}) Payload
@@ -107,7 +107,7 @@ type payload struct {
 // values. In case of a Payload this is used directly, in
 // case of a PayloadValues or a map[string]interface{} their
 // content is used, and when passing any other type the
-// value is stored with the key cells.DefaultPayload.
+// value is stored with the key cells.PayloadDefault.
 func NewPayload(values interface{}) Payload {
 	if p, ok := values.(Payload); ok {
 		return p
@@ -130,7 +130,7 @@ func NewPayload(values interface{}) Payload {
 			p.values[key] = value
 		}
 	default:
-		p.values[DefaultPayload] = values
+		p.values[PayloadDefault] = values
 	}
 	return p
 }
@@ -160,7 +160,7 @@ func (p *payload) Get(key string, dv interface{}) interface{} {
 
 // GetDefault implementes the Payload interface.
 func (p *payload) GetDefault(dv interface{}) interface{} {
-	return p.Get(DefaultPayload, dv)
+	return p.Get(PayloadDefault, dv)
 }
 
 // GetBool implementes the Payload interface.
@@ -272,7 +272,7 @@ func (p *payload) Apply(values interface{}) Payload {
 			applied.values[key] = value
 		}
 	default:
-		applied.values[DefaultPayload] = values
+		applied.values[PayloadDefault] = values
 	}
 	return applied
 }

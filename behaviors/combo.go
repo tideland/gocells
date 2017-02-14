@@ -16,6 +16,18 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicCombo is used for events emitted by the combo behavior.
+	TopicCombo = "combo"
+
+	// PayloadComboEvents points to the collected event combination.
+	PayloadComboEvents = "combo:events"
+)
+
+//--------------------
 // SEQUENCE BEHAVIOR
 //--------------------
 
@@ -25,7 +37,7 @@ import (
 // event shall be dropped, CriterionDropLast when the last event shall
 // be dropped, and CriterionClear when the collected events have
 // to be cleared for starting over.
-type ComboCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
+type ComboCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMatch
 
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
@@ -59,24 +71,24 @@ func (b *comboBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
 		matches := b.matches(b.sink)
 		switch matches {
-		case CriterionDone:
+		case cells.CriterionDone:
 			// All done, emit and start over.
 			b.cell.EmitNew(event.Context(), TopicCombo, cells.PayloadValues{
 				PayloadComboEvents: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)
-		case CriterionKeep:
+		case cells.CriterionKeep:
 			// So far ok.
-		case CriterionDropFirst:
+		case cells.CriterionDropFirst:
 			// First event doesn't match.
 			b.sink.PullFirst()
-		case CriterionDropLast:
+		case cells.CriterionDropLast:
 			// First event doesn't match.
 			b.sink.PullLast()
 		default:

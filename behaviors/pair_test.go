@@ -41,23 +41,23 @@ func TestPairBehavior(t *testing.T) {
 		}
 		return nil, false
 	}
-	filterFuncBuilder := func(positive bool) behaviors.FilterFunc {
+	filterBuilder := func(positive bool) behaviors.Filter {
 		var topic string
 		if positive {
 			topic = behaviors.TopicPair
 		} else {
 			topic = behaviors.TopicPairTimeout
 		}
-		return func(id string, event cells.Event) bool {
-			return event.Topic() == topic
+		return func(event cells.Event) (bool, error) {
+			return event.Topic() == topic, nil
 		}
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 	duration := time.Millisecond
 
 	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
-	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterFuncBuilder(true)))
-	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterFuncBuilder(false)))
+	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterBuilder(true)))
+	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterBuilder(false)))
 	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000))
 	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000))
 	env.Subscribe("pairer", "positive-filter", "negative-filter")

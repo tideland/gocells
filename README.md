@@ -9,9 +9,11 @@ of an event a cell can emit multiple events to its subscribers.
 
 I hope you like them. ;)
 
+[![Sourcegraph](https://sourcegraph.com/github.com/tideland/gocells/-/badge.svg)](https://sourcegraph.com/github.com/tideland/gocells?badge)
+
 ## Version
 
-Version 6.0.0-beta.2017-02-02
+Version 6.0.0-beta.2017-02-14
 
 ## Packages
 
@@ -30,6 +32,7 @@ cells which subscribed to the individual cell.
 The project already contains some standard behaviors, the number is
 still growing.
 
+- **Aggregator** aggregates events and emits each aggregated value.
 - **Broadcaster** simply emits received events to all subscribers.
 - **Callback** calls a number of passed functions for each received event.
 - **Collector** collects events, theese can be retrieved and reset.
