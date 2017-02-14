@@ -63,7 +63,7 @@ func (b *counterBehavior) Terminate() error {
 // and emits this value.
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.CountersTopic:
+	case cells.TopicCounters:
 		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			logger.Warningf("retrieving counters from '%s' not possible without payload waiter", b.cell.ID())
@@ -107,13 +107,13 @@ func (b *counterBehavior) copyCounters() Counters {
 // RequestCounterResults retrieves the results to the
 // behaviors counters.
 func RequestCounterResults(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (Counters, error) {
-	payload, err := env.Request(ctx, id, cells.CountersTopic, timeout)
+	payload, err := env.Request(ctx, id, cells.TopicCounters, timeout)
 	if err != nil {
 		return nil, err
 	}
 	counters, ok := payload.GetDefault(nil).(Counters)
 	if !ok {
-		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
+		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
 	}
 	return counters, nil
 }

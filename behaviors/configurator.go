@@ -20,26 +20,24 @@ import (
 )
 
 //--------------------
-// CONVENIENCE
+// CONSTANTS
 //--------------------
 
-// Configuration returns the configuration payload
-// of the passed event or an empty configuration.
-func Configuration(event cells.Event) etc.Etc {
-	payload := event.Payload().Get(PayloadConfiguration, nil)
-	if payload == nil {
-		logger.Warningf("event does not contain configuration payload")
-		cfg, _ := etc.ReadString("{etc}")
-		return cfg
-	}
-	cfg, ok := payload.(etc.Etc)
-	if !ok {
-		logger.Warningf("configuration payload has illegal type")
-		cfg, _ := etc.ReadString("{etc}")
-		return cfg
-	}
-	return cfg
-}
+const (
+	// TopicConfiguration
+	TopicConfiguration = "configuration"
+
+	// TopicConfigurationRead tells the configurator behavior to
+	// read a configuration file.
+	TopicConfigurationRead = "read-configuration!"
+
+	// PayloadConfiguration contains the emitted configuration.
+	PayloadConfiguration = "configuration"
+
+	// PayloadConfigurationFilename contains the name of the
+	// configuration file to read.
+	PayloadConfigurationFilename = "configuration:filename"
+)
 
 //--------------------
 // CONFIGURATOR BEHAVIOR
@@ -110,6 +108,28 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 // Recover implements the cells.Behavior interface.
 func (b *configuratorBehavior) Recover(err interface{}) error {
 	return nil
+}
+
+//--------------------
+// CONVENIENCE
+//--------------------
+
+// Configuration returns the configuration payload
+// of the passed event or an empty configuration.
+func Configuration(event cells.Event) etc.Etc {
+	payload := event.Payload().Get(PayloadConfiguration, nil)
+	if payload == nil {
+		logger.Warningf("event does not contain configuration payload")
+		cfg, _ := etc.ReadString("{etc}")
+		return cfg
+	}
+	cfg, ok := payload.(etc.Etc)
+	if !ok {
+		logger.Warningf("configuration payload has illegal type")
+		cfg, _ := etc.ReadString("{etc}")
+		return cfg
+	}
+	return cfg
 }
 
 // EOF

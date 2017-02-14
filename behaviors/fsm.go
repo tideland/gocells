@@ -67,7 +67,7 @@ func (b *fsmBehavior) Terminate() error {
 // the returned new state.
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.StatusTopic:
+	case cells.TopicStatus:
 		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			logger.Warningf("retrieving status from '%s' not possible without payload waiter", b.cell.ID())
@@ -102,13 +102,13 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 
 // RequestFSMStatus retrieves the status of a FSM cell.
 func RequestFSMStatus(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (bool, error) {
-	payload, err := env.Request(ctx, id, cells.StatusTopic, timeout)
+	payload, err := env.Request(ctx, id, cells.TopicStatus, timeout)
 	if err != nil {
 		return false, err
 	}
 	status, ok := payload.GetDefault(nil).(*fsmStatus)
 	if !ok || status == nil {
-		return false, errors.New(ErrInvalidPayload, errorMessages, cells.DefaultPayload)
+		return false, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
 	}
 	return status.done, status.err
 }

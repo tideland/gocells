@@ -34,7 +34,7 @@ func TestComboBehavior(t *testing.T) {
 	env := cells.NewEnvironment("combo-behavior")
 	defer env.Stop()
 
-	matches := func(accessor cells.EventSinkAccessor) behaviors.CriterionMatch {
+	matches := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
 		combo := map[string]int{
 			"a": 0,
 			"b": 0,
@@ -50,14 +50,14 @@ func TestComboBehavior(t *testing.T) {
 		}
 		matches, err := accessor.Match(matcher)
 		if err != nil || !matches {
-			return behaviors.CriterionDropLast
+			return cells.CriterionDropLast
 		}
 		for _, count := range combo {
 			if count == 0 {
-				return behaviors.CriterionKeep
+				return cells.CriterionKeep
 			}
 		}
-		return behaviors.CriterionDone
+		return cells.CriterionDone
 	}
 	mapper := func(id string, event cells.Event) (cells.Event, error) {
 		sink, ok := event.Payload().Get(behaviors.PayloadComboEvents, nil).(cells.EventSink)

@@ -85,7 +85,7 @@ func (b *collectBehavior) Terminate() error {
 
 func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.ProcessedTopic:
+	case cells.TopicProcessed:
 		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			panic("illegal payload, need waiter")

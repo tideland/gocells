@@ -16,6 +16,18 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicSequence signals a complete sequence based on the criterion.
+	TopicSequence = "sequence"
+
+	// PayloadSequenceEvents contains the events of the sequence.
+	PayloadSequenceEvents = "sequence:events"
+)
+
+//--------------------
 // SEQUENCE BEHAVIOR
 //--------------------
 
@@ -23,7 +35,7 @@ import (
 // CriterionDone when a sequence is complete, CriterionKeep when it is
 // so far okay but not complete, and CriterionClear when the sequence
 // doesn't match and has to be cleared.
-type SequenceCriterion func(accessor cells.EventSinkAccessor) CriterionMatch
+type SequenceCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMatch
 
 // sequenceBehavior implements the sequence behavior.
 type sequenceBehavior struct {
@@ -57,19 +69,19 @@ func (b *sequenceBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
 		matches := b.matches(b.sink)
 		switch matches {
-		case CriterionDone:
+		case cells.CriterionDone:
 			// All done, emit and start over.
 			b.cell.EmitNew(event.Context(), TopicSequence, cells.PayloadValues{
 				PayloadSequenceEvents: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)
-		case CriterionKeep:
+		case cells.CriterionKeep:
 			// So far ok.
 		default:
 			// Have to start from beginning.

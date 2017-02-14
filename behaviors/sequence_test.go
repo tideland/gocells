@@ -35,19 +35,19 @@ func TestSequenceBehavior(t *testing.T) {
 	defer env.Stop()
 
 	sequence := []string{"a", "b", "now"}
-	matches := func(accessor cells.EventSinkAccessor) behaviors.CriterionMatch {
+	matches := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
 		matcher := func(index int, event cells.Event) (bool, error) {
 			ok := event.Topic() == sequence[index]
 			return ok, nil
 		}
 		matches, err := accessor.Match(matcher)
 		if err != nil || !matches {
-			return behaviors.CriterionClear
+			return cells.CriterionClear
 		}
 		if accessor.Len() == len(sequence) {
-			return behaviors.CriterionDone
+			return cells.CriterionDone
 		}
-		return behaviors.CriterionKeep
+		return cells.CriterionKeep
 	}
 	topics := []string{"a", "b", "c", "d", "now"}
 

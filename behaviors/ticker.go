@@ -20,6 +20,22 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicTicker signals a tick event.
+	TopicTicker = "tick!"
+
+	// PayloadTickerID contains the ID of the ticker to differentiante
+	// multiple ones.
+	PayloadTickerID = "ticker:id"
+
+	// PayloadTickerTime containts the time of the tick event.
+	PayloadTickerTime = "ticker:time"
+)
+
+//--------------------
 // TICKER BEHAVIOR
 //--------------------
 

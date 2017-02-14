@@ -19,6 +19,35 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicPair signals a detected pair of events.
+	TopicPair = "pair"
+
+	// TopicPairTimeout signals a timeout during waiting for a
+	// pair of events.
+	TopicPairTimeout = "pair:timeout"
+
+	// PayloadPairFirstData contains the first detected pair eventdata.
+	PayloadPairFirstData = "pair:first:data"
+
+	// PayloadPairFirstTime contains the time of the first detected pair event.
+	PayloadPairFirstTime = "pair:first:time"
+
+	// PayloadPairSecondData contains the second detected pair eventdata.
+	PayloadPairSecondData = "pair:second:data"
+
+	// PayloadPairSecondTime contains the time of the second detected pair event.
+	PayloadPairSecondTime = "pair:second:time"
+
+	// PayloadPairTimeout contains the time of the timeout, when the second
+	// event hasn't been received in time.
+	PayloadPairTimeout = "pair:timeout"
+)
+
+//--------------------
 // PAIR BEHAVIOR
 //--------------------
 

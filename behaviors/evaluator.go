@@ -16,6 +16,27 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicEvaluation labes an event as emitted evaluation.
+	TopicEvaluation = "evaluation"
+
+	// PayloadEvaluationAverage contains the average evaluated value.
+	PayloadEvaluationAverage = "evaluation:average"
+
+	// PayloadEvaluationCount contains the number of evaluated events.
+	PayloadEvaluationCount = "evaluation:count"
+
+	// PayloadEvaluationMax contains the maximum evaluated value.
+	PayloadEvaluationMax = "evaluation:max"
+
+	// PayloadEvaluationMin contains the minimum evaluated value.
+	PayloadEvaluationMin = "evaluation:min"
+)
+
+//--------------------
 // EVALUATOR BEHAVIOR
 //--------------------
 
@@ -57,7 +78,7 @@ func (b *evaluatorBehavior) Terminate() error {
 	return nil
 }
 
-// ProcessEvent calls the simple processor function.
+// ProcessEvent evaluates the event.
 func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
@@ -88,10 +109,10 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 		}
 		// Emit value.
 		b.cell.EmitNew(event.Context(), TopicEvaluation, cells.PayloadValues{
-			PayloadEvaluationCount: b.count,
-			PayloadEvaluationAvg:   b.avgRating,
-			PayloadEvaluationMax:   b.maxRating,
-			PayloadEvaluationMin:   b.minRating,
+			PayloadEvaluationCount:   b.count,
+			PayloadEvaluationAverage: b.avgRating,
+			PayloadEvaluationMax:     b.maxRating,
+			PayloadEvaluationMin:     b.minRating,
 		})
 	}
 	return nil

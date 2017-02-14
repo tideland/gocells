@@ -95,7 +95,7 @@ func TestPayload(t *testing.T) {
 	assert.Equal(td, 0*time.Minute)
 
 	pln := pl.Apply("foo")
-	s = pln.GetString(cells.DefaultPayload, "also empty")
+	s = pln.GetString(cells.PayloadDefault, "also empty")
 	assert.Equal(s, "foo")
 	assert.Length(pln, 7)
 
@@ -122,7 +122,7 @@ func TestPositiveWaitPayload(t *testing.T) {
 	ctx := context.Background()
 	payload, err := waiter.Wait(ctx)
 	assert.Nil(err)
-	set := payload.GetInt(cells.DefaultPayload, 0)
+	set := payload.GetInt(cells.PayloadDefault, 0)
 	assert.Equal(set, 4711)
 }
 
@@ -219,14 +219,14 @@ func TestEventSinkIteration(t *testing.T) {
 	assert.Length(sink, 10)
 	err := sink.Do(func(index int, event cells.Event) error {
 		assert.Contents(event.Topic(), topics)
-		payload := event.Payload().GetInt(cells.DefaultPayload, -1)
+		payload := event.Payload().GetInt(cells.PayloadDefault, -1)
 		assert.Range(payload, 1, 10)
 		return nil
 	})
 	assert.Nil(err)
 	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
 		topicOK := event.Topic() >= "a" && event.Topic() <= "j"
-		payload := event.Payload().GetInt(cells.DefaultPayload, -1)
+		payload := event.Payload().GetInt(cells.PayloadDefault, -1)
 		payloadOK := payload >= 1 && payload <= 10
 		return topicOK && payloadOK, nil
 	})

@@ -18,12 +18,39 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicRate signals the rate of detected matching events.
+	TopicRate = "rate"
+
+	// PayloadRateAverage contains the average event rate.
+	PayloadRateAverage = "rate:average"
+
+	// PayloadRateDuration contains the duration between the
+	// first and the last event.
+	PayloadRateDuration = "rate:duration"
+
+	// PayloadRateHigh contains the highest measured time
+	// between matching events.
+	PayloadRateHigh = "rate:high"
+
+	// PayloadRateLow contains the highest measured time
+	// between matching events.
+	PayloadRateLow = "rate:low"
+
+	// PayloadRateTime contains the time of the last matching.
+	PayloadRateTime = "rate:time"
+)
+
+//--------------------
 // RATE BEHAVIOR
 //--------------------
 
 // RateCriterion is used by the rate behavior and has to return true, if
 // the passed event matches a criterion for rate measuring.
-type RateCriterion func(event cells.Event) bool
+type RateCriterion func(event cells.Event) (bool, error)
 
 // rateBehavior calculates the average rate of events matching a criterion.
 type rateBehavior struct {
@@ -57,11 +84,15 @@ func (b *rateBehavior) Terminate() error {
 // ProcessEvent implements the cells.Behavior interface.
 func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case TopicReset:
+	case cells.TopicReset:
 		b.last = time.Now()
 		b.durations = []time.Duration{}
 	default:
-		if b.matches(event) {
+		ok, err := b.matches(event)
+		if err != nil {
+			return err
+		}
+		if ok {
 			current := time.Now()
 			duration := current.Sub(b.last)
 			b.last = current
