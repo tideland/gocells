@@ -61,6 +61,38 @@ type Environment interface {
 }
 
 //--------------------
+// SUBSCRIBER
+//--------------------
+
+// Subscriber describes a subscriber cell for an emitting cell.
+type Subscriber interface {
+	// ID returns the ID of the subscriber.
+	ID() string
+
+	// ProcessEvent tells the subscriber to process an event.
+	ProcessEvent(event Event) error
+
+	// ProcessNewEvent creates an event and tells the subscriber to process it.
+	ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error
+}
+
+//--------------------
+// QUEUE
+//--------------------
+
+// Queue transports events to its subscribers.
+type Queue interface {
+	// Emit emits an event into the queue.
+	Emit(event Event) error
+
+	// Subscribe adds one or more subscribers to the queue.
+	Subscribe(subscribers ...Subscriber) error
+
+	// Unsubscribe removes one or more subscribers from the queue.
+	Unsubscribe(subscribers ...Subscriber) error
+}
+
+//--------------------
 // CELL
 //--------------------
 
@@ -129,22 +161,6 @@ type BehaviorRecoveringFrequency interface {
 // emitted event (will always between 5 and 30 seconds with a 5 seconds timing).
 type BehaviorEmitTimeout interface {
 	EmitTimeout() time.Duration
-}
-
-//--------------------
-// SUBSCRIBER
-//--------------------
-
-// Subscriber describes a subscriber cell for an emitting cell.
-type Subscriber interface {
-	// ID returns the ID of the subscriber.
-	ID() string
-
-	// ProcessEvent tells the subscriber to process an event.
-	ProcessEvent(event Event) error
-
-	// ProcessNewEvent creates an event and tells the subscriber to process it.
-	ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error
 }
 
 // EOF
