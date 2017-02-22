@@ -11,14 +11,18 @@ package cells
 // IMPORTS
 //--------------------
 
+import (
+	"sync"
+)
+
 //--------------------
 // CHANNEL QUEUE
 //--------------------
 
 // channelQueue implements Queue based on simple Go channels.
 type channelQueue struct {
-	eventc      chan Event
-	subscribers map[Subscriber]struct{}
+	mutex  sync.RWMutex
+	eventc chan Event
 }
 
 // newChannelQueue creates the channel based queue with a
@@ -28,30 +32,15 @@ func newChannelQueue(size int) Queue {
 		size = minEventBufferSize
 	}
 	q := &channelQueue{
-		eventc:      make(chan Event, size),
-		subscribers: make(map[Subscriber]struct{}),
+		eventc: make(chan Event, size),
 	}
 	return q
 }
 
 // Emit implements the Queue interface.
 func (q *channelQueue) Emit(event Event) error {
-	return nil
-}
-
-// Subscribe implements the Queue interface.
-func (q *channelQueue) Subscribe(subscribers ...Subscriber) error {
-	for _, subscriber := range subscribers {
-		q.subscribers[subscriber] = struct{}{}
-	}
-	return nil
-}
-
-// Unsubscribe implements the Queue interface.
-func (q *channelQueue) Unsubscribe(subscribers ...Subscriber) error {
-	for _, subscriber := range subscribers {
-		delete(q.subscribers, subscriber)
-	}
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
 	return nil
 }
 

@@ -80,16 +80,10 @@ type Subscriber interface {
 // QUEUE
 //--------------------
 
-// Queue transports events to its subscribers.
+// Queue transports events to its cell.
 type Queue interface {
 	// Emit emits an event into the queue.
 	Emit(event Event) error
-
-	// Subscribe adds one or more subscribers to the queue.
-	Subscribe(subscribers ...Subscriber) error
-
-	// Unsubscribe removes one or more subscribers from the queue.
-	Unsubscribe(subscribers ...Subscriber) error
 }
 
 //--------------------
