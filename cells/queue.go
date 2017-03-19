@@ -12,7 +12,9 @@ package cells
 //--------------------
 
 import (
-	"sync"
+	"time"
+
+	"github.com/tideland/golib/errors"
 )
 
 //--------------------
@@ -21,7 +23,6 @@ import (
 
 // channelQueue implements Queue based on simple Go channels.
 type channelQueue struct {
-	mutex  sync.RWMutex
 	eventc chan Event
 }
 
@@ -39,9 +40,21 @@ func newChannelQueue(size int) Queue {
 
 // Emit implements the Queue interface.
 func (q *channelQueue) Emit(event Event) error {
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-	return nil
+	d := 2 * time.Millisecond
+	for i := 0; i < 5; i++ {
+		select {
+		case q.eventc <- event:
+			return nil
+		case <-time.After(d):
+			d = 2 * d
+		}
+	}
+	return errors.New(ErrCannotEmit, errorMessages)
+}
+
+// Events implements the Queue interface.
+func (q *channelQueue) Events() <-chan Event {
+	return q.eventc
 }
 
 // EOF
