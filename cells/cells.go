@@ -84,6 +84,9 @@ type Subscriber interface {
 type Queue interface {
 	// Emit emits an event into the queue.
 	Emit(event Event) error
+
+	// Events delivers events via a channel.
+	Events() <-chan Event
 }
 
 //--------------------
