@@ -10,10 +10,11 @@ of an event a cell can emit multiple events to its subscribers.
 I hope you like them. ;)
 
 [![Sourcegraph](https://sourcegraph.com/github.com/tideland/gocells/-/badge.svg)](https://sourcegraph.com/github.com/tideland/gocells?badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tideland/gocells)](https://goreportcard.com/report/github.com/tideland/gocells)
 
 ## Version
 
-Version 6.0.0-beta.2017-02-14
+Version 6.0.0-beta.2017-04-14
 
 ## Packages
 
