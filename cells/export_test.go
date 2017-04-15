@@ -50,20 +50,12 @@ func (ci *CellInsight) ID() string {
 	return ci.c.id
 }
 
-func (ci *CellInsight) EventBufferSize() int {
-	return cap(ci.c.eventc)
-}
-
 func (ci *CellInsight) RecoveringNumber() int {
 	return ci.c.recoveringNumber
 }
 
 func (ci *CellInsight) RecoveringDuration() time.Duration {
 	return ci.c.recoveringDuration
-}
-
-func (ci *CellInsight) EmitTimeout() int {
-	return ci.c.emitTimeout
 }
 
 // EOF

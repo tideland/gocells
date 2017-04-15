@@ -19,7 +19,7 @@ import (
 // ROUTER BEHAVIOR
 //--------------------
 
-// RouterFunc is a function type determinig which subscribed
+// RouterFunc is a function type determining which subscribed
 // cells shall receive the event.
 type RouterFunc func(emitterID, subscriberID string, event cells.Event) (bool, error)
 

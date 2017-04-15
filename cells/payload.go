@@ -135,7 +135,7 @@ func NewPayload(values interface{}) Payload {
 	return p
 }
 
-// NewPayloadWaiter creates a new payload with an explicit waiter.
+// NewWaiterPayload creates a new payload with an explicit waiter.
 func NewWaiterPayload() (WaiterPayload, PayloadWaiter) {
 	p := &payload{
 		waiter: NewPayloadWaiter(),

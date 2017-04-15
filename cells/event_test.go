@@ -13,11 +13,12 @@ package cells_test
 
 import (
 	"context"
-	"errors"
+	stderr "errors"
 	"testing"
 	"time"
 
 	"github.com/tideland/golib/audit"
+	"github.com/tideland/golib/errors"
 
 	"github.com/tideland/gocells/cells"
 )
@@ -29,12 +30,10 @@ import (
 // TestEvent tests the event construction.
 func TestEvent(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.TODO()
 	now := time.Now().UTC()
 
-	event, err := cells.NewEvent(ctx, "foo", "bar")
+	event, err := cells.NewEvent("foo", "bar")
 	assert.Nil(err)
-	assert.Equal(event.Context(), ctx)
 	assert.True(event.Timestamp().After(now))
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
@@ -42,10 +41,10 @@ func TestEvent(t *testing.T) {
 	bar := event.Payload().GetDefault("-")
 	assert.Equal(bar, "bar")
 
-	_, err = cells.NewEvent(nil, "", nil)
-	assert.True(cells.IsNoTopicError(err))
+	_, err = cells.NewEvent("", nil)
+	assert.True(errors.IsError(err, cells.ErrNoTopic))
 
-	_, err = cells.NewEvent(nil, "yadda", nil)
+	_, err = cells.NewEvent("yadda", nil)
 	assert.Nil(err)
 }
 
@@ -241,12 +240,12 @@ func TestEventSinkIterationError(t *testing.T) {
 	addEvents(assert, 10, sink)
 
 	err := sink.Do(func(index int, event cells.Event) error {
-		return errors.New("ouch")
+		return stderr.New("ouch")
 	})
 	assert.ErrorMatch(err, "ouch")
 	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
 		// The bool true won't be passed to outside.
-		return true, errors.New("ouch")
+		return true, stderr.New("ouch")
 	})
 	assert.False(ok)
 	assert.ErrorMatch(err, "ouch")
@@ -325,7 +324,7 @@ func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 	for i := 0; i < count; i++ {
 		topic := generator.OneStringOf(topics...)
 		payload := generator.Int(1, 10)
-		event, err := cells.NewEvent(nil, topic, payload)
+		event, err := cells.NewEvent(topic, payload)
 		assert.Nil(err)
 		n, err := sink.Push(event)
 		assert.Nil(err)

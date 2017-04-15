@@ -24,7 +24,7 @@ import (
 //--------------------
 
 const (
-	// TopicConfiguration
+	// TopicConfiguration contains the topic for the configuration behavior.
 	TopicConfiguration = "configuration"
 
 	// TopicConfigurationRead tells the configurator behavior to

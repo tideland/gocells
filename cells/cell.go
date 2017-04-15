@@ -12,8 +12,6 @@ package cells
 //--------------------
 
 import (
-	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -108,14 +106,12 @@ type cell struct {
 	env                *environment
 	id                 string
 	measuringID        string
-	eventc             chan Event
+	queue              Queue
 	behavior           Behavior
 	emitters           *connections
 	subscribers        *connections
 	recoveringNumber   int
 	recoveringDuration time.Duration
-	emitTimeoutTicker  *time.Ticker
-	emitTimeout        int
 	loop               loop.Loop
 }
 
@@ -124,24 +120,15 @@ func newCell(env *environment, id string, behavior Behavior) (*cell, error) {
 	logger.Infof("cell '%s' starts", id)
 	// Init cell runtime.
 	c := &cell{
-		env:               env,
-		id:                id,
-		measuringID:       identifier.Identifier("cells", env.id, "cell", id),
-		behavior:          behavior,
-		emitters:          newConnections(),
-		subscribers:       newConnections(),
-		emitTimeoutTicker: time.NewTicker(5 * time.Second),
+		env:         env,
+		id:          id,
+		measuringID: identifier.Identifier("cells", env.id, "cell", id),
+		queue:       env.createQueue(),
+		behavior:    behavior,
+		emitters:    newConnections(),
+		subscribers: newConnections(),
 	}
 	// Set configuration.
-	if bebs, ok := behavior.(BehaviorEventBufferSize); ok {
-		size := bebs.EventBufferSize()
-		if size < minEventBufferSize {
-			size = minEventBufferSize
-		}
-		c.eventc = make(chan Event, size)
-	} else {
-		c.eventc = make(chan Event, minEventBufferSize)
-	}
 	if brf, ok := behavior.(BehaviorRecoveringFrequency); ok {
 		number, duration := brf.RecoveringFrequency()
 		if duration.Seconds()/float64(number) < 0.1 {
@@ -153,18 +140,6 @@ func newCell(env *environment, id string, behavior Behavior) (*cell, error) {
 	} else {
 		c.recoveringNumber = minRecoveringNumber
 		c.recoveringDuration = minRecoveringDuration
-	}
-	if bet, ok := behavior.(BehaviorEmitTimeout); ok {
-		timeout := bet.EmitTimeout()
-		switch {
-		case timeout < minEmitTimeout:
-			timeout = minEmitTimeout
-		case timeout > maxEmitTimeout:
-			timeout = maxEmitTimeout
-		}
-		c.emitTimeout = int(timeout.Seconds() / 5)
-	} else {
-		c.emitTimeout = int(maxEmitTimeout.Seconds() / 5)
 	}
 	// Init behavior.
 	if err := behavior.Init(c); err != nil {
@@ -193,11 +168,8 @@ func (c *cell) Emit(event Event) error {
 }
 
 // EmitNew implements the Cell interface.
-func (c *cell) EmitNew(ctx context.Context, topic string, payload interface{}) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	event, err := NewEvent(ctx, topic, payload)
+func (c *cell) EmitNew(topic string, payload interface{}) error {
+	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err
 	}
@@ -206,26 +178,12 @@ func (c *cell) EmitNew(ctx context.Context, topic string, payload interface{}) e
 
 // ProcessEvent implements the Subscriber interface.
 func (c *cell) ProcessEvent(event Event) error {
-	emitTimeoutTicks := 0
-	for {
-		select {
-		case c.eventc <- event:
-			return nil
-		case <-c.loop.IsStopping():
-			return errors.New(ErrInactive, errorMessages, c.id)
-		case <-c.emitTimeoutTicker.C:
-			emitTimeoutTicks++
-			if emitTimeoutTicks > c.emitTimeout {
-				op := fmt.Sprintf("emitting %q to %q", event.Topic(), c.id)
-				return errors.New(ErrTimeout, errorMessages, op)
-			}
-		}
-	}
+	return c.queue.Emit(event)
 }
 
 // ProcessNewEvent implements the Subscriber interface.
-func (c *cell) ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error {
-	event, err := NewEvent(ctx, topic, payload)
+func (c *cell) ProcessNewEvent(topic string, payload interface{}) error {
+	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err
 	}
@@ -249,7 +207,6 @@ func (c *cell) stop() error {
 		return nil
 	})
 	// Stop own backend.
-	c.emitTimeoutTicker.Stop()
 	err := c.loop.Stop()
 	if err != nil {
 		logger.Errorf("cell '%s' stopped with error: %v", c.id, err)
@@ -269,7 +226,7 @@ func (c *cell) backendLoop(l loop.Loop) error {
 		select {
 		case <-l.ShallStop():
 			return c.behavior.Terminate()
-		case event := <-c.eventc:
+		case event := <-c.queue.Events():
 			if event == nil {
 				panic("received illegal nil event!")
 			}

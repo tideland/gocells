@@ -46,7 +46,7 @@ type fsmBehavior struct {
 // NewFSMBehavior creates a finite state machine behavior based on the
 // passed initial state function. The function is called with the event
 // has to return the next state, which can be the same one. In case of
-// nil the stae will be transfered into a generic end state, if an error
+// nil the stae will be transferred into a generic end state, if an error
 // is returned the state is a generic error state.
 func NewFSMBehavior(state FSMState) cells.Behavior {
 	return &fsmBehavior{nil, state, false, nil}
