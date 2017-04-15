@@ -21,7 +21,7 @@ import (
 // CALLBACK BEHAVIOR
 //--------------------
 
-// ProcessCallback is a function called by the behavior when it recieves an event.
+// ProcessCallback is a function called by the behavior when it receives an event.
 type ProcessCallback func(topic string, payload cells.Payload) error
 
 // callbackBehavior is an event processor calling all stored functions

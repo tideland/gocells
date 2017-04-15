@@ -31,7 +31,7 @@ const (
 	// multiple ones.
 	PayloadTickerID = "ticker:id"
 
-	// PayloadTickerTime containts the time of the tick event.
+	// PayloadTickerTime contains the time of the tick event.
 	PayloadTickerTime = "ticker:time"
 )
 

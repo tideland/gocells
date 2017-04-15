@@ -12,7 +12,6 @@ package cells_test
 //--------------------
 
 import (
-	"errors"
 	"time"
 
 	"github.com/tideland/gocells/cells"
@@ -59,19 +58,58 @@ func (b *nullBehavior) ProcessEvent(event cells.Event) error { return nil }
 
 func (b *nullBehavior) Recover(r interface{}) error { return nil }
 
-// collectBehavior collects and re-emits all events, returns them
-// on the topic "processed" and delets all collected on the
-// topic "reset".
+// processingFunc defines the type of functions for the
+// simpleBehavior.
+type processingFunc func(cell cells.Cell, event cells.Event) (cells.Event, error)
+
+// simpleBehavior allows to pass a processing function
+// doing all the work.
+type simpleBehavior struct {
+	cell    cells.Cell
+	process processingFunc
+}
+
+var _ cells.Behavior = (*simpleBehavior)(nil)
+
+func newSimpleBehavior(pf processingFunc) *simpleBehavior {
+	return &simpleBehavior{nil, pf}
+}
+
+func (b *simpleBehavior) Init(c cells.Cell) error {
+	b.cell = c
+	return nil
+}
+
+func (b *simpleBehavior) Terminate() error {
+	return nil
+}
+
+func (b *simpleBehavior) ProcessEvent(event cells.Event) error {
+	e, err := b.process(b.cell, event)
+	if err != nil {
+		return err
+	}
+	if e != nil {
+		b.cell.Emit(e)
+	}
+	return nil
+}
+
+func (b *simpleBehavior) Recover(r interface{}) error {
+	return nil
+}
+
+// collectBehavior collects and re-emits all events aand deletes
+// all collected on the topic "reset".
 type collectBehavior struct {
-	cell        cells.Cell
-	sink        cells.EventSink
-	recoverings int
+	cell cells.Cell
+	sink cells.EventSink
 }
 
 var _ cells.Behavior = (*collectBehavior)(nil)
 
 func newCollectBehavior(sink cells.EventSink) *collectBehavior {
-	return &collectBehavior{nil, sink, 0}
+	return &collectBehavior{nil, sink}
 }
 
 func (b *collectBehavior) Init(cell cells.Cell) error {
@@ -85,40 +123,8 @@ func (b *collectBehavior) Terminate() error {
 
 func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.TopicProcessed:
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			panic("illegal payload, need waiter")
-		}
-		payload.GetWaiter().Set(b.sink)
 	case cells.TopicReset:
 		b.sink.Clear()
-	case iterateTopic:
-		err := b.cell.SubscribersDo(func(s cells.Subscriber) error {
-			return s.ProcessNewEvent(event.Context(), "love", b.cell.ID()+" loves "+s.ID())
-		})
-		if err != nil {
-			return err
-		}
-	case ouchTopic:
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			panic("illegal payload, need waiter")
-		}
-		payload.GetWaiter().Set(errors.New("ouch!"))
-	case panicTopic:
-		panic("ouch!")
-	case subscribersTopic:
-		var ids []string
-		b.cell.SubscribersDo(func(s cells.Subscriber) error {
-			ids = append(ids, s.ID())
-			return nil
-		})
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			panic("illegal payload, need waiter")
-		}
-		payload.GetWaiter().Set(ids)
 	default:
 		b.sink.Push(event)
 		return b.cell.Emit(event)
@@ -127,32 +133,7 @@ func (b *collectBehavior) ProcessEvent(event cells.Event) error {
 }
 
 func (b *collectBehavior) Recover(r interface{}) error {
-	b.recoverings++
-	if b.recoverings > 5 {
-		return cells.NewCannotRecoverError(b.cell.ID(), r)
-	}
 	return nil
-}
-
-// eventBufferBehavior allows testing the setting
-// of the event buffer size.
-type testEventBufferBehavior struct {
-	*collectBehavior
-
-	size int
-}
-
-var _ cells.BehaviorEventBufferSize = (*testEventBufferBehavior)(nil)
-
-func newEventBufferBehavior(size int, sink cells.EventSink) cells.Behavior {
-	return &testEventBufferBehavior{
-		collectBehavior: newCollectBehavior(sink),
-		size:            size,
-	}
-}
-
-func (b *testEventBufferBehavior) EventBufferSize() int {
-	return b.size
 }
 
 // recoveringFrequencyBehavior allows testing the setting
@@ -178,30 +159,9 @@ func (b *recoveringFrequencyBehavior) RecoveringFrequency() (int, time.Duration)
 	return b.number, b.duration
 }
 
-// emitTimeoutBehavior allows testing the setting
-// of the emit timeout time.
-type emitTimeoutBehavior struct {
-	*collectBehavior
-
-	timeout time.Duration
-}
-
-var _ cells.BehaviorEmitTimeout = (*emitTimeoutBehavior)(nil)
-
-func newEmitTimeoutBehavior(timeout time.Duration, sink cells.EventSink) cells.Behavior {
-	return &emitTimeoutBehavior{
-		collectBehavior: newCollectBehavior(sink),
-		timeout:         timeout,
-	}
-}
-
-func (b *emitTimeoutBehavior) EmitTimeout() time.Duration {
-	return b.timeout
-}
-
-// emitBehavior simply emits the sleep topic to its subscribers.
+// emitBehavior simply re-emits events.
 type emitBehavior struct {
-	c cells.Cell
+	cell cells.Cell
 }
 
 var _ cells.Behavior = (*emitBehavior)(nil)
@@ -211,7 +171,7 @@ func newEmitBehavior() *emitBehavior {
 }
 
 func (b *emitBehavior) Init(c cells.Cell) error {
-	b.c = c
+	b.cell = c
 	return nil
 }
 
@@ -220,44 +180,11 @@ func (b *emitBehavior) Terminate() error {
 }
 
 func (b *emitBehavior) ProcessEvent(event cells.Event) error {
-	return b.c.EmitNew(event.Context(), sleepTopic, event.Payload())
+	return b.cell.Emit(event)
 }
 
 func (b *emitBehavior) Recover(r interface{}) error {
 	return nil
-}
-
-// sleepBehavior simply emits the sleep topic to its subscribers.
-type sleepBehavior struct {
-	cell cells.Cell
-}
-
-var _ cells.Behavior = (*sleepBehavior)(nil)
-
-func newSleepBehavior() *sleepBehavior {
-	return &sleepBehavior{}
-}
-
-func (b *sleepBehavior) Init(c cells.Cell) error {
-	b.cell = c
-	return nil
-}
-
-func (b *sleepBehavior) Terminate() error {
-	return nil
-}
-
-func (b *sleepBehavior) ProcessEvent(event cells.Event) error {
-	time.Sleep(4 * time.Second)
-	return nil
-}
-
-func (b *sleepBehavior) Recover(r interface{}) error {
-	return nil
-}
-
-func (b *sleepBehavior) EmitTimeout() time.Duration {
-	return 2 * time.Second
 }
 
 // EOF

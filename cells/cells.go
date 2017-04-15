@@ -12,7 +12,6 @@ package cells
 //--------------------
 
 import (
-	"context"
 	"time"
 )
 
@@ -48,13 +47,9 @@ type Environment interface {
 	// Emit emits an event to the cell with a given ID.
 	Emit(id string, event Event) error
 
-	// EmitNew creates an event with a context and emits it to the cell
+	// EmitNew creates an event and emits it to the cell
 	// with a given ID.
-	EmitNew(ctx context.Context, id, topic string, payload interface{}) error
-
-	// Request sends a request containing a payload waiter to the
-	// cell with the given ID. The response will be returned as payload.
-	Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error)
+	EmitNew(id, topic string, payload interface{}) error
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
@@ -73,7 +68,7 @@ type Subscriber interface {
 	ProcessEvent(event Event) error
 
 	// ProcessNewEvent creates an event and tells the subscriber to process it.
-	ProcessNewEvent(ctx context.Context, topic string, payload interface{}) error
+	ProcessNewEvent(topic string, payload interface{}) error
 }
 
 //--------------------
@@ -87,6 +82,9 @@ type Queue interface {
 
 	// Events delivers events via a channel.
 	Events() <-chan Event
+
+	// Close closes the queue.
+	Close() error
 }
 
 //--------------------
@@ -106,7 +104,7 @@ type Cell interface {
 	Emit(event Event) error
 
 	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(ctx context.Context, topic string, payload interface{}) error
+	EmitNew(topic string, payload interface{}) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error
@@ -140,24 +138,11 @@ type Behavior interface {
 	Recover(r interface{}) error
 }
 
-// BehaviorEventBufferSize is an additional optional interface for a behavior to
-// set the size of the event buffer (will never be below 16).
-type BehaviorEventBufferSize interface {
-	EventBufferSize() int
-}
-
 // BehaviorRecoveringFrequency is an additional optional interface for a behavior to
 // set the allowed frequency for recoverings by returning the according number and
 // duration (will never below once per second).
 type BehaviorRecoveringFrequency interface {
 	RecoveringFrequency() (int, time.Duration)
-}
-
-// BehaviorEmitTimeout is an additional optional interface for a behavior to
-// set the maximum time an emitter is waiting for a receiving cell to accept the
-// emitted event (will always between 5 and 30 seconds with a 5 seconds timing).
-type BehaviorEmitTimeout interface {
-	EmitTimeout() time.Duration
 }
 
 // EOF

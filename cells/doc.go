@@ -9,7 +9,7 @@
 // a framework for event and behavior based applications.
 //
 // Cell behaviors are defined based on an interface and can be added
-// to an envrionment. Here they are running as concurrent cells that
+// to an environment. Here they are running as concurrent cells that
 // can be networked and communicate via events. Several useful behaviors
 // are provided with the behaviors package.
 //
@@ -38,7 +38,7 @@
 //    env.EmitNew("foo", "myTopic", cells.PayloadValues{
 //        "KeyA": 12345,
 //        "KeyB": true,
-//    }, ctx)
+//    })
 //
 // Behaviors have to implement the cells.Behavior interface. Here
 // the Init() method is called with a cells.Context. This can be
@@ -62,22 +62,5 @@
 //
 // Instructions without a response are simply done by emitting an event.
 package cells
-
-//--------------------
-// IMPORTS
-//--------------------
-
-import (
-	"github.com/tideland/golib/version"
-)
-
-//--------------------
-// VERSION
-//--------------------
-
-// Version returns the version of the cells package.
-func Version() version.Version {
-	return version.New(6, 0, 0, "beta", "2017-10-23")
-}
 
 // EOF

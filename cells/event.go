@@ -12,7 +12,6 @@ package cells
 //--------------------
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -28,10 +27,6 @@ import (
 type Event interface {
 	fmt.Stringer
 
-	// Context returns a Context that possibly has been
-	// emitted with the event.
-	Context() context.Context
-
 	// Timestamp returns the UTC time the event has been created.
 	Timestamp() time.Time
 
@@ -44,20 +39,18 @@ type Event interface {
 
 // event implements the Event interface.
 type event struct {
-	ctx       context.Context
 	timestamp time.Time
 	topic     string
 	payload   Payload
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(ctx context.Context, topic string, payload interface{}) (Event, error) {
+func NewEvent(topic string, payload interface{}) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
 	}
 	p := NewPayload(payload)
 	return &event{
-		ctx:       ctx,
 		timestamp: time.Now().UTC(),
 		topic:     topic,
 		payload:   p,
@@ -77,11 +70,6 @@ func (e *event) Topic() string {
 // Payload implements the Event interface.
 func (e *event) Payload() Payload {
 	return e.payload
-}
-
-// Context implements the Event interface.
-func (e *event) Context() context.Context {
-	return e.ctx
 }
 
 // String implements the Stringer interface.

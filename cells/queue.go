@@ -11,50 +11,39 @@ package cells
 // IMPORTS
 //--------------------
 
-import (
-	"time"
-
-	"github.com/tideland/golib/errors"
-)
+import ()
 
 //--------------------
-// CHANNEL QUEUE
+// IN-MEMORY QUEUE
 //--------------------
 
-// channelQueue implements Queue based on simple Go channels.
-type channelQueue struct {
-	eventc chan Event
+// inMemoryQueue implements Queue based on a simple channel.
+type inMemoryQueue struct {
+	queuec chan Event
 }
 
-// newChannelQueue creates the channel based queue with a
-// defined buffer size.
-func newChannelQueue(size int) Queue {
-	if size < minEventBufferSize {
-		size = minEventBufferSize
+// newInMemoryQueue creates the in-memory queue.
+func newInMemoryQueue() Queue {
+	return &inMemoryQueue{
+		queuec: make(chan Event, 1),
 	}
-	q := &channelQueue{
-		eventc: make(chan Event, size),
-	}
-	return q
 }
 
 // Emit implements the Queue interface.
-func (q *channelQueue) Emit(event Event) error {
-	d := 2 * time.Millisecond
-	for i := 0; i < 5; i++ {
-		select {
-		case q.eventc <- event:
-			return nil
-		case <-time.After(d):
-			d = 2 * d
-		}
-	}
-	return errors.New(ErrCannotEmit, errorMessages)
+func (q *inMemoryQueue) Emit(event Event) error {
+	q.queuec <- event
+	return nil
 }
 
 // Events implements the Queue interface.
-func (q *channelQueue) Events() <-chan Event {
-	return q.eventc
+func (q *inMemoryQueue) Events() <-chan Event {
+	return q.queuec
+}
+
+// Close implements the Queue interface.
+func (q *inMemoryQueue) Close() error {
+	close(q.queuec)
+	return nil
 }
 
 // EOF
