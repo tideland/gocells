@@ -100,6 +100,10 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 	return nil
 }
 
+//--------------------
+// CONVENIENCE
+//--------------------
+
 // RequestFSMStatus retrieves the status of a FSM cell.
 func RequestFSMStatus(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (bool, error) {
 	payload, err := env.Request(ctx, id, cells.TopicStatus, timeout)

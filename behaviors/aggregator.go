@@ -73,7 +73,7 @@ func (b *aggregatorBehavior) ProcessEvent(event cells.Event) error {
 			return err
 		}
 		b.value = value
-		b.cell.EmitNew(event.Context(), TopicAggregator, cells.PayloadValues{
+		b.cell.EmitNew(TopicAggregator, cells.PayloadValues{
 			PayloadAggregatorValue: b.value,
 		})
 	}

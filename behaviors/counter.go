@@ -83,7 +83,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 					b.counters[cid] = 1
 				}
 				topic := "counter:" + cid
-				b.cell.EmitNew(event.Context(), topic, b.counters[cid])
+				b.cell.EmitNew(topic, b.counters[cid])
 			}
 		}
 	}
@@ -103,6 +103,10 @@ func (b *counterBehavior) copyCounters() Counters {
 	}
 	return copiedCounters
 }
+
+//--------------------
+// CONVENIENCE
+//--------------------
 
 // RequestCounterResults retrieves the results to the
 // behaviors counters.
