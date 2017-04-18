@@ -100,7 +100,7 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 		pvs := cells.PayloadValues{
 			PayloadConfiguration: cfg,
 		}
-		b.cell.EmitNew(event.Context(), TopicConfiguration, pvs)
+		b.cell.EmitNew(TopicConfiguration, pvs)
 	}
 	return nil
 }

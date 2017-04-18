@@ -108,7 +108,7 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 			}
 		}
 		// Emit value.
-		b.cell.EmitNew(event.Context(), TopicEvaluation, cells.PayloadValues{
+		b.cell.EmitNew(TopicEvaluation, cells.PayloadValues{
 			PayloadEvaluationCount:   b.count,
 			PayloadEvaluationAverage: b.avgRating,
 			PayloadEvaluationMax:     b.maxRating,

@@ -77,7 +77,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case cells.CriterionDone:
 			// All done, emit and start over.
-			b.cell.EmitNew(event.Context(), TopicSequence, cells.PayloadValues{
+			b.cell.EmitNew(TopicSequence, cells.PayloadValues{
 				PayloadSequenceEvents: b.sink,
 			})
 			b.sink = cells.NewEventSink(0)

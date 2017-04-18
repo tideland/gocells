@@ -100,7 +100,7 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 				difference := current.Sub(first)
 				if difference <= b.duration {
 					// We've got a burst!
-					b.cell.EmitNew(event.Context(), TopicRateWindow, cells.PayloadValues{
+					b.cell.EmitNew(TopicRateWindow, cells.PayloadValues{
 						PayloadRateWindowCount:     b.count,
 						PayloadRateWindowFirstTime: first,
 						PayloadRateWindowLastTime:  current,
