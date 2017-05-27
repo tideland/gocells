@@ -15,7 +15,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-04-15
+Version 6.0.0-beta.2017-05-27
 
 ## Packages
 
