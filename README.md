@@ -9,6 +9,7 @@ of an event a cell can emit multiple events to its subscribers.
 
 I hope you like them. ;)
 
+[![GoDoc](https://godoc.org/github.com/tideland/gocells?status.svg)](https://godoc.org/github.com/tideland/gocells)
 [![Sourcegraph](https://sourcegraph.com/github.com/tideland/gocells/-/badge.svg)](https://sourcegraph.com/github.com/tideland/gocells?badge)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tideland/gocells)](https://goreportcard.com/report/github.com/tideland/gocells)
 
@@ -26,7 +27,6 @@ by its behavior. It receives events, processes them, and can emit a number
 of new events during this time. Those events are then received by those
 cells which subscribed to the individual cell.
 
-[![GoDoc](https://godoc.org/github.com/tideland/gocells/cells?status.svg)](https://godoc.org/github.com/tideland/gocells/cells)
 
 ### Behaviors
 
@@ -59,8 +59,6 @@ still growing.
   one function for event processing.
 - **Ticker** emits tick events in a defined interval.
 - **Waiter** sets the payload of the first received event to a payload waiter.
-
-[![GoDoc](https://godoc.org/github.com/tideland/gocells/behaviors?status.svg)](https://godoc.org/github.com/tideland/gocells/behaviors)
 
 ## Contributors
 
