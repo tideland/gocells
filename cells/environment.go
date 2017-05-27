@@ -91,7 +91,7 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(id, topic string, payload interface{}) error {
+func (env *environment) EmitNew(id, topic string, payload Payload) error {
 	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err

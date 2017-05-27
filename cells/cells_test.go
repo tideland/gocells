@@ -258,9 +258,9 @@ func TestEnvironmentScenario(t *testing.T) {
 	err = env.Subscribe("baz", "counter")
 	assert.Nil(err)
 
-	err = env.EmitNew("foo", "lorem", 4711)
+	err = env.EmitNew("foo", "lorem", cells.NewDefaultPayload("4711"))
 	assert.Nil(err)
-	err = env.EmitNew("foo", "ipsum", 1234)
+	err = env.EmitNew("foo", "ipsum", cells.NewDefaultPayload("1234"))
 	assert.Nil(err)
 
 	assert.Wait(sigc, 2, 2*time.Second)

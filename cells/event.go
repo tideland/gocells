@@ -45,15 +45,14 @@ type event struct {
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(topic string, payload interface{}) (Event, error) {
+func NewEvent(topic string, payload Payload) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
 	}
-	p := NewPayload(payload)
 	return &event{
 		timestamp: time.Now().UTC(),
 		topic:     topic,
-		payload:   p,
+		payload:   payload,
 	}, nil
 }
 
@@ -109,7 +108,7 @@ type EventSinkAccessor interface {
 }
 
 // EventSinkChecker can be used to check sinks for a criterion.
-type EventSinkChecker func(events EventSinkAccessor) (bool, Payload, error)
+type EventSinkChecker func(events EventSinkAccessor) error
 
 // EventSink stores a number of events ordered by adding them at the end. To
 // be used in behaviors for collecting sets of events and operate on them.
@@ -135,7 +134,6 @@ type eventSink struct {
 	max     int
 	events  []Event
 	checker EventSinkChecker
-	waiter  PayloadWaiter
 }
 
 // NewEventSink creates a sink for events.
@@ -145,15 +143,12 @@ func NewEventSink(max int) EventSink {
 	}
 }
 
-// NewCheckedEventSink creates a sink running a checker
-// after each change.
-func NewCheckedEventSink(max int, checker EventSinkChecker) (EventSink, PayloadWaiter) {
-	waiter := NewPayloadWaiter()
+// NewCheckedEventSink creates a sink for events.
+func NewCheckedEventSink(max int, checker EventSinkChecker) EventSink {
 	return &eventSink{
-		max:     max,
-		checker: checker,
-		waiter:  waiter,
-	}, waiter
+		max: max,
+		checker: ckecker,
+	}
 }
 
 // Push implements the EventSink interface.
@@ -264,15 +259,11 @@ func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (b
 	return match, err
 }
 
-// check calls the checker and the waiter if configured.
+// check calls the checker if configured.
 func (s *eventSink) check() error {
 	if s.checker != nil {
-		ok, payload, err := s.checker(s)
-		if err != nil {
+		if err := s.checker(s); err != nil {
 			return err
-		}
-		if ok {
-			s.waiter.Set(payload)
 		}
 	}
 	return nil
