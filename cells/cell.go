@@ -168,7 +168,7 @@ func (c *cell) Emit(event Event) error {
 }
 
 // EmitNew implements the Cell interface.
-func (c *cell) EmitNew(topic string, payload interface{}) error {
+func (c *cell) EmitNew(topic string, payload Payload) error {
 	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func (c *cell) ProcessEvent(event Event) error {
 }
 
 // ProcessNewEvent implements the Subscriber interface.
-func (c *cell) ProcessNewEvent(topic string, payload interface{}) error {
+func (c *cell) ProcessNewEvent(topic string, payload Payload) error {
 	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err
