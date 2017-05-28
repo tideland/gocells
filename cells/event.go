@@ -146,8 +146,8 @@ func NewEventSink(max int) EventSink {
 // NewCheckedEventSink creates a sink for events.
 func NewCheckedEventSink(max int, checker EventSinkChecker) EventSink {
 	return &eventSink{
-		max: max,
-		checker: ckecker,
+		max:     max,
+		checker: checker,
 	}
 }
 

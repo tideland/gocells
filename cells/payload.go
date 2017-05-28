@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //--------------------
@@ -48,6 +49,24 @@ type Payload interface {
 
 	// Get returns one of the payload values.
 	Get(key string) (string, bool)
+
+	// GetBool returns one of the payload values as bool.
+	GetBool(key string) (bool, bool)
+
+	// GetInt returns one of the payload values as int.
+	GetInt(key string) (int, bool)
+
+	// GetUint returns one of the payload values as uint.
+	GetUint(key string) (uint, bool)
+
+	// GetFloat64 returns one of the payload values as float64.
+	GetFloat64(key string) (float64, bool)
+
+	// GetTime returns one of the payload values as time.
+	GetTime(key, layout string) (time.Time, bool)
+
+	// GetDuration returns one of the payload values as duration.
+	GetDuration(key string) (time.Duration, bool)
 
 	// Do iterates a function over all keys and values.
 	Do(f func(key, value string) error) error
@@ -90,6 +109,84 @@ func (p *payload) Len() int {
 func (p *payload) Get(key string) (string, bool) {
 	value, ok := p.values[key]
 	return value, ok
+}
+
+// GetBool implementes the Payload interface.
+func (p *payload) GetBool(key string) (bool, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return false, false
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, false
+	}
+	return value, true
+}
+
+// GetInt implementes the Payload interface.
+func (p *payload) GetInt(key string) (int, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
+}
+
+// GetUint implementes the Payload interface.
+func (p *payload) GetUint(key string) (uint, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return 0, false
+	}
+	value, err := strconv.ParseUint(raw, 10, 0)
+	if err != nil {
+		return 0, false
+	}
+	return uint(value), true
+}
+
+// GetFloat64 implementes the Payload interface.
+func (p *payload) GetFloat64(key string) (float64, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return 0.0, false
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0.0, false
+	}
+	return value, true
+}
+
+// GetTime implementes the Payload interface.
+func (p *payload) GetTime(key, layout string) (time.Time, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return time.Time{}, false
+	}
+	value, err := time.Parse(layout, raw)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return value, true
+}
+
+// GetDuration implementes the Payload interface.
+func (p *payload) GetDuration(key string) (time.Duration, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return 0, false
+	}
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 // Do implementes the Payload interface.
