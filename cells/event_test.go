@@ -209,8 +209,16 @@ func TestEventSinkIterationError(t *testing.T) {
 func TestCheckedEventSink(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	payloadc := make(chan cells.Payload, 1)
+	donec := make(chan struct{})
+	count := 0
+	wanted := []string{"f", "c", "c"}
 	checker := func(events cells.EventSinkAccessor) error {
-		wanted := []string{"f", "c", "c"}
+		count++
+		defer func() {
+			if count == 100 {
+				donec <- struct{}{}
+			}
+		}()
 		if events.Len() < len(wanted) {
 			return nil
 		}
@@ -233,36 +241,22 @@ func TestCheckedEventSink(t *testing.T) {
 	}
 	sink := cells.NewCheckedEventSink(3, checker)
 
-	var payload cells.Payload
-
 	go addEvents(assert, 100, sink)
 
-	select {
-	case payload = <-payloadc:
-		first, ok := payload.GetTime("first")
-		assert.True(ok)
-		last, ok := payload.GetTime("last")
-		assert.True(ok)
-		assert.Logf("PeekFirst: %v", first)
-		assert.Logf("PeekLast : %v", last)
-		assert.Logf("Duration: %v", last.Sub(first))
-		assert.True(last.UnixNano() > first.UnixNano())
-	case <-time.After(5 * time.Second):
-		assert.Fail()
+	for {
+		select {
+		case payload := <-payloadc:
+			first, ok := payload.GetTime("first")
+			assert.True(ok)
+			last, ok := payload.GetTime("last")
+			assert.True(ok)
+			assert.True(last.UnixNano() > first.UnixNano())
+		case <-donec:
+			return
+		case <-time.After(5 * time.Second):
+			assert.Fail()
+		}
 	}
-
-}
-
-// TestCheckedEventSinkFailing tests the missing notification of a waiter
-// when a criterion in the sink does not match.
-func TestCheckedEventSinkFailing(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-	checker := func(events cells.EventSinkAccessor) error {
-		return nil
-	}
-	sink := cells.NewCheckedEventSink(3, checker)
-
-	go addEvents(assert, 100, sink)
 }
 
 //--------------------
