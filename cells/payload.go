@@ -24,20 +24,19 @@ import (
 
 const (
 	DefaultKey = "default"
+
+	sliceSep        = " || "
+	mapSep          = ":"
+	timestampFormat = "2006-1-2-15-4-5.999999999"
 )
 
 //--------------------
 // PAYLOAD
 //--------------------
 
-// PayloadValues is intended to set and get the information
-// of a payload as bulk.
-type PayloadValues map[string]string
-
-// Payload creates a new payload out of the values.
-func (pvs PayloadValues) Payload() Payload {
-	return NewPayload(pvs)
-}
+// PayloadValues is intended to easily set the information
+// of a payload.
+type PayloadValues map[string]interface{}
 
 // Payload is a write-once/read-multiple container for the
 // transport of additional information with events.
@@ -49,6 +48,15 @@ type Payload interface {
 
 	// Get returns one of the payload values.
 	Get(key string) (string, bool)
+
+	// GetStringSlice splits one of the payload value into
+	// substrings and returns them as slice.
+	GetStringSlice(key string) ([]string, bool)
+
+	// GetStringMap splits one of the payload values into
+	// parts and these again into key and value. Those are
+	// returned as map.
+	GetStringMap(key string) (map[string]string, bool)
 
 	// GetBool returns one of the payload values as bool.
 	GetBool(key string) (bool, bool)
@@ -63,7 +71,7 @@ type Payload interface {
 	GetFloat64(key string) (float64, bool)
 
 	// GetTime returns one of the payload values as time.
-	GetTime(key, layout string) (time.Time, bool)
+	GetTime(key string) (time.Time, bool)
 
 	// GetDuration returns one of the payload values as duration.
 	GetDuration(key string) (time.Duration, bool)
@@ -79,39 +87,64 @@ type Payload interface {
 
 // payload implements the Payload interface.
 type payload struct {
-	values PayloadValues
+	values map[string]string
 }
 
 // NewPayload creates a new payload containing the passed
 // values.
 func NewPayload(values PayloadValues) Payload {
-	p := &payload{
-		values: PayloadValues{},
-	}
-	for k, v := range values {
-		p.values[k] = v
-	}
-	return p
+	p := &payload{}
+	return p.Apply(values)
 }
 
 // NewDefaultPayload creates a payload containing the key
 // "default" with the passed values.
 func NewDefaultPayload(value string) Payload {
-	return NewPayload(PayloadValues{"default": value})
+	return NewPayload(PayloadValues{DefaultKey: value})
 }
 
-// Len implementes the Payload interface.
+// Len implements Payload.
 func (p *payload) Len() int {
 	return len(p.values)
 }
 
-// Get implementes the Payload interface.
+// Get implements Payload.
 func (p *payload) Get(key string) (string, bool) {
 	value, ok := p.values[key]
 	return value, ok
 }
 
-// GetBool implementes the Payload interface.
+// GetStringSlice implements Payload.
+func (p *payload) GetStringSlice(key string) ([]string, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return nil, false
+	}
+	values := strings.Split(raw, sliceSep)
+	return values, true
+}
+
+// GetStringMap implements Payload.
+func (p *payload) GetStringMap(key string) (map[string]string, bool) {
+	raw, ok := p.values[key]
+	if !ok {
+		return nil, false
+	}
+	parts := strings.Split(raw, sliceSep)
+	values := make(map[string]string, len(parts))
+	for _, part := range parts {
+		kv := strings.SplitN(part, mapSep, 2)
+		switch len(kv) {
+		case 2:
+			values[kv[0]] = kv[1]
+		default:
+			values[kv[0]] = kv[0]
+		}
+	}
+	return values, true
+}
+
+// GetBool implements Payload.
 func (p *payload) GetBool(key string) (bool, bool) {
 	raw, ok := p.values[key]
 	if !ok {
@@ -124,7 +157,7 @@ func (p *payload) GetBool(key string) (bool, bool) {
 	return value, true
 }
 
-// GetInt implementes the Payload interface.
+// GetInt implements Payload.
 func (p *payload) GetInt(key string) (int, bool) {
 	raw, ok := p.values[key]
 	if !ok {
@@ -137,7 +170,7 @@ func (p *payload) GetInt(key string) (int, bool) {
 	return value, true
 }
 
-// GetUint implementes the Payload interface.
+// GetUint implements Payload.
 func (p *payload) GetUint(key string) (uint, bool) {
 	raw, ok := p.values[key]
 	if !ok {
@@ -150,7 +183,7 @@ func (p *payload) GetUint(key string) (uint, bool) {
 	return uint(value), true
 }
 
-// GetFloat64 implementes the Payload interface.
+// GetFloat64 implements Payload.
 func (p *payload) GetFloat64(key string) (float64, bool) {
 	raw, ok := p.values[key]
 	if !ok {
@@ -163,20 +196,20 @@ func (p *payload) GetFloat64(key string) (float64, bool) {
 	return value, true
 }
 
-// GetTime implementes the Payload interface.
-func (p *payload) GetTime(key, layout string) (time.Time, bool) {
+// GetTime implements Payload.
+func (p *payload) GetTime(key string) (time.Time, bool) {
 	raw, ok := p.values[key]
 	if !ok {
 		return time.Time{}, false
 	}
-	value, err := time.Parse(layout, raw)
+	value, err := time.Parse(timestampFormat, raw)
 	if err != nil {
 		return time.Time{}, false
 	}
 	return value, true
 }
 
-// GetDuration implementes the Payload interface.
+// GetDuration implements Payload.
 func (p *payload) GetDuration(key string) (time.Duration, bool) {
 	raw, ok := p.values[key]
 	if !ok {
@@ -189,7 +222,7 @@ func (p *payload) GetDuration(key string) (time.Duration, bool) {
 	return value, true
 }
 
-// Do implementes the Payload interface.
+// Do implements Payload.
 func (p *payload) Do(f func(key, value string) error) error {
 	for k, v := range p.values {
 		if err := f(k, v); err != nil {
@@ -199,21 +232,36 @@ func (p *payload) Do(f func(key, value string) error) error {
 	return nil
 }
 
-// Apply implementes the Payload interface.
+// Apply implements Payload.
 func (p *payload) Apply(values PayloadValues) Payload {
 	np := &payload{
-		values: PayloadValues{},
+		values: make(map[string]string),
 	}
 	for k, v := range p.values {
 		np.values[k] = v
 	}
-	for k, v := range values {
-		np.values[k] = v
+	for k, rv := range values {
+		switch v := rv.(type) {
+		case string:
+			np.values[k] = v
+		case []string:
+			np.values[k] = strings.Join(v, sliceSep)
+		case map[string]string:
+			vs := []string{}
+			for mk, mv := range v {
+				vs = append(vs, mk+mapSep+mv)
+			}
+			np.values[k] = strings.Join(vs, sliceSep)
+		case time.Time:
+			np.values[k] = v.Format(timestampFormat)
+		default:
+			np.values[k] = fmt.Sprintf("%v", v)
+		}
 	}
 	return np
 }
 
-// String implements the fmt.Stringer interface.
+// String implements fmt.Stringer.
 func (p *payload) String() string {
 	ps := []string{}
 	for k, v := range p.values {
