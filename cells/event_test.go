@@ -12,7 +12,6 @@ package cells_test
 //--------------------
 
 import (
-	"context"
 	stderr "errors"
 	"testing"
 	"time"
@@ -32,13 +31,14 @@ func TestEvent(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	now := time.Now().UTC()
 
-	event, err := cells.NewEvent("foo", "bar")
+	event, err := cells.NewEvent("foo", cells.NewDefaultPayload("bar"))
 	assert.Nil(err)
 	assert.True(event.Timestamp().After(now))
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
 
-	bar := event.Payload().GetDefault("-")
+	bar, ok := event.Payload().Get("default")
+	assert.True(ok)
 	assert.Equal(bar, "bar")
 
 	_, err = cells.NewEvent("", nil)
@@ -63,104 +63,55 @@ func TestPayload(t *testing.T) {
 	}
 	pl := cells.NewPayload(pvs)
 
-	b := pl.GetBool("bool", false)
+	s, ok := pl.Get("string")
+	assert.True(ok)
+	assert.Equal(s, "hello, world")
+	s, ok = pl.Get("no-string")
+	assert.False(ok)
+	assert.Equal(s, "")
+
+	b, ok := pl.GetBool("bool")
+	assert.True(ok)
 	assert.True(b)
-	b = pl.GetBool("no-bool", false)
+	b, ok = pl.GetBool("no-bool")
+	assert.False(ok)
 	assert.False(b)
 
-	i := pl.GetInt("int", 0)
+	i, ok := pl.GetInt("int")
+	assert.True(ok)
 	assert.Equal(i, 42)
-	i = pl.GetInt("no-int", 0)
+	i, ok = pl.GetInt("no-int")
+	assert.False(ok)
 	assert.Equal(i, 0)
 
-	f := pl.GetFloat64("float64", 1.0)
+	f, ok := pl.GetFloat64("float64")
+	assert.True(ok)
 	assert.Equal(f, 47.11)
-	f = pl.GetFloat64("no-float64", 1.0)
-	assert.Equal(f, 1.0)
+	f, ok = pl.GetFloat64("no-float64")
+	assert.False(ok)
+	assert.Equal(f, 0.0)
 
-	s := pl.GetString("string", "empty")
-	assert.Equal(s, "hello, world")
-	s = pl.GetString("no-string", "empty")
-	assert.Equal(s, "empty")
-
-	tt := pl.GetTime("time", now.Add(5*time.Minute))
+	tt, ok := pl.GetTime("time")
+	assert.True(ok)
 	assert.Equal(tt, now)
-	tt = pl.GetTime("no-time", now.Add(5*time.Minute))
-	assert.Equal(tt, now.Add(5*time.Minute))
+	tt, ok = pl.GetTime("no-time")
+	assert.False(ok)
+	assert.Equal(tt, time.Time{})
 
-	td := pl.GetDuration("duration", 0*time.Second)
+	td, ok := pl.GetDuration("duration")
+	assert.True(ok)
 	assert.Equal(td, dur)
-	td = pl.GetDuration("no-duration", 0*time.Second)
-	assert.Equal(td, 0*time.Minute)
+	td, ok = pl.GetDuration("no-duration")
+	assert.False(ok)
+	assert.Equal(td, 0*time.Second)
 
-	pln := pl.Apply("foo")
-	s = pln.GetString(cells.PayloadDefault, "also empty")
+	pln := pl.Apply(cells.PayloadValues{
+		cells.PayloadDefault: "foo",
+	})
+	s, ok = pln.Get(cells.PayloadDefault)
+	assert.True(ok)
 	assert.Equal(s, "foo")
 	assert.Length(pln, 7)
-
-	keys := pln.Keys()
-	assert.Contents("string", keys)
-	assert.Contents("int", keys)
-
-	plab := cells.NewPayload(map[string]interface{}{"a": 1, "b": 2})
-	plnab := pln.Apply(plab)
-	assert.Length(plnab, 9)
-}
-
-// TestPositiveWaitPayload waits for a payload.
-func TestPositiveWaitPayload(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-	waiter := cells.NewPayloadWaiter()
-
-	go func() {
-		time.Sleep(250 * time.Millisecond)
-		waiter.Set(4711)
-		waiter.Set(1174)
-	}()
-
-	ctx := context.Background()
-	payload, err := waiter.Wait(ctx)
-	assert.Nil(err)
-	set := payload.GetInt(cells.PayloadDefault, 0)
-	assert.Equal(set, 4711)
-}
-
-// TestWaitPayloadTimeout waits for a payload but
-// timeout is faster.
-func TestWaitPayloadTimeout(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-	waiter := cells.NewPayloadWaiter()
-
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		waiter.Set(4711)
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	payload, err := waiter.Wait(ctx)
-	cancel()
-	assert.ErrorMatch(err, "context deadline exceeded")
-	assert.Nil(payload)
-}
-
-// TestWaitPayloadCancel waits for a payload but
-// it's canceled earlier.
-func TestWaitPayloadCancel(t *testing.T) {
-	assert := audit.NewTestingAssertion(t, true)
-	waiter := cells.NewPayloadWaiter()
-
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		waiter.Set(4711)
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(100*time.Millisecond, func() {
-		cancel()
-	})
-	payload, err := waiter.Wait(ctx)
-	assert.ErrorMatch(err, "context canceled")
-	assert.Nil(payload)
 }
 
 // TestEventSink tests the simple event sink.
@@ -218,14 +169,16 @@ func TestEventSinkIteration(t *testing.T) {
 	assert.Length(sink, 10)
 	err := sink.Do(func(index int, event cells.Event) error {
 		assert.Contents(event.Topic(), topics)
-		payload := event.Payload().GetInt(cells.PayloadDefault, -1)
+		payload, ok := event.Payload().GetInt(cells.PayloadDefault)
+		assert.True(ok)
 		assert.Range(payload, 1, 10)
 		return nil
 	})
 	assert.Nil(err)
 	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
 		topicOK := event.Topic() >= "a" && event.Topic() <= "j"
-		payload := event.Payload().GetInt(cells.PayloadDefault, -1)
+		payload, ok := event.Payload().GetInt(cells.PayloadDefault)
+		assert.True(ok)
 		payloadOK := payload >= 1 && payload <= 10
 		return topicOK && payloadOK, nil
 	})
@@ -255,16 +208,17 @@ func TestEventSinkIterationError(t *testing.T) {
 // when a criterion in the sink matches.
 func TestCheckedEventSink(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	checker := func(events cells.EventSinkAccessor) (bool, cells.Payload, error) {
+	payloadc := make(chan cells.Payload, 1)
+	checker := func(events cells.EventSinkAccessor) error {
 		wanted := []string{"f", "c", "c"}
 		if events.Len() < len(wanted) {
-			return false, nil, nil
+			return nil
 		}
 		ok, err := events.Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == wanted[index], nil
 		})
 		if err != nil {
-			return false, nil, err
+			return err
 		}
 		if ok {
 			first, _ := events.PeekFirst()
@@ -273,42 +227,42 @@ func TestCheckedEventSink(t *testing.T) {
 				"first": first.Timestamp(),
 				"last":  last.Timestamp(),
 			})
-			return true, payload, nil
+			payloadc <- payload
 		}
-		return false, nil, nil
+		return nil
 	}
-	sink, waiter := cells.NewCheckedEventSink(3, checker)
+	sink := cells.NewCheckedEventSink(3, checker)
+
+	var payload cells.Payload
 
 	go addEvents(assert, 100, sink)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	payload, err := waiter.Wait(ctx)
-	assert.Nil(err)
-	first := payload.GetTime("first", time.Time{})
-	last := payload.GetTime("last", time.Time{})
-	assert.Logf("PeekFirst: %v", first)
-	assert.Logf("PeekLast : %v", last)
-	assert.Logf("Duration: %v", last.Sub(first))
-	assert.True(last.UnixNano() > first.UnixNano())
-	cancel()
+	select {
+	case payload = <-payloadc:
+		first, ok := payload.GetTime("first")
+		assert.True(ok)
+		last, ok := payload.GetTime("last")
+		assert.True(ok)
+		assert.Logf("PeekFirst: %v", first)
+		assert.Logf("PeekLast : %v", last)
+		assert.Logf("Duration: %v", last.Sub(first))
+		assert.True(last.UnixNano() > first.UnixNano())
+	case <-time.After(5 * time.Second):
+		assert.Fail()
+	}
+
 }
 
 // TestCheckedEventSinkFailing tests the missing notification of a waiter
 // when a criterion in the sink does not match.
 func TestCheckedEventSinkFailing(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	checker := func(events cells.EventSinkAccessor) (bool, cells.Payload, error) {
-		return false, nil, nil
+	checker := func(events cells.EventSinkAccessor) error {
+		return nil
 	}
-	sink, waiter := cells.NewCheckedEventSink(3, checker)
+	sink := cells.NewCheckedEventSink(3, checker)
 
 	go addEvents(assert, 100, sink)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	payload, err := waiter.Wait(ctx)
-	assert.Nil(payload)
-	assert.ErrorMatch(err, "context deadline exceeded")
-	cancel()
 }
 
 //--------------------
@@ -318,12 +272,15 @@ func TestCheckedEventSinkFailing(t *testing.T) {
 // topics contains the test topics.
 var topics = []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 
+// values contains the test values.
+var values = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+
 // addEvents adds a number of events to a sink.
 func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 	generator := audit.NewGenerator(audit.FixedRand())
 	for i := 0; i < count; i++ {
 		topic := generator.OneStringOf(topics...)
-		payload := generator.Int(1, 10)
+		payload := cells.NewDefaultPayload(generator.OneStringOf(values...))
 		event, err := cells.NewEvent(topic, payload)
 		assert.Nil(err)
 		n, err := sink.Push(event)
