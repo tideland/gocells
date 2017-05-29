@@ -291,7 +291,7 @@ func BenchmarkSmpleEmitNullMonitoring(b *testing.B) {
 
 	env.StartCell("null", &nullBehavior{})
 
-	event, _ := cells.NewEvent("foo", "bar")
+	event, _ := cells.NewEvent("foo", cells.NewDefaultPayload("bar"))
 
 	for i := 0; i < b.N; i++ {
 		env.Emit("null", event)
@@ -307,7 +307,7 @@ func BenchmarkSmpleEmitStandardMonitoring(b *testing.B) {
 
 	env.StartCell("null", &nullBehavior{})
 
-	event, _ := cells.NewEvent("foo", "bar")
+	event, _ := cells.NewEvent("foo", cells.NewDefaultPayload("bar"))
 
 	for i := 0; i < b.N; i++ {
 		env.Emit("null", event)

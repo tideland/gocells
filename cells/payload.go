@@ -27,7 +27,7 @@ const (
 
 	sliceSep        = " || "
 	mapSep          = ":"
-	timestampFormat = "2006-1-2-15-4-5.999999999"
+	timestampFormat = "2006-1-2-15-4-5.999999999 (MST)"
 )
 
 //--------------------
