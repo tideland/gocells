@@ -21,15 +21,18 @@ import (
 // WAITER BEHAVIOR
 //--------------------
 
+// WaiterFunc describes the function called after the first event.
+type WaiterFunc func(event cells.Event) error
+
 // waiterBehavior implements the waiter behavior.
 type waiterBehavior struct {
 	cell   cells.Cell
-	waiter cells.PayloadWaiter
+	waiter WaiterFunc
 }
 
-// NewWaiterBehavior creates a behavior where the cell stores the payload
-// of the first received event in the passed waiter.
-func NewWaiterBehavior(waiter cells.PayloadWaiter) cells.Behavior {
+// NewWaiterBehavior creates a behavior where the cell calls the waiter
+// function for the first received event.
+func NewWaiterBehavior(waiter WaiterFunc) cells.Behavior {
 	return &waiterBehavior{
 		waiter: waiter,
 	}
@@ -48,10 +51,11 @@ func (b *waiterBehavior) Terminate() error {
 
 // ProcessEvent calls the simple processor function.
 func (b *waiterBehavior) ProcessEvent(event cells.Event) error {
-	if b.waiter == nil {
-		return errors.New(ErrMissingPayloadWaiter, errorMessages)
+	if b.waiter != nil {
+		err := b.waiter(event)
+		b.waiter == nil
+		return err
 	}
-	b.waiter.Set(event.Payload())
 	return nil
 }
 
