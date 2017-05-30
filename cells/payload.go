@@ -49,6 +49,10 @@ type Payload interface {
 	// Get returns one of the payload values.
 	Get(key string) (string, bool)
 
+	// Get returns the default payload value. That is the one
+	// with the key "default".
+	GetDefault() (string, bool)
+
 	// GetStringSlice splits one of the payload value into
 	// substrings and returns them as slice.
 	GetStringSlice(key string) ([]string, bool)
@@ -112,6 +116,11 @@ func (p *payload) Len() int {
 func (p *payload) Get(key string) (string, bool) {
 	value, ok := p.values[key]
 	return value, ok
+}
+
+// GetDefault implements Payload.
+func (p *payload) GetDefault() (string, bool) {
+	return p.Get(DefaultKey)
 }
 
 // GetStringSlice implements Payload.

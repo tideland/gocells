@@ -79,6 +79,7 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case cells.CriterionDone:
 			// All done, emit and start over.
+			// TODO 2017-05-30 Mue Change to callback.
 			b.cell.EmitNew(TopicCombo, cells.PayloadValues{
 				PayloadComboEvents: b.sink,
 			})
