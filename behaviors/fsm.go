@@ -12,10 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"context"
-	"time"
-
-	"github.com/tideland/golib/errors"
 	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
@@ -68,6 +64,7 @@ func (b *fsmBehavior) Terminate() error {
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicStatus:
+		// TODO 2017-05-30 Mue Change to callback mechanism.
 		payload, ok := cells.HasWaiterPayload(event)
 		if !ok {
 			logger.Warningf("retrieving status from '%s' not possible without payload waiter", b.cell.ID())
@@ -98,23 +95,6 @@ func (b *fsmBehavior) Recover(err interface{}) error {
 	b.done = true
 	b.err = cells.NewCannotRecoverError(b.cell.ID(), err)
 	return nil
-}
-
-//--------------------
-// CONVENIENCE
-//--------------------
-
-// RequestFSMStatus retrieves the status of a FSM cell.
-func RequestFSMStatus(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (bool, error) {
-	payload, err := env.Request(ctx, id, cells.TopicStatus, timeout)
-	if err != nil {
-		return false, err
-	}
-	status, ok := payload.GetDefault(nil).(*fsmStatus)
-	if !ok || status == nil {
-		return false, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
-	}
-	return status.done, status.err
 }
 
 // EOF

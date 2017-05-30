@@ -12,12 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"context"
-	"time"
-
-	"github.com/tideland/golib/errors"
-	"github.com/tideland/golib/logger"
-
 	"github.com/tideland/gocells/cells"
 )
 
@@ -25,10 +19,15 @@ import (
 // COLLECTOR BEHAVIOR
 //--------------------
 
+// CollectionProcessorFunc defines a function to handle the
+// collected events.
+type CollectionProcessorFunc func(index int, event cells.Event) error
+
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
-	cell cells.Cell
-	sink cells.EventSink
+	cell      cells.Cell
+	sink      cells.EventSink
+	processor CollectionProcessorFunc
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
@@ -36,9 +35,10 @@ type collectorBehavior struct {
 // maximum number is 0 it collects until the topic "reset!". An
 // access to the collected events can be retrieved with the topic
 // "collected?" and a payload waiter as default payload.
-func NewCollectorBehavior(max int) cells.Behavior {
+func NewCollectorBehavior(max int, processor CollectionProcessorFunc) cells.Behavior {
 	return &collectorBehavior{
-		sink: cells.NewEventSink(max),
+		sink:      cells.NewEventSink(max),
+		processor: processor,
 	}
 }
 
@@ -58,12 +58,11 @@ func (b *collectorBehavior) Terminate() error {
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicCollected:
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			logger.Warningf("retrieving collected events from '%s' not possible without payload waiter", b.cell.ID())
+		err := b.sink.Do(b.processor)
+		if err != nil {
+			return err
 		}
-		accessor := cells.EventSinkAccessor(b.sink)
-		payload.GetWaiter().Set(accessor)
+		b.sink.Clear()
 	case cells.TopicReset:
 		b.sink.Clear()
 	default:
@@ -77,24 +76,6 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 func (b *collectorBehavior) Recover(err interface{}) error {
 	b.sink.Clear()
 	return nil
-}
-
-//--------------------
-// CONVENIENCE
-//--------------------
-
-// RequestCollectedAccessor retrieves the accessor to the
-// collected events.
-func RequestCollectedAccessor(env cells.Environment, id string, timeout time.Duration) (cells.EventSinkAccessor, error) {
-	payload, err := env.Request(context.Background(), id, cells.TopicCollected, timeout)
-	if err != nil {
-		return nil, err
-	}
-	accessor, ok := payload.GetDefault(nil).(cells.EventSinkAccessor)
-	if !ok {
-		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
-	}
-	return accessor, nil
 }
 
 // EOF

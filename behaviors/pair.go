@@ -101,8 +101,8 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	case TopicPairTimeout:
 		if b.hit != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit := event.Payload().GetTime(PayloadPairFirstTime, time.Time{})
-			if hit.Equal(*b.hit) {
+			hit, ok := event.Payload().GetTime(PayloadPairFirstTime)
+			if ok && hit.Equal(*b.hit) {
 				b.emitTimeout()
 				b.timeout = nil
 			}

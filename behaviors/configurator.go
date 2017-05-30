@@ -58,6 +58,9 @@ type configuratorBehavior struct {
 // is passed the read configuration will be validated using it. Errors
 // will be logged.
 func NewConfiguratorBehavior(validator ConfigurationValidator) cells.Behavior {
+	// TODO 2017-05-30 Mue Think about concept of configurator. Maybe better
+	// read it lazy, keep it, re-read on demand, and emit only wanted
+	// values of it.
 	return &configuratorBehavior{
 		validate: validator,
 	}
@@ -79,8 +82,8 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case TopicConfigurationRead:
 		// Read configuration
-		filename := event.Payload().GetString(PayloadConfigurationFilename, "")
-		if filename == "" {
+		filename, ok := event.Payload().Get(PayloadConfigurationFilename)
+		if !ok {
 			logger.Errorf("cannot read configuration without filename")
 			return nil
 		}
@@ -97,10 +100,10 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 			}
 		}
 		// All done, emit it.
-		pvs := cells.PayloadValues{
+		payloadValues := cells.PayloadValues{
 			PayloadConfiguration: cfg,
 		}
-		b.cell.EmitNew(TopicConfiguration, pvs)
+		b.cell.EmitNew(TopicConfiguration, cells.NewPayload(payloadValues))
 	}
 	return nil
 }
@@ -108,28 +111,6 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 // Recover implements the cells.Behavior interface.
 func (b *configuratorBehavior) Recover(err interface{}) error {
 	return nil
-}
-
-//--------------------
-// CONVENIENCE
-//--------------------
-
-// Configuration returns the configuration payload
-// of the passed event or an empty configuration.
-func Configuration(event cells.Event) etc.Etc {
-	payload := event.Payload().Get(PayloadConfiguration, nil)
-	if payload == nil {
-		logger.Warningf("event does not contain configuration payload")
-		cfg, _ := etc.ReadString("{etc}")
-		return cfg
-	}
-	cfg, ok := payload.(etc.Etc)
-	if !ok {
-		logger.Warningf("configuration payload has illegal type")
-		cfg, _ := etc.ReadString("{etc}")
-		return cfg
-	}
-	return cfg
 }
 
 // EOF

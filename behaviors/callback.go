@@ -21,24 +21,24 @@ import (
 // CALLBACK BEHAVIOR
 //--------------------
 
-// ProcessCallback is a function called by the behavior when it receives an event.
-type ProcessCallback func(topic string, payload cells.Payload) error
+// CallbackFunc is a function called by the behavior when it receives an event.
+type CallbackFunc func(event cells.Event) error
 
 // callbackBehavior is an event processor calling all stored functions
 // if it receives an event.
 type callbackBehavior struct {
 	cell      cells.Cell
-	callbacks []ProcessCallback
+	callbacks []CallbackFunc
 }
 
 // NewCallbackBehavior creates a behavior with a number of callback functions.
 // Each time an event is received those functions are called in the same order
 // they have been passed.
-func NewCallbackBehavior(cbfs ...ProcessCallback) cells.Behavior {
-	if len(cbfs) == 0 {
+func NewCallbackBehavior(callbacks ...CallbackFunc) cells.Behavior {
+	if len(callbacks) == 0 {
 		logger.Errorf("callback created without callback functions")
 	}
-	return &callbackBehavior{nil, cbfs}
+	return &callbackBehavior{nil, callbacks}
 }
 
 // Init the behavior.
@@ -55,7 +55,8 @@ func (b *callbackBehavior) Terminate() error {
 // ProcessEvent calls a callback functions with the event data.
 func (b *callbackBehavior) ProcessEvent(event cells.Event) error {
 	for _, callback := range b.callbacks {
-		if err := callback(event.Topic(), event.Payload()); err != nil {
+		if err := callback(event); err != nil {
+			logger.Errorf("callback terminated with error: %v", err)
 			return err
 		}
 	}

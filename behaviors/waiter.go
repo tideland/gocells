@@ -12,8 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"github.com/tideland/golib/errors"
-
 	"github.com/tideland/gocells/cells"
 )
 
@@ -31,7 +29,8 @@ type waiterBehavior struct {
 }
 
 // NewWaiterBehavior creates a behavior where the cell calls the waiter
-// function for the first received event.
+// function for the first received event. Afterwards it will never be called
+// again.
 func NewWaiterBehavior(waiter WaiterFunc) cells.Behavior {
 	return &waiterBehavior{
 		waiter: waiter,
