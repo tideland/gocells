@@ -100,10 +100,10 @@ func (b *configuratorBehavior) ProcessEvent(event cells.Event) error {
 			}
 		}
 		// All done, emit it.
-		payloadValues := cells.PayloadValues{
+		// TODO 2017-05-31 Mue How to emit configuration?
+		b.cell.EmitNew(TopicConfiguration, cells.Values{
 			PayloadConfiguration: cfg,
-		}
-		b.cell.EmitNew(TopicConfiguration, cells.NewPayload(payloadValues))
+		}.Payload())
 	}
 	return nil
 }

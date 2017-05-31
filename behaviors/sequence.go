@@ -78,9 +78,9 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		case cells.CriterionDone:
 			// All done, emit and start over.
 			// TODO 2017-05-31 Mue Change to event sink processor.
-			b.cell.EmitNew(TopicSequence, cells.PayloadValues{
+			b.cell.EmitNew(TopicSequence, cells.Values{
 				PayloadSequenceEvents: b.sink,
-			})
+			}.Payload())
 			b.sink = cells.NewEventSink(0)
 		case cells.CriterionKeep:
 			// So far ok.

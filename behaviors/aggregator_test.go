@@ -45,7 +45,7 @@ func TestAggregatorBehavior(t *testing.T) {
 		return current, nil
 	}
 	matches := func(event cells.Event) (bool, error) {
-		length := event.Payload().GetInt(behaviors.PayloadAggregatorValue, 0)
+		length := event.Payload().GetInt(behaviors.PayloadAggregatorValue)
 		return length > 100, nil
 	}
 	waiter := cells.NewPayloadWaiter()
