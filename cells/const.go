@@ -33,17 +33,19 @@ const (
 
 // Standard topics.
 const (
-	TopicCollected = "collected?"
-	TopicCounters  = "counters?"
-	TopicProcessed = "processed?"
-	TopicReset     = "reset!"
-	TopicStatus    = "status?"
-	TopicTick      = "tick!"
+	TopicCollected = "collected"
+	TopicCounted   = "counted"
+	TopicProcessed = "processed"
+	TopicReset     = "reset"
+	TopicStatus    = "status"
+	TopicTick      = "tick"
 )
 
 // Standard playload keys.
 const (
 	PayloadDefault    = "default"
+	PayloadDone       = "done"
+	PayloadError      = "error"
 	PayloadTickerID   = "ticker:id"
 	PayloadTickerTime = "ticker:time"
 )

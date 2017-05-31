@@ -38,6 +38,11 @@ const (
 // of a payload.
 type PayloadValues map[string]interface{}
 
+// Payload returns a payload containing the contained values.
+func (pvs PayloadValues) Payload() Payload {
+	return NewPayload(pvs)
+}
+
 // Payload is a write-once/read-multiple container for the
 // transport of additional information with events.
 type Payload interface {

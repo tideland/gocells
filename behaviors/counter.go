@@ -12,8 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"github.com/tideland/golib/logger"
-
 	"github.com/tideland/gocells/cells"
 )
 
@@ -24,24 +22,26 @@ import (
 // Counters is a set of named counters and their values.
 type Counters map[string]int64
 
-// CounterFunc is the signature of a function which analyzis
-// an event and returns, which counters shall be incremented.
-type CounterFunc func(id string, event cells.Event) []string
+// Counter changes the counter values based on the received
+// event. Those values will be emitted afterwards.
+type Counter func(event cells.Event, counters Counters) Counters
 
 // counterBehavior counts events based on the counter function.
 type counterBehavior struct {
 	cell        cells.Cell
-	counterFunc CounterFunc
+	count Counter
 	counters    Counters
 }
 
 // NewCounterBehavior creates a counter behavior based on the passed
-// function. It increments and emits those counters named by the result
-// of the counter function. The counters can be retrieved with the
-// event "counters?" and a payload waiter as payload. It can be reset
-// with "reset!".
-func NewCounterBehavior(cf CounterFunc) cells.Behavior {
-	return &counterBehavior{nil, cf, make(Counters)}
+// function. This function may increase, decrease, or set the counter
+// values. Afterwards the counter values will be emitted. All values
+// can be reset with the topic "reset!".
+func NewCounterBehavior(counter Counter) cells.Behavior {
+	return &counterBehavior{
+		count: counter,
+		counters: make(Counters),
+	}
 }
 
 // Init the behavior.
@@ -59,31 +59,15 @@ func (b *counterBehavior) Terminate() error {
 // and emits this value.
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.TopicCounters:
-		// TODO 2017-05-30 Mue Change to use callback.
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			logger.Warningf("retrieving counters from '%s' not possible without payload waiter", b.cell.ID())
-		}
-		response := b.copyCounters()
-		payload.GetWaiter().Set(response)
 	case cells.TopicReset:
-		b.counters = make(map[string]int64)
+		b.counters = make(Counters)
 	default:
-		cids := b.counterFunc(b.cell.ID(), event)
-		if cids != nil {
-			for _, cid := range cids {
-				v, ok := b.counters[cid]
-				if ok {
-					b.counters[cid] = v + 1
-				} else {
-					b.counters[cid] = 1
-				}
-				topic := "counter:" + cid
-				// TODO 2017-05-30 Mue emit es default payload.
-				b.cell.EmitNew(topic, b.counters[cid])
-			}
+		b.counters = b.count(event, b.counters)
+		payloadValues := cells.PayloadValues{}
+		for counter, value := range b.counters {
+			payloadValues[counter] = value
 		}
+		b.cell.EmitNew(cells.TopicCounted, cells.NewPayload(payloadValues))
 	}
 	return nil
 }

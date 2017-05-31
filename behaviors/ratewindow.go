@@ -104,7 +104,7 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 						PayloadRateWindowCount:     b.count,
 						PayloadRateWindowFirstTime: first,
 						PayloadRateWindowLastTime:  current,
-					})
+					}.Payload())
 				}
 			}
 		}

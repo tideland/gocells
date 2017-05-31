@@ -117,7 +117,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.timeout = time.AfterFunc(b.duration, func() {
 					b.cell.Environment().EmitNew(b.cell.ID(), TopicPairTimeout, cells.PayloadValues{
 						PayloadPairFirstTime: now,
-					})
+					}.Payload())
 				})
 			} else {
 				// Second hit earlier than timeout event.
@@ -147,7 +147,7 @@ func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
 		PayloadPairFirstData:  b.hitData,
 		PayloadPairSecondTime: timestamp,
 		PayloadPairSecondData: data,
-	})
+	}.Payload())
 	b.hit = nil
 }
 
@@ -157,7 +157,7 @@ func (b *pairBehavior) emitTimeout() {
 		PayloadPairFirstTime: *b.hit,
 		PayloadPairFirstData: b.hitData,
 		PayloadPairTimeout:   time.Now(),
-	})
+	}.Payload())
 	b.hit = nil
 }
 
