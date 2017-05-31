@@ -63,7 +63,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 		b.counters = make(Counters)
 	default:
 		b.counters = b.count(event, b.counters)
-		payloadValues := cells.PayloadValues{}
+		payloadValues := cells.Values{}
 		for counter, value := range b.counters {
 			payloadValues[counter] = value
 		}

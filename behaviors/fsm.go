@@ -76,7 +76,7 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	}
 	b.state = state
 	// Emit status.
-	b.cell.EmitNew(cells.TopicStatus, cells.PayloadValues{
+	b.cell.EmitNew(cells.TopicStatus, cells.Values{
 		cells.PayloadDone:  b.done,
 		cells.PayloadError: b.err,
 	}.Payload())

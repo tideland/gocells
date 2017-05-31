@@ -115,7 +115,7 @@ func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 				b.hit = &now
 				b.hitData = hitData
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(b.cell.ID(), TopicPairTimeout, cells.PayloadValues{
+					b.cell.Environment().EmitNew(b.cell.ID(), TopicPairTimeout, cells.Values{
 						PayloadPairFirstTime: now,
 					}.Payload())
 				})
@@ -142,7 +142,7 @@ func (b *pairBehavior) Recover(err interface{}) error {
 
 // emitPair emits the event for a successful pair.
 func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
-	b.cell.EmitNew(TopicPair, cells.PayloadValues{
+	b.cell.EmitNew(TopicPair, cells.Values{
 		PayloadPairFirstTime:  *b.hit,
 		PayloadPairFirstData:  b.hitData,
 		PayloadPairSecondTime: timestamp,
@@ -153,7 +153,7 @@ func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
 
 // emitTimeout emits the event for a pairing timeout.
 func (b *pairBehavior) emitTimeout() {
-	b.cell.EmitNew(TopicPairTimeout, cells.PayloadValues{
+	b.cell.EmitNew(TopicPairTimeout, cells.Values{
 		PayloadPairFirstTime: *b.hit,
 		PayloadPairFirstData: b.hitData,
 		PayloadPairTimeout:   time.Now(),
