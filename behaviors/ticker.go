@@ -68,11 +68,10 @@ func (b *tickerBehavior) Terminate() error {
 // defined duration elapsed.
 func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
 	if event.Topic() == TopicTicker {
-		pvs := cells.PayloadValues{
+		b.cell.EmitNew(TopicTicker, cells.PayloadValues{
 			PayloadTickerID:   b.cell.ID(),
 			PayloadTickerTime: time.Now(),
-		}
-		b.cell.EmitNew(TopicTicker, pvs)
+		}.Payload())
 	}
 	return nil
 }
@@ -91,7 +90,9 @@ func (b *tickerBehavior) tickerLoop(l loop.Loop) error {
 		case now := <-time.After(b.duration):
 			// Notify myself, action there to avoid
 			// race when subscribers are updated.
-			b.cell.Environment().EmitNew(b.cell.ID(), TopicTicker, now)
+			b.cell.Environment().EmitNew(b.cell.ID(), TopicTicker, cells.PayloadValues{
+				cells.PayloadTickerTime: now,
+			}.Payload())
 		}
 	}
 }

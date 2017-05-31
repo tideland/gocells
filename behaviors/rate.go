@@ -119,7 +119,7 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 				PayloadRateAverage:  avg,
 				PayloadRateHigh:     high,
 				PayloadRateLow:      low,
-			})
+			}.Payload())
 		}
 	}
 	return nil

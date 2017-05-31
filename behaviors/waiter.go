@@ -52,7 +52,7 @@ func (b *waiterBehavior) Terminate() error {
 func (b *waiterBehavior) ProcessEvent(event cells.Event) error {
 	if b.waiter != nil {
 		err := b.waiter(event)
-		b.waiter == nil
+		b.waiter = nil
 		return err
 	}
 	return nil

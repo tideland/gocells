@@ -12,8 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"github.com/tideland/golib/logger"
-
 	"github.com/tideland/gocells/cells"
 )
 
@@ -41,11 +39,14 @@ type fsmBehavior struct {
 
 // NewFSMBehavior creates a finite state machine behavior based on the
 // passed initial state function. The function is called with the event
-// has to return the next state, which can be the same one. In case of
-// nil the stae will be transferred into a generic end state, if an error
-// is returned the state is a generic error state.
+// and has to return the next state, which can be the same or a different
+// one. In case of nil the state will be transferred into a generic end
+// state, if an error is returned the state is a generic error state.
 func NewFSMBehavior(state FSMState) cells.Behavior {
-	return &fsmBehavior{nil, state, false, nil}
+	return &fsmBehavior{
+		state: state,
+		done:  false,
+	}
 }
 
 // Init the behavior.
@@ -62,31 +63,23 @@ func (b *fsmBehavior) Terminate() error {
 // ProcessEvent executes the state function and stores
 // the returned new state.
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
-	switch event.Topic() {
-	case cells.TopicStatus:
-		// TODO 2017-05-30 Mue Change to callback mechanism.
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			logger.Warningf("retrieving status from '%s' not possible without payload waiter", b.cell.ID())
-		}
-		response := &fsmStatus{
-			done: b.done,
-			err:  b.err,
-		}
-		payload.GetWaiter().Set(response)
-	default:
-		if b.done {
-			return nil
-		}
-		state, err := b.state(b.cell, event)
-		if err != nil {
-			b.done = true
-			b.err = err
-		} else if state == nil {
-			b.done = true
-		}
-		b.state = state
+	if b.done {
+		return nil
 	}
+	// Determine next state.
+	state, err := b.state(b.cell, event)
+	if err != nil {
+		b.done = true
+		b.err = err
+	} else if state == nil {
+		b.done = true
+	}
+	b.state = state
+	// Emit status.
+	b.cell.EmitNew(cells.TopicStatus, cells.PayloadValues{
+		cells.PayloadDone:  b.done,
+		cells.PayloadError: b.err,
+	}.Payload())
 	return nil
 }
 

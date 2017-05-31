@@ -20,11 +20,9 @@ import (
 //--------------------
 
 const (
-	// TopicCombo is used for events emitted by the combo behavior.
-	TopicCombo = "combo"
-
-	// PayloadComboEvents points to the collected event combination.
-	PayloadComboEvents = "combo:events"
+	// TopicComboComplete is used for events emitted by the combo in
+	// case of a complete combination.
+	TopicComboComplete = "combo-complete"
 )
 
 //--------------------
@@ -39,19 +37,25 @@ const (
 // to be cleared for starting over.
 type ComboCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMatch
 
+// ComboPayload is called in case of a complete combenation. It has to
+// return the payload emitted with the complete event.
+type ComboPayload func(accessor cells.EventSinkAccessor) cells.Payload
+
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
 	cell    cells.Cell
 	matches ComboCriterion
+	payload ComboPayload
 	sink    cells.EventSink
 }
 
 // NewComboBehavior creates an event sequence behavior. It checks the
 // event stream for a combination of events defined by the criterion. In
 // this case an event containing the combination is emitted.
-func NewComboBehavior(matches ComboCriterion) cells.Behavior {
+func NewComboBehavior(matches ComboCriterion, payload ComboPayload) cells.Behavior {
 	return &comboBehavior{
 		matches: matches,
+		payload: payload,
 		sink:    cells.NewEventSink(0),
 	}
 }
@@ -79,10 +83,7 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case cells.CriterionDone:
 			// All done, emit and start over.
-			// TODO 2017-05-30 Mue Change to callback.
-			b.cell.EmitNew(TopicCombo, cells.PayloadValues{
-				PayloadComboEvents: b.sink,
-			})
+			b.cell.EmitNew(TopicComboComplete, b.payload(b.sink))
 			b.sink = cells.NewEventSink(0)
 		case cells.CriterionKeep:
 			// So far ok.
