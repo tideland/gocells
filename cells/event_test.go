@@ -53,15 +53,14 @@ func TestPayload(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	now := time.Now()
 	dur := 30 * time.Second
-	pvs := cells.PayloadValues{
+	pl := cells.Values{
 		"bool":     true,
 		"int":      42,
 		"float64":  47.11,
 		"string":   "hello, world",
 		"time":     now,
 		"duration": dur,
-	}
-	pl := cells.NewPayload(pvs)
+	}.Payload()
 
 	s, ok := pl.Get("string")
 	assert.True(ok)
@@ -105,7 +104,7 @@ func TestPayload(t *testing.T) {
 	assert.False(ok)
 	assert.Equal(td, 0*time.Second)
 
-	pln := pl.Apply(cells.PayloadValues{
+	pln := pl.Apply(cells.Values{
 		cells.PayloadDefault: "foo",
 	})
 	s, ok = pln.Get(cells.PayloadDefault)
@@ -231,10 +230,10 @@ func TestCheckedEventSink(t *testing.T) {
 		if ok {
 			first, _ := events.PeekFirst()
 			last, _ := events.PeekLast()
-			payload := cells.NewPayload(cells.PayloadValues{
+			payload := cells.Values{
 				"first": first.Timestamp(),
 				"last":  last.Timestamp(),
-			})
+			}.Payload()
 			payloadc <- payload
 		}
 		return nil
