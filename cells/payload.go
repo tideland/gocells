@@ -34,13 +34,13 @@ const (
 // PAYLOAD
 //--------------------
 
-// PayloadValues is intended to easily set the information
+// Values is intended to easily set the information
 // of a payload.
-type PayloadValues map[string]interface{}
+type Values map[string]interface{}
 
 // Payload returns a payload containing the contained values.
-func (pvs PayloadValues) Payload() Payload {
-	return NewPayload(pvs)
+func (vs Values) Payload() Payload {
+	return NewPayload(vs)
 }
 
 // Payload is a write-once/read-multiple container for the
@@ -91,7 +91,7 @@ type Payload interface {
 	// Apply creates a new payload based on this one
 	// and the passed values. If a key already exists its
 	// value will be overwritten.
-	Apply(values PayloadValues) Payload
+	Apply(values Values) Payload
 }
 
 // payload implements the Payload interface.
@@ -101,7 +101,7 @@ type payload struct {
 
 // NewPayload creates a new payload containing the passed
 // values.
-func NewPayload(values PayloadValues) Payload {
+func NewPayload(values Values) Payload {
 	p := &payload{}
 	return p.Apply(values)
 }
@@ -109,7 +109,7 @@ func NewPayload(values PayloadValues) Payload {
 // NewDefaultPayload creates a payload containing the key
 // "default" with the passed values.
 func NewDefaultPayload(value string) Payload {
-	return NewPayload(PayloadValues{DefaultKey: value})
+	return NewPayload(Values{DefaultKey: value})
 }
 
 // Len implements Payload.
@@ -247,7 +247,7 @@ func (p *payload) Do(f func(key, value string) error) error {
 }
 
 // Apply implements Payload.
-func (p *payload) Apply(values PayloadValues) Payload {
+func (p *payload) Apply(values Values) Payload {
 	np := &payload{
 		values: make(map[string]string),
 	}
