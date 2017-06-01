@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -32,43 +31,43 @@ import (
 func TestAggregatorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	generator := audit.NewGenerator(audit.FixedRand())
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("aggregator-behavior")
 	defer env.Stop()
 
-	aggregate := func(value interface{}, event cells.Event) (interface{}, error) {
-		current, ok := value.(int)
+	aggregate := func(payload cells.Payload, event cells.Event) (cells.Payload, error) {
+		current, ok := payload.GetDefault()
 		if !ok {
-			current = 0
+			current = ""
 		}
-		current += len(event.Topic())
-		return current, nil
+		current += event.Topic()
+		return cells.NewDefaultPayload(current), nil
 	}
 	matches := func(event cells.Event) (bool, error) {
-		length := event.Payload().GetInt(behaviors.PayloadAggregatorValue)
+		current, _ := event.Payload().GetDefault()
+		length := len(current)
 		return length > 100, nil
 	}
-	waiter := cells.NewPayloadWaiter()
+	wait := func(event cells.Event) error {
+		current, _ := event.Payload().GetDefault()
+		sigc <- len(current)
+		return nil
+	}
 
 	env.StartCell("aggregator", behaviors.NewAggregatorBehavior(aggregate))
 	env.StartCell("filter", behaviors.NewFilterBehavior(matches))
-	env.StartCell("waiter", behaviors.NewWaiterBehavior(waiter))
+	env.StartCell("waiter", behaviors.NewWaiterBehavior(wait))
 	env.Subscribe("aggregator", "filter")
 	env.Subscribe("filter", "waiter")
 
 	go func() {
 		for i := 0; i < 199; i++ {
 			topic := generator.Word()
-			env.EmitNew(ctx, "aggregator", topic, nil)
+			env.EmitNew("aggregator", topic, nil)
 		}
 	}()
 
-	waitCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	payload, err := waiter.Wait(waitCtx)
-	assert.Nil(err)
-	length := payload.GetInt(behaviors.PayloadAggregatorValue, 0)
-	assert.True(length > 100)
+	assert.Wait(sigc, 99, time.Minute)
 }
 
 // EOF

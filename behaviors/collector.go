@@ -19,26 +19,22 @@ import (
 // COLLECTOR BEHAVIOR
 //--------------------
 
-// CollectionProcessorFunc defines a function to handle the
-// collected events.
-type CollectionProcessorFunc func(index int, event cells.Event) error
-
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
 	cell      cells.Cell
 	sink      cells.EventSink
-	processor CollectionProcessorFunc
+	process cells.EventSinkProcessor
 }
 
 // NewCollectorBehavior creates a collector behavior. It collects
 // a maximum number of events, each event is passed through. If the
-// maximum number is 0 it collects until the topic "reset!". An
-// access to the collected events can be retrieved with the topic
-// "collected?" and a payload waiter as default payload.
-func NewCollectorBehavior(max int, processor CollectionProcessorFunc) cells.Behavior {
+// maximum number is 0 it collects until the topic "reset". After
+// receiving the topic "process" the processor will be called and
+// the collected events will be reset afterwards.
+func NewCollectorBehavior(max int, processor cells.EventSinkProcessor) cells.Behavior {
 	return &collectorBehavior{
-		sink:      cells.NewEventSink(max),
-		processor: processor,
+		sink:    cells.NewEventSink(max),
+		process: processor,
 	}
 }
 
@@ -57,8 +53,8 @@ func (b *collectorBehavior) Terminate() error {
 // ProcessEvent collects and re-emits events.
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.TopicCollected:
-		err := b.sink.Do(b.processor)
+	case cells.TopicProcess:
+		err := b.process(b.sink)
 		if err != nil {
 			return err
 		}

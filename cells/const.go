@@ -35,6 +35,7 @@ const (
 const (
 	TopicCollected = "collected"
 	TopicCounted   = "counted"
+	TopicProcess   = "process"
 	TopicProcessed = "processed"
 	TopicReset     = "reset"
 	TopicStatus    = "status"
