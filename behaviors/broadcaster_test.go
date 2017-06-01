@@ -15,7 +15,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -36,9 +35,15 @@ func TestBroadcasterBehavior(t *testing.T) {
 
 	var wg sync.WaitGroup
 
+	processor := func(index int, event cells.Event) error {
+		if index == 2 {
+			wg.Done()
+		}
+	}
+
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
-	env.StartCell("test-a", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-b", behaviors.NewCollectorBehavior(10))
+	env.StartCell("test-a", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-b", behaviors.NewCollectorBehavior(10, processor))
 	env.StartCell("signaller", behaviors.NewSimpleProcessorBehavior(func(cell cells.Cell, event cells.Event) error {
 		wg.Done()
 		return nil
@@ -48,19 +53,13 @@ func TestBroadcasterBehavior(t *testing.T) {
 
 	wg.Add(3)
 
-	env.EmitNew(ctx, "broadcast", "test", "a")
-	env.EmitNew(ctx, "broadcast", "test", "b")
-	env.EmitNew(ctx, "broadcast", "test", "c")
+	env.EmitNew("broadcast", "test", nil)
+	env.EmitNew("broadcast", "test", nil)
+	env.EmitNew("broadcast", "test", nil)
 
 	wg.Wait()
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "test-a", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 3)
-
-	accessor, err = behaviors.RequestCollectedAccessor(env, "test-b", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 3)
+	env.EmitNew("broadcast", cells.TopicCollected, nil)
 }
 
 // EOF

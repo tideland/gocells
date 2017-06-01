@@ -34,18 +34,18 @@ func TestCallbackBehavior(t *testing.T) {
 	defer env.Stop()
 
 	cbdA := []string{}
-	cbfA := func(topic string, payload cells.Payload) error {
-		cbdA = append(cbdA, topic)
+	cbfA := func(event cells.Event) error {
+		cbdA = append(cbdA, event.Topic())
 		return nil
 	}
 	cbdB := 0
-	cbfB := func(topic string, payload cells.Payload) error {
+	cbfB := func(event cells.Event) error {
 		cbdB++
 		return nil
 	}
 	sigc := audit.MakeSigChan()
-	cbfC := func(topic string, payload cells.Payload) error {
-		if topic == "baz" {
+	cbfC := func(event cells.Event) error {
+		if event.Topic() == "baz" {
 			sigc <- true
 		}
 		return nil
@@ -53,9 +53,9 @@ func TestCallbackBehavior(t *testing.T) {
 
 	env.StartCell("callback", behaviors.NewCallbackBehavior(cbfA, cbfB, cbfC))
 
-	env.EmitNew(ctx, "callback", "foo", nil)
-	env.EmitNew(ctx, "callback", "bar", nil)
-	env.EmitNew(ctx, "callback", "baz", nil)
+	env.EmitNew("callback", "foo", nil)
+	env.EmitNew("callback", "bar", nil)
+	env.EmitNew("callback", "baz", nil)
 
 	assert.Wait(sigc, true, time.Second)
 	assert.Equal(cbdA, []string{"foo", "bar", "baz"})
