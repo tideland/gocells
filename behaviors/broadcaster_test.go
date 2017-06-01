@@ -35,8 +35,8 @@ func TestBroadcasterBehavior(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	processor := func(index int, event cells.Event) error {
-		if index == 2 {
+	processor := func(accessor cells.EventSinkAccessor) error {
+		if accessor.Len() == 2 {
 			wg.Done()
 		}
 	}

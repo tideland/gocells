@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -47,11 +46,11 @@ func TestCollectorBehavior(t *testing.T) {
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
 
-	audit.Wait(sigc, 10, time.Minute)
+	assert.Wait(sigc, 10, time.Minute)
 
 	env.EmitNew("collector", cells.TopicReset, nil)
 
-	audit.Wait(sigc, 0, time.Minute)
+	assert.Wait(sigc, 0, time.Minute)
 }
 
 // EOF
