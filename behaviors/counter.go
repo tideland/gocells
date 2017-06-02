@@ -19,18 +19,15 @@ import (
 // COUNTER BEHAVIOR
 //--------------------
 
-// Counters is a set of named counters and their values.
-type Counters map[string]int64
-
-// Counter changes the counter values based on the received
-// event. Those values will be emitted afterwards.
-type Counter func(event cells.Event, counters Counters) Counters
+// Counter analyzes the passed event and returns, which counters
+// shall be incremented.
+type Counter func(event cells.Event) []string
 
 // counterBehavior counts events based on the counter function.
 type counterBehavior struct {
-	cell        cells.Cell
-	count Counter
-	counters    Counters
+	cell     cells.Cell
+	count    Counter
+	counters map[string]uint
 }
 
 // NewCounterBehavior creates a counter behavior based on the passed
@@ -39,8 +36,8 @@ type counterBehavior struct {
 // can be reset with the topic "reset!".
 func NewCounterBehavior(counter Counter) cells.Behavior {
 	return &counterBehavior{
-		count: counter,
-		counters: make(Counters),
+		count:    counter,
+		counters: map[string]uint{},
 	}
 }
 
@@ -60,14 +57,17 @@ func (b *counterBehavior) Terminate() error {
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
-		b.counters = make(Counters)
+		b.counters = map[string]uint{}
 	default:
-		b.counters = b.count(event, b.counters)
-		payloadValues := cells.Values{}
-		for counter, value := range b.counters {
-			payloadValues[counter] = value
+		increments := b.count(event)
+		for _, increment := range increments {
+			b.ounters[increment]++
 		}
-		b.cell.EmitNew(cells.TopicCounted, cells.NewPayload(payloadValues))
+		values := cells.Values{}
+		for counter, value := range b.counters {
+			values[counter] = value
+		}
+		b.cell.EmitNew(cells.TopicCounted, values.Payload())
 	}
 	return nil
 }
@@ -75,15 +75,6 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 // Recover from an error.
 func (b *counterBehavior) Recover(err interface{}) error {
 	return nil
-}
-
-// copyCounters copies the counters for a request.
-func (b *counterBehavior) copyCounters() Counters {
-	copiedCounters := make(Counters)
-	for key, value := range b.counters {
-		copiedCounters[key] = value
-	}
-	return copiedCounters
 }
 
 // EOF
