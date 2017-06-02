@@ -44,6 +44,7 @@ const (
 
 // Standard playload keys.
 const (
+	PayloadClear      = "clear"
 	PayloadDefault    = "default"
 	PayloadDone       = "done"
 	PayloadError      = "error"
