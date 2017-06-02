@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -29,34 +28,37 @@ import (
 // TestCounterBehavior tests the counting of events.
 func TestCounterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
 	env := cells.NewEnvironment("counter-behavior")
 	defer env.Stop()
 
-	cf := func(id string, event cells.Event) []string {
-		return event.Payload().GetDefault([]string{}).([]string)
+	counters := func(counters ...string) cells.Payload {
+		return cells.Values{
+			cells.PayloadDefault: counters,
+		}.Payload()
 	}
+	counter := func(event cells.Event) []string {
+		increments, ok := event.Payload().GetStringSlice(cells.PayloadDefault)
+		if !ok {
+			return nil
+		}
+		return increments
+	}
+	processor := func(accessor cells.EventSinkAccessor) error {
+		// TODO 2017-06-02 Mue Analzye collected counters.
+		return nil
+	}
+
 	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
+	env.Subscribe("counter", "collector")
 
-	env.EmitNew(ctx, "counter", "count", []string{"a", "b"})
-	env.EmitNew(ctx, "counter", "count", []string{"a", "c", "d"})
-	env.EmitNew(ctx, "counter", "count", []string{"a", "d"})
+	env.EmitNew("counter", "count", counters("a", "b"))
+	env.EmitNew("counter", "count", counters("a", "c", "d"))
+	env.EmitNew("counter", "count", counters("a", "d"))
 
-	counters, err := behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
-	assert.Nil(err)
-	assert.Length(counters, 4, "four counted events")
+	env.EmitNew("collector", cells.TopicProcess, nil)
 
-	assert.Equal(counters["a"], int64(3))
-	assert.Equal(counters["b"], int64(1))
-	assert.Equal(counters["c"], int64(1))
-	assert.Equal(counters["d"], int64(2))
-
-	err = env.EmitNew(ctx, "counter", cells.TopicReset, nil)
-	assert.Nil(err)
-
-	counters, err = behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
-	assert.Nil(err)
-	assert.Empty(counters)
+	// TODO 2017-06-02 Mue Check resetting the counters.
 }
 
 // EOF

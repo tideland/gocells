@@ -38,7 +38,6 @@ still growing.
 - **Callback** calls a number of passed functions for each received event.
 - **Collector** collects events, theese can be retrieved and reset.
 - **Combo** waits for a user-defined combination of events.
-- **Configurator** reads a configuration file based on an event and emits it.
 - **Counter** counts events, the counters can be retrieved.
 - **Evaluator** evaluates events based on a user-defined function which
   returns a rating.

@@ -45,11 +45,9 @@ func TestCollectorBehavior(t *testing.T) {
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
-
 	assert.Wait(sigc, 10, time.Minute)
 
 	env.EmitNew("collector", cells.TopicReset, nil)
-
 	assert.Wait(sigc, 0, time.Minute)
 }
 
