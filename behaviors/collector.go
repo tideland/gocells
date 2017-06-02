@@ -21,8 +21,8 @@ import (
 
 // collectorBehavior collects events for debugging.
 type collectorBehavior struct {
-	cell      cells.Cell
-	sink      cells.EventSink
+	cell    cells.Cell
+	sink    cells.EventSink
 	process cells.EventSinkProcessor
 }
 
@@ -58,7 +58,10 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		if err != nil {
 			return err
 		}
-		b.sink.Clear()
+		clear, _ := event.Payload().GetBool(cells.PayloadClear)
+		if clear {
+			b.sink.Clear()
+		}
 	case cells.TopicReset:
 		b.sink.Clear()
 	default:
