@@ -61,7 +61,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	default:
 		increments := b.count(event)
 		for _, increment := range increments {
-			b.ounters[increment]++
+			b.counters[increment]++
 		}
 		values := cells.Values{}
 		for counter, value := range b.counters {
