@@ -28,6 +28,7 @@ import (
 // TestCounterBehavior tests the counting of events.
 func TestCounterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("counter-behavior")
 	defer env.Stop()
 
@@ -44,11 +45,20 @@ func TestCounterBehavior(t *testing.T) {
 		return increments
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		// TODO 2017-06-02 Mue Analzye collected counters.
+		if accessor.Len() == 3 {
+			last, err := accessor.PeekLast()
+			assert.Nil(err)
+			values := cells.Values{}
+			last.Payload().Do(func(key, value string) error {
+				values[key] = value
+				return nil
+			})
+			sigc <- values
+		}
 		return nil
 	}
 
-	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
+	env.StartCell("counter", behaviors.NewCounterBehavior(counter))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
 	env.Subscribe("counter", "collector")
 
@@ -58,7 +68,12 @@ func TestCounterBehavior(t *testing.T) {
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
 
-	// TODO 2017-06-02 Mue Check resetting the counters.
+	assert.Wait(sigc, cells.Values{
+		"a": "3",
+		"b": "1",
+		"c": "1",
+		"d": "2",
+	}, time.Second)
 }
 
 // EOF
