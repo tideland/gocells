@@ -31,14 +31,15 @@ func TestEvent(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	now := time.Now().UTC()
 
-	event, err := cells.NewEvent("foo", cells.NewDefaultPayload("bar"))
+	event, err := cells.NewEvent("foo", "bar")
 	assert.Nil(err)
 	assert.True(event.Timestamp().After(now))
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
 
-	bar, ok := event.Payload().Get("default")
-	assert.True(ok)
+	var bar string
+	err = event.Payload().Unmarshal(&bar)
+	assert.Nil(err)
 	assert.Equal(bar, "bar")
 
 	_, err = cells.NewEvent("", nil)
@@ -50,67 +51,40 @@ func TestEvent(t *testing.T) {
 
 // TestPayload tests the payload creation and access.
 func TestPayload(t *testing.T) {
+	type loading struct {
+		Bool     bool
+		Int      int
+		Float    float64
+		String   string
+		Time     time.Time
+		Duration time.Duration
+	}
+
 	assert := audit.NewTestingAssertion(t, true)
-	now := time.Now()
-	dur := 30 * time.Second
-	pl := cells.Values{
-		"bool":     true,
-		"int":      42,
-		"float64":  47.11,
-		"string":   "hello, world",
-		"time":     now,
-		"duration": dur,
-	}.Payload()
 
-	s, ok := pl.Get("string")
-	assert.True(ok)
-	assert.Equal(s, "hello, world")
-	s, ok = pl.Get("no-string")
-	assert.False(ok)
-	assert.Equal(s, "")
+	in := loading{
+		Bool:     true,
+		Int:      42,
+		Float:    47.11,
+		String:   "Hello, world!",
+		Time:     time.Now(),
+		Duration: 30 * time.Second,
+	}
+	payload, err := cells.NewPayload(in)
+	assert.Nil(err)
+	var out loading
+	err = payload.Unmarshal(&out)
+	assert.Nil(err)
+	assert.Equal(in, out)
 
-	b, ok := pl.GetBool("bool")
-	assert.True(ok)
-	assert.True(b)
-	b, ok = pl.GetBool("no-bool")
-	assert.False(ok)
-	assert.False(b)
+	payload, err = cells.NewPayload([]byte{1, 3, 3, 7})
+	assert.Nil(err)
+	bs := payload.Bytes()
+	assert.Equal(bs, []byte{1, 3, 3, 7})
 
-	i, ok := pl.GetInt("int")
-	assert.True(ok)
-	assert.Equal(i, 42)
-	i, ok = pl.GetInt("no-int")
-	assert.False(ok)
-	assert.Equal(i, 0)
-
-	f, ok := pl.GetFloat64("float64")
-	assert.True(ok)
-	assert.Equal(f, 47.11)
-	f, ok = pl.GetFloat64("no-float64")
-	assert.False(ok)
-	assert.Equal(f, 0.0)
-
-	tt, ok := pl.GetTime("time")
-	assert.True(ok)
-	assert.Equal(tt, now)
-	tt, ok = pl.GetTime("no-time")
-	assert.False(ok)
-	assert.Equal(tt, time.Time{})
-
-	td, ok := pl.GetDuration("duration")
-	assert.True(ok)
-	assert.Equal(td, dur)
-	td, ok = pl.GetDuration("no-duration")
-	assert.False(ok)
-	assert.Equal(td, 0*time.Second)
-
-	pln := pl.Apply(cells.Values{
-		cells.PayloadDefault: "foo",
-	})
-	s, ok = pln.Get(cells.PayloadDefault)
-	assert.True(ok)
-	assert.Equal(s, "foo")
-	assert.Length(pln, 7)
+	same, err := cells.NewPayload(payload)
+	assert.Nil(err)
+	assert.Equal(same, payload)
 }
 
 // TestEventSink tests the simple event sink.
@@ -168,17 +142,19 @@ func TestEventSinkIteration(t *testing.T) {
 	assert.Length(sink, 10)
 	err := sink.Do(func(index int, event cells.Event) error {
 		assert.Contents(event.Topic(), topics)
-		payload, ok := event.Payload().GetInt(cells.PayloadDefault)
-		assert.True(ok)
-		assert.Range(payload, 1, 10)
+		var payload int
+		err := event.Payload().Unmarshal(&payload)
+		assert.Nil(err)
+		assert.Range(payload, 1, 9)
 		return nil
 	})
 	assert.Nil(err)
 	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
 		topicOK := event.Topic() >= "a" && event.Topic() <= "j"
-		payload, ok := event.Payload().GetInt(cells.PayloadDefault)
-		assert.True(ok)
-		payloadOK := payload >= 1 && payload <= 10
+		var payload int
+		err := event.Payload().Unmarshal(&payload)
+		assert.Nil(err)
+		payloadOK := payload >= 1 && payload <= 9
 		return topicOK && payloadOK, nil
 	})
 	assert.Nil(err)
@@ -203,12 +179,11 @@ func TestEventSinkIterationError(t *testing.T) {
 	assert.ErrorMatch(err, "ouch")
 }
 
-// TestCheckedEventSink tests the notification of a waiter
-// when a criterion in the sink matches.
+// TestCheckedEventSink tests the checking of new events.
 func TestCheckedEventSink(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	payloadc := make(chan cells.Payload, 1)
-	donec := make(chan struct{})
+	payloadc := audit.MakeSigChan()
+	donec := audit.MakeSigChan()
 	count := 0
 	wanted := []string{"f", "c", "c"}
 	checker := func(events cells.EventSinkAccessor) error {
@@ -230,10 +205,7 @@ func TestCheckedEventSink(t *testing.T) {
 		if ok {
 			first, _ := events.PeekFirst()
 			last, _ := events.PeekLast()
-			payload := cells.Values{
-				"first": first.Timestamp(),
-				"last":  last.Timestamp(),
-			}.Payload()
+			payload := last.Timestamp().Sub(first.Timestamp())
 			payloadc <- payload
 		}
 		return nil
@@ -245,11 +217,9 @@ func TestCheckedEventSink(t *testing.T) {
 	for {
 		select {
 		case payload := <-payloadc:
-			first, ok := payload.GetTime("first")
+			d, ok := payload.(time.Duration)
 			assert.True(ok)
-			last, ok := payload.GetTime("last")
-			assert.True(ok)
-			assert.True(last.UnixNano() > first.UnixNano())
+			assert.True(d > 0)
 		case <-donec:
 			return
 		case <-time.After(5 * time.Second):
@@ -265,15 +235,12 @@ func TestCheckedEventSink(t *testing.T) {
 // topics contains the test topics.
 var topics = []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 
-// values contains the test values.
-var values = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-
 // addEvents adds a number of events to a sink.
 func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 	generator := audit.NewGenerator(audit.FixedRand())
 	for i := 0; i < count; i++ {
 		topic := generator.OneStringOf(topics...)
-		payload := cells.NewDefaultPayload(generator.OneStringOf(values...))
+		payload := generator.OneIntOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
 		event, err := cells.NewEvent(topic, payload)
 		assert.Nil(err)
 		n, err := sink.Push(event)

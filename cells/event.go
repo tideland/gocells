@@ -45,14 +45,18 @@ type event struct {
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(topic string, payload Payload) (Event, error) {
+func NewEvent(topic string, payload interface{}) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
+	}
+	p, err := NewPayload(payload)
+	if err != nil {
+		return nil, err
 	}
 	return &event{
 		timestamp: time.Now().UTC(),
 		topic:     topic,
-		payload:   payload,
+		payload:   p,
 	}, nil
 }
 

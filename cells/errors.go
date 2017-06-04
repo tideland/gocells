@@ -30,11 +30,11 @@ const (
 	ErrEventRecovering
 	ErrRecoveredTooOften
 	ErrNoTopic
-	ErrNoRequest
+	ErrMarshal
+	ErrUnmarshal
 	ErrInactive
 	ErrStopping
 	ErrTimeout
-	ErrMissingScene
 )
 
 // Error messages of the cells package.
@@ -48,11 +48,11 @@ var errorMessages = map[int]string{
 	ErrEventRecovering:   "cell cannot recover after error %v",
 	ErrRecoveredTooOften: "cell needs too much recoverings, last error",
 	ErrNoTopic:           "event has no topic",
-	ErrNoRequest:         "cannot respond, event is no request",
+	ErrMarshal:           "cannot marshal the payload",
+	ErrUnmarshal:         "cannot unmarshal the payload",
 	ErrInactive:          "cell %q is inactive",
 	ErrStopping:          "%s is stopping",
 	ErrTimeout:           "needed too long for %v",
-	ErrMissingScene:      "missing scene for request",
 }
 
 //--------------------

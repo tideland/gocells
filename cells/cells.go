@@ -49,7 +49,7 @@ type Environment interface {
 
 	// EmitNew creates an event and emits it to the cell
 	// with a given ID.
-	EmitNew(id, topic string, payload Payload) error
+	EmitNew(id, topic string, payload interface{}) error
 
 	// Stop manages the proper finalization of an environment.
 	Stop() error
@@ -104,7 +104,7 @@ type Cell interface {
 	Emit(event Event) error
 
 	// EmitNew creates an event and emits it to all subscribers of a cell.
-	EmitNew(topic string, payload Payload) error
+	EmitNew(topic string, payload interface{}) error
 
 	// SubscribersDo calls the passed function for each subscriber.
 	SubscribersDo(f func(s Subscriber) error) error
