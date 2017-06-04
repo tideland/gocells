@@ -27,6 +27,9 @@ import (
 type Payload interface {
 	fmt.Stringer
 
+	// Len returns the size of the payload.
+	Len() int
+
 	// Bytes returns the raw payload bytes.
 	Bytes() []byte
 
@@ -53,14 +56,21 @@ func NewPayload(v interface{}) (Payload, error) {
 	case Payload:
 		return tv, nil
 	default:
-		data, err = json.Marshal(v)
-		if err != nil {
-			return nil, errors.Annotate(err, ErrMarshal, errorMessages)
+		if v != nil {
+			data, err = json.Marshal(v)
+			if err != nil {
+				return nil, errors.Annotate(err, ErrMarshal, errorMessages)
+			}
 		}
 	}
 	return &payload{
 		data: data,
 	}, nil
+}
+
+// Len implements Payload.
+func (p *payload) Len() int {
+	return len(p.data)
 }
 
 // Bytes implements Payload.
