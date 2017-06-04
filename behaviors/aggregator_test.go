@@ -36,38 +36,46 @@ func TestAggregatorBehavior(t *testing.T) {
 	defer env.Stop()
 
 	aggregate := func(payload cells.Payload, event cells.Event) (cells.Payload, error) {
-		current, ok := payload.GetDefault()
-		if !ok {
-			current = ""
+		var topics []string
+		err := payload.Unmarshal(&topics)
+		if err != nil {
+			return nil, err
 		}
-		current += event.Topic()
-		return cells.NewDefaultPayload(current), nil
+		topics = append(topics, event.Topic())
+		return cells.NewPayload(topics), nil
 	}
-	matches := func(event cells.Event) (bool, error) {
-		current, _ := event.Payload().GetDefault()
-		length := len(current)
-		return length > 100, nil
+	match := func(event cells.Event) (bool, error) {
+		var topics []string
+		err := payload.Unmarshal(&topics)
+		if err != nil {
+			return false, err
+		}
+		return len(topics) > 19, nil
 	}
 	wait := func(event cells.Event) error {
-		current, _ := event.Payload().GetDefault()
-		sigc <- len(current)
+		var topics []string
+		err := payload.Unmarshal(&topics)
+		if err != nil {
+			return err
+		}
+		sigc <- len(topics)
 		return nil
 	}
 
 	env.StartCell("aggregator", behaviors.NewAggregatorBehavior(aggregate))
-	env.StartCell("filter", behaviors.NewFilterBehavior(matches))
+	env.StartCell("filter", behaviors.NewFilterBehavior(match))
 	env.StartCell("waiter", behaviors.NewWaiterBehavior(wait))
 	env.Subscribe("aggregator", "filter")
 	env.Subscribe("filter", "waiter")
 
 	go func() {
-		for i := 0; i < 199; i++ {
+		for i := 0; i < 50; i++ {
 			topic := generator.Word()
 			env.EmitNew("aggregator", topic, nil)
 		}
 	}()
 
-	assert.Wait(sigc, 99, time.Minute)
+	assert.Wait(sigc, 20, time.Minute)
 }
 
 // EOF

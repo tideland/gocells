@@ -30,19 +30,19 @@ const (
 
 // AggregatorFunc is a function receiving the current aggregated payload
 // and event and returns the next aggregated payload.
-type AggregatorFunc func(payload cells.Payload, event cells.Event) (cells.Payload, error)
+type Aggregator func(payload cells.Payload, event cells.Event) (cells.Payload, error)
 
 // aggregatorBehavior implements the aggregator behavior.
 type aggregatorBehavior struct {
 	cell      cells.Cell
-	aggregate AggregatorFunc
+	aggregate Aggregator
 	payload   cells.Payload
 }
 
 // NewAggregatorBehavior creates a behavior aggregating the received events
 // and emits events with the new aggregate. A "reset!" topic resets the
 // aggregate to nil again.
-func NewAggregatorBehavior(aggregator AggregatorFunc) cells.Behavior {
+func NewAggregatorBehavior(aggregator Aggregator) cells.Behavior {
 	return &aggregatorBehavior{
 		aggregate: aggregator,
 	}
