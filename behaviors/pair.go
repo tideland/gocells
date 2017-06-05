@@ -28,22 +28,6 @@ const (
 	// TopicPairTimeout signals a timeout during waiting for a
 	// pair of events.
 	TopicPairTimeout = "pair:timeout"
-
-	// PayloadPairFirstData contains the first detected pair eventdata.
-	PayloadPairFirstData = "pair:first:data"
-
-	// PayloadPairFirstTime contains the time of the first detected pair event.
-	PayloadPairFirstTime = "pair:first:time"
-
-	// PayloadPairSecondData contains the second detected pair eventdata.
-	PayloadPairSecondData = "pair:second:data"
-
-	// PayloadPairSecondTime contains the time of the second detected pair event.
-	PayloadPairSecondTime = "pair:second:time"
-
-	// PayloadPairTimeout contains the time of the timeout, when the second
-	// event hasn't been received in time.
-	PayloadPairTimeout = "pair:timeout"
 )
 
 //--------------------
@@ -55,16 +39,25 @@ const (
 // data in case of a first hit is stored and then passed as argument to
 // each further call of the pair criterion. In case of a pair event both
 // returned datas are part of the emitted event payload.
-type PairCriterion func(event cells.Event, hitData interface{}) (interface{}, bool)
+type PairCriterion func(event cells.Event, hit cells.Payload) (cells.Payload, bool)
+
+// Pair contains event pair information.
+type Pair struct {
+	FirstTime     time.Time
+	FirstPayload  cells.Payload
+	SecondTime    time.Time
+	SecondPayload cells.Payload
+	Timeout       time.Time
+}
 
 // pairBehavior checks if events occur in pairs.
 type pairBehavior struct {
-	cell     cells.Cell
-	matches  PairCriterion
-	duration time.Duration
-	hit      *time.Time
-	hitData  interface{}
-	timeout  *time.Timer
+	cell       cells.Cell
+	matches    PairCriterion
+	duration   time.Duration
+	hitTime    *time.Time
+	hitPayload cells.Payload
+	timeout    *time.Timer
 }
 
 // NewPairBehavior creates a behavior checking if two events match a criterion
@@ -73,14 +66,14 @@ type pairBehavior struct {
 // event containing both timestamps and both returned datas is emitted. In case
 // of a timeout a timeout event is emitted. It's payload is the first timestamp,
 // the first data, and the timestamp of the timeout.
-func NewPairBehavior(matches PairCriterion, duration time.Duration) cells.Behavior {
+func NewPairBehavior(criterion PairCriterion, duration time.Duration) cells.Behavior {
 	return &pairBehavior{
-		cell:     nil,
-		matches:  matches,
-		duration: duration,
-		hit:      nil,
-		hitData:  nil,
-		timeout:  nil,
+		cell:       nil,
+		matches:    criterion,
+		duration:   duration,
+		hitTime:    nil,
+		hitPayload: nil,
+		timeout:    nil,
 	}
 }
 
@@ -99,35 +92,37 @@ func (b *pairBehavior) Terminate() error {
 func (b *pairBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case TopicPairTimeout:
-		if b.hit != nil && b.timeout != nil {
+		if b.hitTime != nil && b.timeout != nil {
 			// Received timeout event, check if the expected one.
-			hit, ok := event.Payload().GetTime(PayloadPairFirstTime)
-			if ok && hit.Equal(*b.hit) {
+			var first time.Time
+			err := event.Payload().Unmarshal(&first)
+			if err != nil {
+				return err
+			}
+			if first.Equal(*b.hitTime) {
 				b.emitTimeout()
 				b.timeout = nil
 			}
 		}
 	default:
-		if hitData, ok := b.matches(event, b.hitData); ok {
+		if payload, ok := b.matches(event, b.hitPayload); ok {
 			now := time.Now()
-			if b.hit == nil {
+			if b.hitTime == nil {
 				// First hit, store time and data and start timeout reminder.
-				b.hit = &now
-				b.hitData = hitData
+				b.hitTime = &now
+				b.hitPayload = payload
 				b.timeout = time.AfterFunc(b.duration, func() {
-					b.cell.Environment().EmitNew(b.cell.ID(), TopicPairTimeout, cells.Values{
-						PayloadPairFirstTime: now,
-					}.Payload())
+					b.cell.Environment().EmitNew(b.cell.ID(), TopicPairTimeout, now)
 				})
 			} else {
 				// Second hit earlier than timeout event.
 				// Check if it is in time.
 				b.timeout.Stop()
 				b.timeout = nil
-				if now.Sub(*b.hit) > b.duration {
+				if now.Sub(*b.hitTime) > b.duration {
 					b.emitTimeout()
 				} else {
-					b.emitPair(now, hitData)
+					b.emitPair(now, payload)
 				}
 			}
 		}
@@ -141,24 +136,24 @@ func (b *pairBehavior) Recover(err interface{}) error {
 }
 
 // emitPair emits the event for a successful pair.
-func (b *pairBehavior) emitPair(timestamp time.Time, data interface{}) {
-	b.cell.EmitNew(TopicPair, cells.Values{
-		PayloadPairFirstTime:  *b.hit,
-		PayloadPairFirstData:  b.hitData,
-		PayloadPairSecondTime: timestamp,
-		PayloadPairSecondData: data,
-	}.Payload())
-	b.hit = nil
+func (b *pairBehavior) emitPair(timestamp time.Time, payload cells.Payload) {
+	b.cell.EmitNew(TopicPair, Pair{
+		FirstTime:     *b.hitTime,
+		FirstPayload:  b.hitPayload,
+		SecondTime:    timestamp,
+		SecondPayload: payload,
+	})
+	b.hitTime = nil
 }
 
 // emitTimeout emits the event for a pairing timeout.
 func (b *pairBehavior) emitTimeout() {
-	b.cell.EmitNew(TopicPairTimeout, cells.Values{
-		PayloadPairFirstTime: *b.hit,
-		PayloadPairFirstData: b.hitData,
-		PayloadPairTimeout:   time.Now(),
-	}.Payload())
-	b.hit = nil
+	b.cell.EmitNew(TopicPairTimeout, Pair{
+		FirstTime:    *b.hitTime,
+		FirstPayload: b.hitPayload,
+		Timeout:      time.Now(),
+	})
+	b.hitTime = nil
 }
 
 // EOF

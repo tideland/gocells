@@ -63,11 +63,7 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 		for _, increment := range increments {
 			b.counters[increment]++
 		}
-		values := cells.Values{}
-		for counter, value := range b.counters {
-			values[counter] = value
-		}
-		b.cell.EmitNew(cells.TopicCounted, values.Payload())
+		b.cell.EmitNew(cells.TopicCounted, b.counters)
 	}
 	return nil
 }

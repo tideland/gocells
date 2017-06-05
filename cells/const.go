@@ -42,16 +42,6 @@ const (
 	TopicTick      = "tick"
 )
 
-// Standard playload keys.
-const (
-	PayloadClear      = "clear"
-	PayloadDefault    = "default"
-	PayloadDone       = "done"
-	PayloadError      = "error"
-	PayloadTickerID   = "ticker:id"
-	PayloadTickerTime = "ticker:time"
-)
-
 // Default timeout for requests to cells.
 const (
 	DefaultTimeout = 5 * time.Second

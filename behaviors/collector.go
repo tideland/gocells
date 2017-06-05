@@ -58,7 +58,10 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		if err != nil {
 			return err
 		}
-		clear, _ := event.Payload().GetBool(cells.PayloadClear)
+		var clear bool
+		if err := event.Payload().Unmarshal(&clear); err != nil {
+			return err
+		}
 		if clear {
 			b.sink.Clear()
 		}
