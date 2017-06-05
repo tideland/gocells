@@ -21,20 +21,22 @@ import (
 
 // FSMState is the signature of a function or method which processes
 // an event and returns the following state or an error.
-type FSMState func(cell cells.Cell, event cells.Event) (FSMState, error)
+type FSMState func(cell cells.Cell, event cells.Event) (FSMState, string, error)
 
-// fsmStatus contains information about the current status of the FSM.
-type fsmStatus struct {
-	done bool
-	err  error
+// FSMStatus contains information about the current status of the FSM.
+type FSMStatus struct {
+	Description string
+	Done        bool
+	Error       error
 }
 
 // fsmBehavior runs the finite state machine.
 type fsmBehavior struct {
-	cell  cells.Cell
-	state FSMState
-	done  bool
-	err   error
+	cell        cells.Cell
+	state       FSMState
+	description string
+	done        bool
+	err         error
 }
 
 // NewFSMBehavior creates a finite state machine behavior based on the
@@ -67,7 +69,8 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 		return nil
 	}
 	// Determine next state.
-	state, err := b.state(b.cell, event)
+	state, description, err := b.state(b.cell, event)
+	b.description = description
 	if err != nil {
 		b.done = true
 		b.err = err
@@ -76,10 +79,11 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 	}
 	b.state = state
 	// Emit status.
-	b.cell.EmitNew(cells.TopicStatus, cells.Values{
-		cells.PayloadDone:  b.done,
-		cells.PayloadError: b.err,
-	}.Payload())
+	b.cell.EmitNew(cells.TopicStatus, FSMStatus{
+		Description: b.description,
+		Done:        b.done,
+		Error:       b.err,
+	})
 	return nil
 }
 
