@@ -46,6 +46,14 @@ const (
 // true, if the passed event matches a criterion for rate window measuring.
 type RateWindowCriterion func(event cells.Event) (bool, error)
 
+// RateWindow describes the time window of events matching the defined criterion.
+// It contains the number of events, and the times of the first and last ones.
+type RateWindow struct {
+	Count int
+	First time.Time
+	Last  time.Time
+}
+
 // rateWindowBehavior implements the rate window behavior.
 type rateWindowBehavior struct {
 	cell       cells.Cell
@@ -91,7 +99,7 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 			return err
 		}
 		if ok {
-			current := time.Now()
+			current := event.Timestamp()
 			b.timestamps.Push(current)
 			if b.timestamps.Len() == b.timestamps.Cap() {
 				// Collected timestamps are full, check duration.
@@ -100,11 +108,11 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 				difference := current.Sub(first)
 				if difference <= b.duration {
 					// We've got a burst!
-					b.cell.EmitNew(TopicRateWindow, cells.Values{
-						PayloadRateWindowCount:     b.count,
-						PayloadRateWindowFirstTime: first,
-						PayloadRateWindowLastTime:  current,
-					}.Payload())
+					b.cell.EmitNew(TopicRateWindow, RateWindow{
+						Count: b.count,
+						First: first,
+						Last:  current,
+					})
 				}
 			}
 		}

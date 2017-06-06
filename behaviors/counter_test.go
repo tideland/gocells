@@ -33,26 +33,23 @@ func TestCounterBehavior(t *testing.T) {
 	defer env.Stop()
 
 	counters := func(counters ...string) cells.Payload {
-		return cells.Values{
-			cells.PayloadDefault: counters,
-		}.Payload()
+		payload, err := cells.NewPayload(counters)
+		assert.Nil(err)
+		return payload
 	}
 	counter := func(event cells.Event) []string {
-		increments, ok := event.Payload().GetStringSlice(cells.PayloadDefault)
-		if !ok {
-			return nil
-		}
+		var increments []string
+		err := event.Payload().Unmarshal(&increments)
+		assert.Nil(err)
 		return increments
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
 		if accessor.Len() == 3 {
-			last, err := accessor.PeekLast()
+			last, ok := accessor.PeekLast()
+			assert.True(ok)
+			var values map[string]uint
+			err := last.Payload().Unmarshal(&values)
 			assert.Nil(err)
-			values := cells.Values{}
-			last.Payload().Do(func(key, value string) error {
-				values[key] = value
-				return nil
-			})
 			sigc <- values
 		}
 		return nil
@@ -68,11 +65,11 @@ func TestCounterBehavior(t *testing.T) {
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
 
-	assert.Wait(sigc, cells.Values{
-		"a": "3",
-		"b": "1",
-		"c": "1",
-		"d": "2",
+	assert.Wait(sigc, map[string]uint{
+		"a": 3,
+		"b": 1,
+		"c": 1,
+		"d": 2,
 	}, time.Second)
 }
 

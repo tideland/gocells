@@ -72,6 +72,10 @@ func (e *event) Topic() string {
 
 // Payload implements the Event interface.
 func (e *event) Payload() Payload {
+	if e.payload == nil {
+		// Fallback to empty one.
+		return newEmptyPayload()
+	}
 	return e.payload
 }
 
@@ -114,6 +118,10 @@ type EventSinkAccessor interface {
 // EventSinkProcessor can be used as a checker function but also inside of
 // behaviors to process the content of an event sink.
 type EventSinkProcessor func(events EventSinkAccessor) error
+
+// EventSinkAnalyzer can be used as a function analyzing an event sink
+// inside a behavior and returning a payload emitted by the cell then.
+type EventSinkAnalyzer func(events EventSinkAccessor) (Payload, error)
 
 // EventSink stores a number of events ordered by adding them at the end. To
 // be used in behaviors for collecting sets of events and operate on them.

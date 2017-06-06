@@ -41,7 +41,7 @@ func TestCollectorBehavior(t *testing.T) {
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
 
 	for _, word := range generator.Words(25) {
-		env.EmitNew("collector", "collect", cells.NewDefaultPayload(word))
+		env.EmitNew("collector", "collect", word)
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)

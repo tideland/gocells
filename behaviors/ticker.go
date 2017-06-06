@@ -23,20 +23,19 @@ import (
 //--------------------
 
 const (
-	// TopicTicker signals a tick event.
-	TopicTicker = "tick!"
-
-	// PayloadTickerID contains the ID of the ticker to differentiante
-	// multiple ones.
-	PayloadTickerID = "ticker:id"
-
-	// PayloadTickerTime contains the time of the tick event.
-	PayloadTickerTime = "ticker:time"
+	// TopicTick signals a tick event.
+	TopicTick = "tick"
 )
 
 //--------------------
 // TICKER BEHAVIOR
 //--------------------
+
+// Tick contains one tick of the ticker behavior.
+type Tick struct {
+	ID   string
+	Time time.Time
+}
 
 // tickerBehavior emits events in chronological order.
 type tickerBehavior struct {
@@ -67,11 +66,11 @@ func (b *tickerBehavior) Terminate() error {
 // PrecessEvent emits a ticker event each time the
 // defined duration elapsed.
 func (b *tickerBehavior) ProcessEvent(event cells.Event) error {
-	if event.Topic() == TopicTicker {
-		b.cell.EmitNew(TopicTicker, cells.Values{
-			PayloadTickerID:   b.cell.ID(),
-			PayloadTickerTime: time.Now(),
-		}.Payload())
+	if event.Topic() == TopicTick {
+		b.cell.EmitNew(TopicTick, Tick{
+			ID:   b.cell.ID(),
+			Time: event.Timestamp(),
+		})
 	}
 	return nil
 }
@@ -88,11 +87,9 @@ func (b *tickerBehavior) tickerLoop(l loop.Loop) error {
 		case <-l.ShallStop():
 			return nil
 		case now := <-time.After(b.duration):
-			// Notify myself, action there to avoid
+			// Notify myself, act there to avoid
 			// race when subscribers are updated.
-			b.cell.Environment().EmitNew(b.cell.ID(), TopicTicker, cells.Values{
-				cells.PayloadTickerTime: now,
-			}.Payload())
+			b.cell.Environment().EmitNew(b.cell.ID(), TopicTick, now)
 		}
 	}
 }

@@ -68,6 +68,14 @@ func NewPayload(v interface{}) (Payload, error) {
 	}, nil
 }
 
+// newEmptyPayload returns a payload with empty data for
+// lazy access to events with no payload.
+func newEmptyPayload() Payload {
+	return &payload{
+		data: []byte{},
+	}
+}
+
 // Len implements Payload.
 func (p *payload) Len() int {
 	return len(p.data)
