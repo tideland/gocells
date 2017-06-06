@@ -46,13 +46,13 @@ func TestEvaluatorBehavior(t *testing.T) {
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluator))
-	env.StartCell("stopper", behaviors.NewSimpleBehavior(stopper))
+	env.StartCell("stopper", behaviors.NewSimpleProcessorBehavior(stopper))
 	env.Subscribe("evaluator", "stopper")
 
 	go func() {
 		for i := 0; i < 10000; i++ {
 			topic := generator.OneStringOf(topics...)
-			env.EmitNew(ctx, "evaluator", topic, nil)
+			env.EmitNew("evaluator", topic, nil)
 		}
 	}()
 }

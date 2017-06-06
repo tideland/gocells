@@ -42,11 +42,11 @@ func TestAggregatorBehavior(t *testing.T) {
 			return nil, err
 		}
 		topics = append(topics, event.Topic())
-		return cells.NewPayload(topics), nil
+		return cells.NewPayload(topics)
 	}
 	match := func(event cells.Event) (bool, error) {
 		var topics []string
-		err := payload.Unmarshal(&topics)
+		err := event.Payload().Unmarshal(&topics)
 		if err != nil {
 			return false, err
 		}
@@ -54,7 +54,7 @@ func TestAggregatorBehavior(t *testing.T) {
 	}
 	wait := func(event cells.Event) error {
 		var topics []string
-		err := payload.Unmarshal(&topics)
+		err := event.Payload().Unmarshal(&topics)
 		if err != nil {
 			return err
 		}

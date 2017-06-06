@@ -57,12 +57,9 @@ func TestComboBehavior(t *testing.T) {
 				return cells.CriterionKeep, nil
 			}
 		}
-		return cells.CriterionDone, cells.Values{
-			"a": combo["a"],
-			"b": combo["b"],
-			"c": combo["c"],
-			"d": combo["d"],
-		}.Payload()
+		payload, err := cells.NewPayload(combo)
+		assert.Nil(err)
+		return cells.CriterionDone, payload
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
 		sigc <- accessor.Len()

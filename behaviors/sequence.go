@@ -22,9 +22,6 @@ import (
 const (
 	// TopicSequence signals a complete sequence based on the criterion.
 	TopicSequence = "sequence"
-
-	// PayloadSequenceEvents contains the events of the sequence.
-	PayloadSequenceEvents = "sequence:events"
 )
 
 //--------------------
@@ -41,15 +38,17 @@ type SequenceCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMat
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
+	analyze cells.EventSinkAnalyzer
 	sink    cells.EventSink
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It checks the
 // event stream for a sequence defined by the criterion. In this case an
 // event containing the sequence is emitted.
-func NewSequenceBehavior(matches SequenceCriterion) cells.Behavior {
+func NewSequenceBehavior(criterion SequenceCriterion, analyzer cells.EventSinkAnalyzer) cells.Behavior {
 	return &sequenceBehavior{
-		matches: matches,
+		matches: criterion,
+		analyze: analyzer,
 		sink:    cells.NewEventSink(0),
 	}
 }
@@ -76,11 +75,12 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		matches := b.matches(b.sink)
 		switch matches {
 		case cells.CriterionDone:
-			// All done, emit and start over.
-			// TODO 2017-05-31 Mue Change to event sink processor.
-			b.cell.EmitNew(TopicSequence, cells.Values{
-				PayloadSequenceEvents: b.sink,
-			}.Payload())
+			// All done, process and start over.
+			payload, err := b.analyze(b.sink)
+			if err != nil {
+				return err
+			}
+			b.cell.EmitNew(TopicSequence, payload)
 			b.sink = cells.NewEventSink(0)
 		case cells.CriterionKeep:
 			// So far ok.
