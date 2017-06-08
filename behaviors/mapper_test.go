@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -30,7 +29,6 @@ import (
 // TestMapperBehavior tests the mapping of events.
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
 	assertPayload := func(accessor cells.EventSinkAccessor, index int, value string) {
 		event, ok := accessor.PeekAt(index)
 		assert.True(ok)

@@ -20,7 +20,7 @@ import (
 //--------------------
 
 // Mapper is a function type mapping an event to another one.
-type Mapper func(id string, event cells.Event) (cells.Event, error)
+type Mapper func(event cells.Event) (cells.Event, error)
 
 // mapperBehavior maps the received event to a new event.
 type mapperBehavior struct {
@@ -49,12 +49,12 @@ func (b *mapperBehavior) Terminate() error {
 
 // ProcessEvent maps the received event to a new one and emits it.
 func (b *mapperBehavior) ProcessEvent(event cells.Event) error {
-	mappedEvent, err := b.mapper(b.cell.ID(), event)
+	mapped, err := b.mapper(event)
 	if err != nil {
 		return err
 	}
-	if mappedEvent != nil {
-		b.cell.Emit(mappedEvent)
+	if mapped != nil {
+		b.cell.Emit(mapped)
 	}
 	return nil
 }
