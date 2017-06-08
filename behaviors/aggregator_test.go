@@ -52,7 +52,7 @@ func TestAggregatorBehavior(t *testing.T) {
 		}
 		return len(topics) > 19, nil
 	}
-	wait := func(event cells.Event) error {
+	oneTimer := func(cell cells.Cell, event cells.Event) error {
 		var topics []string
 		err := event.Payload().Unmarshal(&topics)
 		if err != nil {
@@ -64,7 +64,7 @@ func TestAggregatorBehavior(t *testing.T) {
 
 	env.StartCell("aggregator", behaviors.NewAggregatorBehavior(aggregate))
 	env.StartCell("filter", behaviors.NewFilterBehavior(match))
-	env.StartCell("waiter", behaviors.NewWaiterBehavior(wait))
+	env.StartCell("once", behaviors.NewOnceBehavior(oneTimer))
 	env.Subscribe("aggregator", "filter")
 	env.Subscribe("filter", "waiter")
 
