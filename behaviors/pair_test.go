@@ -34,7 +34,7 @@ func TestPairBehavior(t *testing.T) {
 	env := cells.NewEnvironment("pair-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event, data interface{}) (interface{}, bool) {
+	matches := func(event cells.Event, data cells.Payload) (cells.Payload, bool) {
 		if event.Topic() == "now" {
 			now := time.Now().Unix()
 			return now, true
