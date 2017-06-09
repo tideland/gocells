@@ -32,7 +32,7 @@ func TestOnceBehavior(t *testing.T) {
 	env := cells.NewEnvironment("once-behavior")
 	defer env.Stop()
 
-	oneTimer := func(cell cells.Cell, event cell.Event) error {
+	oneTimer := func(cell cells.Cell, event cells.Event) error {
 		sigc <- event.Topic()
 		err := cell.EmitNew(cell.ID(), event.Payload())
 		return err
@@ -44,8 +44,8 @@ func TestOnceBehavior(t *testing.T) {
 	env.EmitNew("first", "foo", "1")
 	env.EmitNew("first", "bar", "2")
 
-	audit.Wait(sigc, "foo", time.Second)
-	audit.Wait(sigc, "first", time.Second)
+	assert.Wait(sigc, "foo", time.Second)
+	assert.Wait(sigc, "first", time.Second)
 }
 
 // EOF

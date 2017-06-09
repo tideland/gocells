@@ -13,8 +13,8 @@ package behaviors_test
 
 import (
 	"strings"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -29,40 +29,49 @@ import (
 // TestMapperBehavior tests the mapping of events.
 func TestMapperBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	assertPayload := func(accessor cells.EventSinkAccessor, index int, value string) {
-		event, ok := accessor.PeekAt(index)
-		assert.True(ok)
-		upperText := event.Payload().GetString("upper-text", "<none>")
-		assert.Equal(upperText, value)
-	}
 	env := cells.NewEnvironment("mapper-behavior")
 	defer env.Stop()
 
-	mapper := func(id string, event cells.Event) (cells.Event, error) {
-		text := event.Payload().GetString(cells.PayloadDefault, "")
-		pv := cells.PayloadValues{
-			"upper-text": strings.ToUpper(text),
+	mapper := func(event cells.Event) (cells.Event, error) {
+		var text string
+		err := event.Payload().Unmarshal(&text)
+		if err != nil {
+			return nil, err
 		}
-		payload := event.Payload().Apply(pv)
-		return cells.NewEvent(event.Context(), event.Topic(), payload)
+		return cells.NewEvent(event.Topic(), strings.ToUpper(text))
+	}
+
+	var wg sync.WaitGroup
+
+	processor := func(cell cells.Cell, event cells.Event) error {
+		wg.Done()
+		var text string
+		err := event.Payload().Unmarshal(&text)
+		if err != nil {
+			return err
+		}
+		switch event.Topic() {
+		case "a":
+			assert.Equal(text, "ABC")
+		case "b":
+			assert.Equal(text, "DEF")
+		case "c":
+			assert.Equal(text, "GHI")
+		default:
+			assert.Fail("mapper didn't work: %s = %s", event.Topic(), text)
+		}
+		return nil
 	}
 
 	env.StartCell("mapper", behaviors.NewMapperBehavior(mapper))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
-	env.Subscribe("mapper", "collector")
+	env.StartCell("processor", behaviors.NewSimpleProcessorBehavior(processor))
+	env.Subscribe("mapper", "processor")
 
-	env.EmitNew(ctx, "mapper", "a", "abc")
-	env.EmitNew(ctx, "mapper", "b", "def")
-	env.EmitNew(ctx, "mapper", "c", "ghi")
-
-	time.Sleep(100 * time.Millisecond)
-
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.Length(accessor, 3)
-	assertPayload(accessor, 0, "ABC")
-	assertPayload(accessor, 1, "DEF")
-	assertPayload(accessor, 2, "GHI")
+	wg.Add(3)
+	env.EmitNew("mapper", "a", "abc")
+	env.EmitNew("mapper", "b", "def")
+	env.EmitNew("mapper", "c", "ghi")
+	wg.Wait()
 }
 
 // EOF
