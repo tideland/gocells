@@ -12,7 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -29,42 +29,33 @@ import (
 // TestRoundRobinBehavior tests the round robin behavior.
 func TestRoundRobinBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("round-robin-behavior")
 	defer env.Stop()
 
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
+		return nil
+	}
+
 	env.StartCell("round-robin", behaviors.NewRoundRobinBehavior())
-	env.StartCell("round-robin-1", behaviors.NewCollectorBehavior(10))
-	env.StartCell("round-robin-2", behaviors.NewCollectorBehavior(10))
-	env.StartCell("round-robin-3", behaviors.NewCollectorBehavior(10))
-	env.StartCell("round-robin-4", behaviors.NewCollectorBehavior(10))
-	env.StartCell("round-robin-5", behaviors.NewCollectorBehavior(10))
+	env.StartCell("round-robin-1", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("round-robin-2", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("round-robin-3", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("round-robin-4", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("round-robin-5", behaviors.NewCollectorBehavior(10, processor))
 	env.Subscribe("round-robin", "round-robin-1", "round-robin-2", "round-robin-3", "round-robin-4", "round-robin-5")
 
-	time.Sleep(100 * time.Millisecond)
-
-	// Just 23 to let two cells receive less events.
 	for i := 0; i < 25; i++ {
-		err := env.EmitNew(ctx, "round-robin", "round", i)
+		err := env.EmitNew("round-robin", "round", i)
 		assert.Nil(err)
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
-	test := func(id string) int {
-		accessor, err := behaviors.RequestCollectedAccessor(env, id, cells.DefaultTimeout)
-		assert.Nil(err)
-		assert.Length(accessor, 5)
-		return accessor.Len()
+	for i := 1; i < 6; i++ {
+		cellID := fmt.Sprintf("round-robin-%d", i)
+		env.EmitNew(cellID, cells.TopicProcess, nil)
+		assert.Wait(sigc, 5, time.Second)
 	}
-
-	l1 := test("round-robin-1")
-	l2 := test("round-robin-2")
-	l3 := test("round-robin-3")
-	l4 := test("round-robin-4")
-	l5 := test("round-robin-5")
-
-	assert.Equal(l1+l2+l3+l4+l5, 25)
 }
 
 // EOF
