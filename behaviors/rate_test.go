@@ -12,8 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -30,38 +28,32 @@ import (
 // TestRateBehavior tests the event rate behavior.
 func TestRateBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
+	generator := audit.NewGenerator(audit.FixedRand())
 	env := cells.NewEnvironment("rate-behavior")
 	defer env.Stop()
 
-	matches := func(event cells.Event) (bool, error) {
+	matcher := func(event cells.Event) (bool, error) {
 		return event.Topic() == "now", nil
+	}
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
+		return nil
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 
-	env.StartCell("rater", behaviors.NewRateBehavior(matches, 100))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10000))
+	env.StartCell("rater", behaviors.NewRateBehavior(matcher, 100))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10000, processor))
 	env.Subscribe("rater", "collector")
 
 	for i := 0; i < 10000; i++ {
-		topic := topics[rand.Intn(len(topics))]
-		env.EmitNew(ctx, "rater", topic, nil)
-		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
+		topic := generator.OneStringOf(topics...)
+		env.EmitNew("rater", topic, nil)
+		generator.SleepOneOf(0, time.Millisecond, 2*time.Millisecond)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.True(accessor.Len() <= 10000)
-	err = accessor.Do(func(index int, event cells.Event) error {
-		assert.Equal(event.Topic(), behaviors.TopicRate)
-		hi := event.Payload().GetDuration(behaviors.PayloadRateHigh, -1)
-		avg := event.Payload().GetDuration(behaviors.PayloadRateAverage, -1)
-		lo := event.Payload().GetDuration(behaviors.PayloadRateLow, -1)
-		assert.True(lo <= avg)
-		assert.True(avg <= hi)
-		return nil
-	})
-	assert.Nil(err)
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 10, time.Minute)
 }
 
 // EOF
