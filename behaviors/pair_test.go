@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -29,7 +28,7 @@ import (
 // TestPairBehavior tests the event pair behavior.
 func TestPairBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	generator := audit.NewGenerator(audit.FixedRand())
 	env := cells.NewEnvironment("pair-behavior")
 	defer env.Stop()
@@ -37,7 +36,8 @@ func TestPairBehavior(t *testing.T) {
 	matches := func(event cells.Event, data cells.Payload) (cells.Payload, bool) {
 		if event.Topic() == "now" {
 			now := time.Now().Unix()
-			return now, true
+			payload, _ := cells.NewPayload(now)
+			return payload, true
 		}
 		return nil, false
 	}
@@ -52,54 +52,33 @@ func TestPairBehavior(t *testing.T) {
 			return event.Topic() == topic, nil
 		}
 	}
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
+		return nil
+	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 	duration := time.Millisecond
 
 	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
 	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterBuilder(true)))
 	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterBuilder(false)))
-	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000))
-	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000))
+	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000, processor))
+	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000, processor))
 	env.Subscribe("pairer", "positive-filter", "negative-filter")
 	env.Subscribe("positive-filter", "positive-collector")
 	env.Subscribe("negative-filter", "negative-collector")
 
 	for i := 0; i < 5000; i++ {
 		topic := generator.OneStringOf(topics...)
-		env.EmitNew(ctx, "pairer", topic, nil)
+		env.EmitNew("pairer", topic, nil)
 		generator.SleepOneOf(0, time.Millisecond, 2*time.Millisecond)
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "positive-collector", cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.True(accessor.Len() >= 1)
-	assert.Logf("Positive Events: %d", accessor.Len())
+	env.EmitNew("positive-collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 10, time.Minute)
 
-	err = accessor.Do(func(index int, event cells.Event) error {
-		first := event.Payload().GetTime(behaviors.PayloadPairFirstTime, time.Time{})
-		second := event.Payload().GetTime(behaviors.PayloadPairSecondTime, time.Time{})
-		difference := second.Sub(first)
-		assert.False(first.IsZero())
-		assert.False(second.IsZero())
-		assert.True(difference <= duration)
-		return nil
-	})
-
-	accessor, err = behaviors.RequestCollectedAccessor(env, "negative-collector", cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.True(accessor.Len() >= 1)
-	assert.Logf("Negative Events: %d", accessor.Len())
-
-	err = accessor.Do(func(index int, event cells.Event) error {
-		first := event.Payload().GetTime(behaviors.PayloadPairFirstTime, time.Time{})
-		timeout := event.Payload().GetTime(behaviors.PayloadPairTimeout, time.Time{})
-		difference := timeout.Sub(first)
-		assert.False(first.IsZero())
-		assert.False(timeout.IsZero())
-		assert.True(difference > duration)
-		return nil
-	})
-	assert.Nil(err)
+	env.EmitNew("negative-collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 10, time.Minute)
 }
 
 // EOF
