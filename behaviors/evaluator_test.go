@@ -41,7 +41,8 @@ func TestEvaluatorBehavior(t *testing.T) {
 		return float64(i), nil
 	}
 	stopper := func(cell cells.Cell, event cells.Event) error {
-		// TODO 2017-06-03 Mue Find criterion for stopping.
+		// TODO 2017-06-03 Mue Find test criterion for stopping.
+		return nil
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
