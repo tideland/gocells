@@ -39,6 +39,7 @@ func TestBroadcasterBehavior(t *testing.T) {
 		if accessor.Len() == 2 {
 			wg.Done()
 		}
+		return nil
 	}
 
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())

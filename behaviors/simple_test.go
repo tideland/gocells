@@ -43,9 +43,9 @@ func TestSimpleBehavior(t *testing.T) {
 	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(spf))
 
 	wg.Add(3)
-	env.EmitNew(ctx, "simple", "foo", "")
-	env.EmitNew(ctx, "simple", "bar", "")
-	env.EmitNew(ctx, "simple", "baz", "")
+	env.EmitNew("simple", "foo", "")
+	env.EmitNew("simple", "bar", "")
+	env.EmitNew("simple", "baz", "")
 
 	wg.Wait()
 	assert.Length(topics, 3)

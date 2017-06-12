@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -30,32 +29,33 @@ import (
 // TestRouterBehavior tests the router behavior.
 func TestRouterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("router-behavior")
 	defer env.Stop()
 
-	rf := func(emitterID, subscriberID string, event cells.Event) (bool, error) {
+	router := func(emitterID, subscriberID string, event cells.Event) (bool, error) {
 		ok := strings.Contains(event.Topic(), subscriberID)
 		return ok, nil
 	}
-	env.StartCell("router", behaviors.NewRouterBehavior(rf))
-	env.StartCell("test-1", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-2", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-3", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-4", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-5", behaviors.NewCollectorBehavior(10))
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc := accessor.Len()
+		return nil
+	}
+	env.StartCell("router", behaviors.NewRouterBehavior(router))
+	env.StartCell("test-1", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-2", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-3", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-4", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-5", behaviors.NewCollectorBehavior(10, processor))
 	env.Subscribe("router", "test-1", "test-2", "test-3", "test-4", "test-5")
 
-	env.EmitNew(ctx, "router", "test-1:test-2", "a")
-	env.EmitNew(ctx, "router", "test-1:test-2:test-3", "b")
-	env.EmitNew(ctx, "router", "test-3:test-4:test-5", "c")
-
-	time.Sleep(100 * time.Millisecond)
+	env.EmitNew("router", "test-1:test-2", "a")
+	env.EmitNew("router", "test-1:test-2:test-3", "b")
+	env.EmitNew("router", "test-3:test-4:test-5", "c")
 
 	test := func(id string, length int) {
-		accessor, err := behaviors.RequestCollectedAccessor(env, id, cells.DefaultTimeout)
-		assert.Nil(err)
-		assert.Length(accessor, length)
+		env.EmitNew(id, cells.TopicProcess, nil)
+		assert.Wait(sigc, length, time.Second)
 	}
 
 	test("test-1", 2)
