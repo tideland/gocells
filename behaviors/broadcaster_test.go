@@ -12,9 +12,8 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
-	"sync"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -29,38 +28,28 @@ import (
 // TestBroadcasterBehavior tests the broadcast behavior.
 func TestBroadcasterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
-	var wg sync.WaitGroup
-
 	processor := func(accessor cells.EventSinkAccessor) error {
-		if accessor.Len() == 2 {
-			wg.Done()
-		}
+		sigc <- accessor.Len()
 		return nil
 	}
 
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
 	env.StartCell("test-a", behaviors.NewCollectorBehavior(10, processor))
 	env.StartCell("test-b", behaviors.NewCollectorBehavior(10, processor))
-	env.StartCell("signaller", behaviors.NewSimpleProcessorBehavior(func(cell cells.Cell, event cells.Event) error {
-		wg.Done()
-		return nil
-	}))
 	env.Subscribe("broadcast", "test-a", "test-b")
-	env.Subscribe("test-b", "signaller")
-
-	wg.Add(3)
 
 	env.EmitNew("broadcast", "test", nil)
 	env.EmitNew("broadcast", "test", nil)
 	env.EmitNew("broadcast", "test", nil)
 
-	wg.Wait()
-
-	env.EmitNew("broadcast", cells.TopicCollected, nil)
+	env.EmitNew("test-a", cells.TopicProcess, nil)
+	assert.Wait(sigc, 3, time.Second)
+	env.EmitNew("test-b", cells.TopicProcess, nil)
+	assert.Wait(sigc, 3, time.Second)
 }
 
 // EOF
