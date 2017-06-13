@@ -54,7 +54,7 @@ func TestSequenceBehavior(t *testing.T) {
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
 		// TODO 2017-06-12 Mue Signal aggregated collected payloads.
-		sigc := accessor.Len()
+		sigc <- accessor.Len()
 		return nil
 	}
 	topics := []string{"a", "b", "c", "d", "now"}

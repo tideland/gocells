@@ -37,7 +37,7 @@ func TestRateWindowBehavior(t *testing.T) {
 		return event.Topic() == "now", nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc := accessor.Len()
+		sigc <- accessor.Len()
 		return nil
 	}
 	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}

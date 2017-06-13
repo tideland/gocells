@@ -14,6 +14,7 @@ package behaviors_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -28,10 +29,12 @@ import (
 // TestFSMBehavior tests the finite state machine behavior.
 func TestFSMBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("fsm-behavior")
 	defer env.Stop()
 
 	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
 		return nil
 	}
 
@@ -63,17 +66,20 @@ func TestFSMBehavior(t *testing.T) {
 	env.EmitNew("lock-a", "info", nil)
 	env.EmitNew("lock-a", "button-press", nil)
 
-	// TODO 2017-06-07 Mue Add asserts.
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 1, time.Second)
 
 	// 3rd run: put a screwdriwer in the lock.
 	env.EmitNew("lock-a", "screwdriver", nil)
 
-	// TODO 2017-06-07 Mue Add asserts.
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 1, time.Second)
 
 	// 4th run: try an illegal action.
 	env.EmitNew("lock-b", "chewing-gum", nil)
 
-	// TODO 2017-06-07 Mue Add asserts.
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 1, time.Second)
 }
 
 //--------------------
