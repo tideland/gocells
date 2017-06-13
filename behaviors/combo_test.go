@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -31,7 +30,6 @@ func TestComboBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	generator := audit.NewGenerator(audit.FixedRand())
 	sigc := audit.MakeSigChan()
-	ctx := context.Background()
 	env := cells.NewEnvironment("combo-behavior")
 	defer env.Stop()
 

@@ -14,6 +14,7 @@ package behaviors_test
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -25,9 +26,7 @@ import (
 // TESTS
 //--------------------
 
-// TestEvaluatorBehavior tests the evaluator behavior. Scenario
-// is to wait until the average evaluation has been larger than
-// 6.0 for 3 times.
+// TestEvaluatorBehavior tests the evaluator behavior.
 func TestEvaluatorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	sigc := audit.MakeSigChan()
@@ -40,22 +39,31 @@ func TestEvaluatorBehavior(t *testing.T) {
 		assert.Nil(err)
 		return float64(i), nil
 	}
-	stopper := func(cell cells.Cell, event cells.Event) error {
-		// TODO 2017-06-03 Mue Find test criterion for stopping.
+	filter := func(event cells.Event) (bool, error) {
+		var payload float64
+		err := event.Payload().Unmarshal(&payload)
+		assert.Nil(err)
+		return payload > 6.0, nil
+	}
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
 		return nil
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluator))
-	env.StartCell("stopper", behaviors.NewSimpleProcessorBehavior(stopper))
-	env.Subscribe("evaluator", "stopper")
+	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10000, processor))
+	env.Subscribe("evaluator", "filter")
+	env.Subscribe("filter", "processor")
 
-	go func() {
-		for i := 0; i < 10000; i++ {
-			topic := generator.OneStringOf(topics...)
-			env.EmitNew("evaluator", topic, nil)
-		}
-	}()
+	for i := 0; i < 10000; i++ {
+		topic := generator.OneStringOf(topics...)
+		env.EmitNew("evaluator", topic, nil)
+	}
+
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 10, time.Minute)
 }
 
 // EOF

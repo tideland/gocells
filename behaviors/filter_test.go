@@ -32,7 +32,7 @@ func TestFilterBehavior(t *testing.T) {
 	defer env.Stop()
 
 	var wg sync.WaitGroup
-	matcher := func(event cells.Event) (bool, error) {
+	filter := func(event cells.Event) (bool, error) {
 		var payload string
 		err := event.Payload().Unmarshal(&payload)
 		assert.Nil(err)
@@ -46,7 +46,7 @@ func TestFilterBehavior(t *testing.T) {
 		wg.Done()
 		return nil
 	}
-	env.StartCell("filter", behaviors.NewFilterBehavior(matcher))
+	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
 	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(processor))
 	env.Subscribe("filter", "simple")
 

@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -29,7 +28,6 @@ import (
 // TestCallbackBehavior tests the callback behavior.
 func TestCallbackBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
 	env := cells.NewEnvironment("callback-behavior")
 	defer env.Stop()
 
