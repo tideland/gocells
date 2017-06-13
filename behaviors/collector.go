@@ -58,12 +58,14 @@ func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 		if err != nil {
 			return err
 		}
-		var clear bool
-		if err := event.Payload().Unmarshal(&clear); err != nil {
-			return err
-		}
-		if clear {
-			b.sink.Clear()
+		if event.Payload().Len() != 0 {
+			var clear bool
+			if err := event.Payload().Unmarshal(&clear); err != nil {
+				return err
+			}
+			if clear {
+				b.sink.Clear()
+			}
 		}
 	case cells.TopicReset:
 		b.sink.Clear()
