@@ -38,7 +38,7 @@ func TestRouterBehavior(t *testing.T) {
 		return ok, nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc := accessor.Len()
+		sigc <- accessor.Len()
 		return nil
 	}
 	env.StartCell("router", behaviors.NewRouterBehavior(router))
