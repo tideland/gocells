@@ -34,12 +34,12 @@ func TestSequenceBehavior(t *testing.T) {
 	defer env.Stop()
 
 	sequence := []string{"a", "b", "now"}
-	matcher := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
-		amatcher := func(index int, event cells.Event) (bool, error) {
+	sequencer := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
+		matcher := func(index int, event cells.Event) (bool, error) {
 			ok := event.Topic() == sequence[index]
 			return ok, nil
 		}
-		matches, err := accessor.Match(amatcher)
+		matches, err := accessor.Match(matcher)
 		if err != nil || !matches {
 			return cells.CriterionClear
 		}
@@ -49,28 +49,36 @@ func TestSequenceBehavior(t *testing.T) {
 		return cells.CriterionKeep
 	}
 	analyzer := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
-		// TODO 2017-06-12 Mue Added analyzing to return better payload.
-		return nil, nil
+		first, ok := accessor.PeekFirst()
+		assert.True(ok)
+		return first.Payload(), nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		// TODO 2017-06-12 Mue Signal aggregated collected payloads.
-		sigc <- accessor.Len()
+		var indexes []int
+		err := accessor.Do(func(_ int, event cells.Event) error {
+			var index int
+			event.Payload().Unmarshal(&index)
+			indexes = append(indexes, index)
+			return nil
+		})
+		assert.Nil(err)
+		sigc <- indexes
 		return nil
 	}
 	topics := []string{"a", "b", "c", "d", "now"}
 
-	env.StartCell("sequencer", behaviors.NewSequenceBehavior(matcher, analyzer))
+	env.StartCell("sequencer", behaviors.NewSequenceBehavior(sequencer, analyzer))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(100, processor))
 	env.Subscribe("sequencer", "collector")
 
 	for i := 0; i < 1000; i++ {
 		topic := generator.OneStringOf(topics...)
-		env.EmitNew("sequencer", topic, nil)
+		env.EmitNew("sequencer", topic, i)
 		generator.SleepOneOf(0, 1*time.Millisecond, 2*time.Millisecond)
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
+	assert.Wait(sigc, []int{155, 269, 287, 298, 523, 888}, time.Minute)
 }
 
 // EOF
