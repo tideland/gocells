@@ -16,6 +16,16 @@ import (
 )
 
 //--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicFSMStatus is used to make the FSM emit its
+	// current status.
+	TopicFSMStatus = "fsm-status"
+)
+
+//--------------------
 // FSM BEHAVIOR
 //--------------------
 
@@ -78,13 +88,18 @@ func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
 		return nil
 	}
 	// Process event and determine next status.
-	b.status = b.status.Process(b.cell, event)
-	// Emit information.
-	b.cell.EmitNew(cells.TopicStatus, FSMInfo{
-		Info:  b.status.Info,
-		Done:  b.status.Done(),
-		Error: b.status.Error,
-	})
+	switch event.Topic() {
+	case TopicFSMStatus:
+		// Emit information.
+		b.cell.EmitNew(cells.TopicStatus, FSMInfo{
+			Info:  b.status.Info,
+			Done:  b.status.Done(),
+			Error: b.status.Error,
+		})
+	default:
+		// Process event.
+		b.status = b.status.Process(b.cell, event)
+	}
 	return b.status.Error
 }
 

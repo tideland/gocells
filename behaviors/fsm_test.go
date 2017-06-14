@@ -34,7 +34,12 @@ func TestFSMBehavior(t *testing.T) {
 	defer env.Stop()
 
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
+		eventInfos := []string{}
+		accessor.Do(func(index int, event cells.Event) error {
+			eventInfos = append(eventInfos, event.Topic())
+			return nil
+		})
+		sigc <- eventInfos
 		return nil
 	}
 
@@ -44,42 +49,53 @@ func TestFSMBehavior(t *testing.T) {
 	env.StartCell("lock-a", behaviors.NewFSMBehavior(behaviors.FSMStatus{"locked", lockA.Locked, nil}))
 	env.StartCell("lock-b", behaviors.NewFSMBehavior(behaviors.FSMStatus{"locked", lockB.Locked, nil}))
 	env.StartCell("restorer", newRestorerBehavior())
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("collector-a", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("collector-b", behaviors.NewCollectorBehavior(10, processor))
 
-	env.Subscribe("lock-a", "restorer", "collector")
-	env.Subscribe("lock-b", "restorer", "collector")
+	env.Subscribe("lock-a", "restorer", "collector-a")
+	env.Subscribe("lock-b", "restorer", "collector-b")
 
 	// 1st run: emit not enough and press button.
 	env.EmitNew("lock-a", "coin", 20)
 	env.EmitNew("lock-a", "coin", 20)
 	env.EmitNew("lock-a", "coin", 20)
-	env.EmitNew("lock-a", "button-press", nil)
+	env.EmitNew("lock-a", "info", nil)
+	env.EmitNew("lock-a", "press-button", nil)
 	env.EmitNew("lock-a", "check-cents", nil)
 	env.EmitNew("restorer", "grab", nil)
 
-	// TODO 2017-06-07 Mue Add asserts.
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"status", "coins-dropped", "cents-checked"}, time.Second)
 
 	// 2nd run: unlock the lock and lock it again.
 	env.EmitNew("lock-a", "coin", 50)
 	env.EmitNew("lock-a", "coin", 20)
 	env.EmitNew("lock-a", "coin", 50)
 	env.EmitNew("lock-a", "info", nil)
-	env.EmitNew("lock-a", "button-press", nil)
+	env.EmitNew("lock-a", "press-button", nil)
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 1, time.Second)
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"unlocked", "status", "coins-dropped"}, time.Second)
 
 	// 3rd run: put a screwdriwer in the lock.
-	env.EmitNew("lock-a", "screwdriver", nil)
+	env.EmitNew("lock-a", "plastic-chip", true)
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 1, time.Second)
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"dunno"}, time.Second)
 
 	// 4th run: try an illegal action.
-	env.EmitNew("lock-b", "chewing-gum", nil)
+	env.EmitNew("lock-b", "screwdriver", nil)
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 1, time.Second)
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector-b", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"error"}, time.Second)
 }
 
 //--------------------
@@ -103,9 +119,9 @@ type lockMachine struct {
 func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) behaviors.FSMStatus {
 	switch event.Topic() {
 	case "check-cents":
-		cell.EmitNew(event.Topic(), fmt.Sprintf("%s: %d", cell.ID(), m.cents))
+		cell.EmitNew("cents-checked", fmt.Sprintf("%s: %d", cell.ID(), m.cents))
 	case "info":
-		cell.EmitNew(event.Topic(), fmt.Sprintf("%s: locked with %d cents", cell.ID(), m.cents))
+		cell.EmitNew("status", fmt.Sprintf("%s: locked with %d cents", cell.ID(), m.cents))
 	case "coin":
 		cents := payloadCents(event)
 		if cents < 1 {
@@ -114,17 +130,19 @@ func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) behaviors.FSMSt
 		m.cents += cents
 		if m.cents > 100 {
 			m.cents -= 100
-			cell.EmitNew(event.Topic(), fmt.Sprintf("%s: unlocked", cell.ID()))
+			cell.EmitNew("unlocked", fmt.Sprintf("%s: unlocked", cell.ID()))
 			return behaviors.FSMStatus{"unlocked", m.Unlocked, nil}
 		}
 	case "press-button":
 		if m.cents > 0 {
-			cell.EmitNew("drop-coins", m.cents)
+			cell.EmitNew("coins-dropped", m.cents)
 			m.cents = 0
 		}
+	case "screwdriver":
+		cell.EmitNew("error", 0)
+		return behaviors.FSMStatus{event.Topic(), nil, fmt.Errorf("don't try to break me")}
 	default:
-		// Allow any other topic to bring the lock into an error state.
-		return behaviors.FSMStatus{event.Topic(), nil, fmt.Errorf("don't know how to handle")}
+		cell.EmitNew("dunno", 0)
 	}
 	return behaviors.FSMStatus{"locked", m.Locked, nil}
 }
@@ -133,18 +151,20 @@ func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) behaviors.FSMSt
 func (m *lockMachine) Unlocked(cell cells.Cell, event cells.Event) behaviors.FSMStatus {
 	switch event.Topic() {
 	case "check-cents":
-		cell.EmitNew(event.Topic(), fmt.Sprintf("%s: %d", cell.ID(), m.cents))
+		cell.EmitNew("cents-checked", fmt.Sprintf("%s: %d", cell.ID(), m.cents))
 	case "info":
-		cell.EmitNew(event.Topic(), fmt.Sprintf("%s: unlocked with %d cents", cell.ID(), m.cents))
+		cell.EmitNew("status", fmt.Sprintf("%s: unlocked with %d cents", cell.ID(), m.cents))
 	case "coin":
 		cents := payloadCents(event)
-		cell.EmitNew("return", cents)
+		cell.EmitNew("coins-returned", cents)
 	case "press-button":
 		if m.cents > 0 {
-			cell.EmitNew("drop-coins", m.cents)
+			cell.EmitNew("coins-dropped", m.cents)
 			m.cents = 0
 		}
 		return behaviors.FSMStatus{"locked", m.Locked, nil}
+	default:
+		cell.EmitNew("dunno", 0)
 	}
 	return behaviors.FSMStatus{"unlocked", m.Unlocked, nil}
 }
