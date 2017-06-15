@@ -60,8 +60,23 @@ func TestComboBehavior(t *testing.T) {
 		return cells.CriterionDone, payload
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
-		return nil
+		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+			var payload map[string]int
+			if err := event.Payload().Unmarshal(&payload); err != nil {
+				return false, err
+			}
+			if len(payload) != 4 {
+				return false, nil
+			}
+			for key := range payload {
+				if payload[key] == 0 {
+					return false, nil
+				}
+			}
+			return true, nil
+		})
+		sigc <- ok
+		return err
 	}
 
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
@@ -73,11 +88,10 @@ func TestComboBehavior(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		topic := generator.OneStringOf(topics...)
 		env.EmitNew("combiner", topic, nil)
-		// generator.SleepOneOf(0, 1*time.Millisecond, 2*time.Millisecond)
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
+	assert.Wait(sigc, true, time.Minute)
 }
 
 // EOF
