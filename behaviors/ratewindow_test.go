@@ -37,8 +37,11 @@ func TestRateWindowBehavior(t *testing.T) {
 		return event.Topic() == "now", nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
-		return nil
+		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+			return event.Topic() == behaviors.TopicRateWindow, nil
+		})
+		sigc <- ok
+		return err
 	}
 	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	interestingTopics := []string{"a", "b", "c", "d", "now"}
@@ -63,7 +66,7 @@ func TestRateWindowBehavior(t *testing.T) {
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
+	assert.Wait(sigc, true, 10 * time.Second)
 }
 
 // EOF
