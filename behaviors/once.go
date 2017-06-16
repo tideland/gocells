@@ -22,7 +22,7 @@ import (
 // OneTimer describes the function called after the first event.
 type OneTimer func(cell cells.Cell, event cells.Event) error
 
-// onceBehavior implements the oneTimer behavior.
+// onceBehavior implements the once behavior.
 type onceBehavior struct {
 	cell     cells.Cell
 	oneTimer OneTimer
