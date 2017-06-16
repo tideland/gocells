@@ -32,24 +32,29 @@ func TestBroadcasterBehavior(t *testing.T) {
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
-	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
+	mktester := func() func(cells.Event) bool {
+		counter := 0
+		return func(event cells.Event) bool {
+			counter++
+			return counter == 3
+		}
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
 		return nil
 	}
 
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
-	env.StartCell("test-a", behaviors.NewCollectorBehavior(10, processor))
-	env.StartCell("test-b", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("test-a", behaviors.NewConditionBehavior(mktester(), processor))
+	env.StartCell("test-b", behaviors.NewConditionBehavior(mktester(), processor))
 	env.Subscribe("broadcast", "test-a", "test-b")
 
 	env.EmitNew("broadcast", "test", nil)
 	env.EmitNew("broadcast", "test", nil)
 	env.EmitNew("broadcast", "test", nil)
 
-	env.EmitNew("test-a", cells.TopicProcess, nil)
-	assert.Wait(sigc, 3, time.Second)
-	env.EmitNew("test-b", cells.TopicProcess, nil)
-	assert.Wait(sigc, 3, time.Second)
+	assert.Wait(sigc, true, time.Second)
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF

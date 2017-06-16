@@ -15,7 +15,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-05-27
+Version 6.0.0-beta.2017-06-16
 
 ## Packages
 
@@ -27,7 +27,6 @@ by its behavior. It receives events, processes them, and can emit a number
 of new events during this time. Those events are then received by those
 cells which subscribed to the individual cell.
 
-
 ### Behaviors
 
 The project already contains some standard behaviors, the number is
@@ -36,8 +35,10 @@ still growing.
 - **Aggregator** aggregates events and emits each aggregated value.
 - **Broadcaster** simply emits received events to all subscribers.
 - **Callback** calls a number of passed functions for each received event.
-- **Collector** collects events, theese can be retrieved and reset.
+- **Collector** collects events which can be processed on demand.
 - **Combo** waits for a user-defined combination of events.
+- **Condition** tests events for conditions using a tester function
+  and calls a processor then.
 - **Counter** counts events, the counters can be retrieved.
 - **Evaluator** evaluates events based on a user-defined function which
   returns a rating.
@@ -45,6 +46,7 @@ still growing.
 - **Finite State Machine** allows to build finite state machines for events.
 - **Logger** logs received events with level INFO.
 - **Mapper** maps received events based on a user-defined function to new events.
+- **Once** calls the once function only for the first event it receives.
 - **Pair** checks if the event stream contains two matching ones based on a
   user-based criterion in a given timespan.
 - **Rate** measures times between a number of criterion fitting events and
@@ -57,7 +59,6 @@ still growing.
 - **Simple Processor** allows to not implement a behavior but only use
   one function for event processing.
 - **Ticker** emits tick events in a defined interval.
-- **Waiter** sets the payload of the first received event to a payload waiter.
 
 ## Contributors
 
