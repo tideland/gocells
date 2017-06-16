@@ -37,9 +37,11 @@ func TestAggregatorBehavior(t *testing.T) {
 
 	aggregate := func(payload cells.Payload, event cells.Event) (cells.Payload, error) {
 		var topics []string
-		err := payload.Unmarshal(&topics)
-		if err != nil {
-			return nil, err
+		if payload != nil {
+			err := payload.Unmarshal(&topics)
+			if err != nil {
+				return nil, err
+			}
 		}
 		topics = append(topics, event.Topic())
 		return cells.NewPayload(topics)
@@ -66,7 +68,7 @@ func TestAggregatorBehavior(t *testing.T) {
 	env.StartCell("filter", behaviors.NewFilterBehavior(match))
 	env.StartCell("once", behaviors.NewOnceBehavior(oneTimer))
 	env.Subscribe("aggregator", "filter")
-	env.Subscribe("filter", "waiter")
+	env.Subscribe("filter", "once")
 
 	go func() {
 		for i := 0; i < 50; i++ {
@@ -75,7 +77,7 @@ func TestAggregatorBehavior(t *testing.T) {
 		}
 	}()
 
-	assert.Wait(sigc, 20, time.Minute)
+	assert.Wait(sigc, 20, 5 * time.Second)
 }
 
 // EOF
