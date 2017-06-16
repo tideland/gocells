@@ -32,7 +32,7 @@ func TestBroadcasterBehavior(t *testing.T) {
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
-	mktester := func() func(cells.Event) bool {
+	mktester := func() behaviors.ConditionTester {
 		counter := 0
 		return func(event cells.Event) bool {
 			counter++

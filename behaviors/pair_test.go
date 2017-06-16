@@ -41,32 +41,36 @@ func TestPairBehavior(t *testing.T) {
 		}
 		return nil, false
 	}
-	filterBuilder := func(positive bool) behaviors.Filter {
-		var topic string
+	mkfilter := func(positive bool) behaviors.Filter {
+		topic := behaviors.TopicPairTimeout
 		if positive {
 			topic = behaviors.TopicPair
-		} else {
-			topic = behaviors.TopicPairTimeout
 		}
 		return func(event cells.Event) (bool, error) {
 			return event.Topic() == topic, nil
 		}
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
-		return nil
+	mkcondition := func() (behaviors.ConditionTester, behaviors.ConditionProcessor) {
+		counter := 0
+		return func(event cells.Event) bool {
+				counter++
+				return counter == 25
+			}, func(cell cells.Cell, event cells.Event) error {
+				sigc <- counter
+				return nil
+			}
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 	duration := time.Millisecond
 
 	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
-	env.StartCell("positive-filter", behaviors.NewFilterBehavior(filterBuilder(true)))
-	env.StartCell("negative-filter", behaviors.NewFilterBehavior(filterBuilder(false)))
-	env.StartCell("positive-collector", behaviors.NewCollectorBehavior(1000, processor))
-	env.StartCell("negative-collector", behaviors.NewCollectorBehavior(1000, processor))
+	env.StartCell("positive-filter", behaviors.NewFilterBehavior(mkfilter(true)))
+	env.StartCell("negative-filter", behaviors.NewFilterBehavior(mkfilter(false)))
+	env.StartCell("positive-condition", behaviors.NewConditionBehavior(mkcondition()))
+	env.StartCell("negative-condition", behaviors.NewConditionBehavior(mkcondition()))
 	env.Subscribe("pairer", "positive-filter", "negative-filter")
-	env.Subscribe("positive-filter", "positive-collector")
-	env.Subscribe("negative-filter", "negative-collector")
+	env.Subscribe("positive-filter", "positive-condition")
+	env.Subscribe("negative-filter", "negative-condition")
 
 	for i := 0; i < 5000; i++ {
 		topic := generator.OneStringOf(topics...)
@@ -74,11 +78,8 @@ func TestPairBehavior(t *testing.T) {
 		generator.SleepOneOf(0, time.Millisecond, 2*time.Millisecond)
 	}
 
-	env.EmitNew("positive-collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
-
-	env.EmitNew("negative-collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
+	assert.Wait(sigc, 25, 5*time.Second)
+	assert.Wait(sigc, 25, 5*time.Second)
 }
 
 // EOF
