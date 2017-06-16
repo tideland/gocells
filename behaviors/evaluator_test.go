@@ -40,30 +40,37 @@ func TestEvaluatorBehavior(t *testing.T) {
 		return float64(i), nil
 	}
 	filter := func(event cells.Event) (bool, error) {
-		var payload float64
-		err := event.Payload().Unmarshal(&payload)
-		assert.Nil(err)
-		return payload > 6.0, nil
+		var evaluation behaviors.Evaluation
+		err := event.Payload().Unmarshal(&evaluation)
+		return evaluation.AvgRating > 6.0, err
 	}
 	processor := func(accessor cells.EventSinkAccessor) error {
-		sigc <- accessor.Len()
-		return nil
+		// Check if all collected ones match the filtered ones.
+		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+			var evaluation behaviors.Evaluation
+			err := event.Payload().Unmarshal(&evaluation)
+			return evaluation.AvgRating > 6.0, err
+		})
+		sigc <- ok
+		return err
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluator))
 	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10000, processor))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(1000, processor))
 	env.Subscribe("evaluator", "filter")
-	env.Subscribe("filter", "processor")
+	env.Subscribe("filter", "collector")
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		topic := generator.OneStringOf(topics...)
 		env.EmitNew("evaluator", topic, nil)
 	}
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, 10, time.Minute)
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector", cells.TopicProcess, cells.PayloadClear)
+	assert.Wait(sigc, true, time.Minute)
 }
 
 // EOF

@@ -33,7 +33,7 @@ type Evaluator func(event cells.Event) (float64, error)
 
 // Evaluation contains the aggregated result of all evaluations.
 type Evaluation struct {
-	Count int
+	Count     int
 	MinRating float64
 	MaxRating float64
 	AvgRating float64
@@ -41,8 +41,8 @@ type Evaluation struct {
 
 // evaluatorBehavior implements the evaluator behavior.
 type evaluatorBehavior struct {
-	cell      cells.Cell
-	evaluate  Evaluator
+	cell       cells.Cell
+	evaluate   Evaluator
 	evaluation Evaluation
 }
 
@@ -52,7 +52,7 @@ type evaluatorBehavior struct {
 // sets all values to zero again.
 func NewEvaluatorBehavior(evaluator Evaluator) cells.Behavior {
 	return &evaluatorBehavior{
-		evaluate:  evaluator,
+		evaluate:   evaluator,
 		evaluation: Evaluation{},
 	}
 }

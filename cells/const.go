@@ -42,6 +42,11 @@ const (
 	TopicTick      = "tick"
 )
 
+// Standard constant payloads.
+const (
+	PayloadClear = true
+)
+
 // Default timeout for requests to cells.
 const (
 	DefaultTimeout = 5 * time.Second
