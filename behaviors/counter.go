@@ -42,8 +42,8 @@ func NewCounterBehavior(counter Counter) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *counterBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *counterBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -56,6 +56,9 @@ func (b *counterBehavior) Terminate() error {
 // and emits this value.
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
+	case cells.TopicStatus:
+		statusCell := event.Payload().String()
+		b.cell.Environment().EmitNew(statusCell, b.cell.ID(), b.counters)
 	case cells.TopicReset:
 		b.counters = map[string]uint{}
 	default:
