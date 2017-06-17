@@ -77,7 +77,7 @@ func TestAggregatorBehavior(t *testing.T) {
 		}
 	}()
 
-	assert.Wait(sigc, 20, 5 * time.Second)
+	assert.Wait(sigc, 20, 5*time.Second)
 }
 
 // EOF

@@ -33,11 +33,7 @@ func TestMapperBehavior(t *testing.T) {
 	defer env.Stop()
 
 	mapper := func(event cells.Event) (cells.Event, error) {
-		var text string
-		err := event.Payload().Unmarshal(&text)
-		if err != nil {
-			return nil, err
-		}
+		text := event.Payload().String()
 		return cells.NewEvent(event.Topic(), strings.ToUpper(text))
 	}
 
@@ -45,11 +41,7 @@ func TestMapperBehavior(t *testing.T) {
 
 	processor := func(cell cells.Cell, event cells.Event) error {
 		wg.Done()
-		var text string
-		err := event.Payload().Unmarshal(&text)
-		if err != nil {
-			return err
-		}
+		text := event.Payload().String()
 		switch event.Topic() {
 		case "a":
 			assert.Equal(text, "ABC")

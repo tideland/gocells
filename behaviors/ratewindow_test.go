@@ -66,7 +66,7 @@ func TestRateWindowBehavior(t *testing.T) {
 	}
 
 	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, true, 10 * time.Second)
+	assert.Wait(sigc, true, 10*time.Second)
 }
 
 // EOF
