@@ -32,17 +32,17 @@ func TestCallbackBehavior(t *testing.T) {
 	defer env.Stop()
 
 	cbdA := []string{}
-	cbfA := func(event cells.Event) error {
+	cbfA := func(cell cells.Cell, event cells.Event) error {
 		cbdA = append(cbdA, event.Topic())
 		return nil
 	}
 	cbdB := 0
-	cbfB := func(event cells.Event) error {
+	cbfB := func(cell cells.Cell, event cells.Event) error {
 		cbdB++
 		return nil
 	}
 	sigc := audit.MakeSigChan()
-	cbfC := func(event cells.Event) error {
+	cbfC := func(cell cells.Cell, event cells.Event) error {
 		if event.Topic() == "baz" {
 			sigc <- true
 		}

@@ -21,20 +21,20 @@ import (
 // CALLBACK BEHAVIOR
 //--------------------
 
-// CallbackFunc is a function called by the behavior when it receives an event.
-type CallbackFunc func(event cells.Event) error
+// Callbacker is a function called by the behavior when it receives an event.
+type Callbacker func(cell cells.Cell, event cells.Event) error
 
 // callbackBehavior is an event processor calling all stored functions
 // if it receives an event.
 type callbackBehavior struct {
 	cell      cells.Cell
-	callbacks []CallbackFunc
+	callbacks []Callbacker
 }
 
 // NewCallbackBehavior creates a behavior with a number of callback functions.
 // Each time an event is received those functions are called in the same order
 // they have been passed.
-func NewCallbackBehavior(callbacks ...CallbackFunc) cells.Behavior {
+func NewCallbackBehavior(callbacks ...Callbacker) cells.Behavior {
 	if len(callbacks) == 0 {
 		logger.Errorf("callback created without callback functions")
 	}
@@ -42,8 +42,8 @@ func NewCallbackBehavior(callbacks ...CallbackFunc) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *callbackBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *callbackBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (b *callbackBehavior) Terminate() error {
 // ProcessEvent calls a callback functions with the event data.
 func (b *callbackBehavior) ProcessEvent(event cells.Event) error {
 	for _, callback := range b.callbacks {
-		if err := callback(event); err != nil {
+		if err := callback(b.cell, event); err != nil {
 			logger.Errorf("callback terminated with error: %v", err)
 			return err
 		}
