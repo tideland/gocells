@@ -12,8 +12,8 @@ package behaviors_test
 //--------------------
 
 import (
-	"sync"
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -28,36 +28,35 @@ import (
 // TestFilterBehavior tests the filter behavior.
 func TestFilterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	sigc := audit.MakeSigChan()
+	counter := 0
 	env := cells.NewEnvironment("filter-behavior")
 	defer env.Stop()
 
-	var wg sync.WaitGroup
 	filter := func(event cells.Event) (bool, error) {
-		var payload string
-		err := event.Payload().Unmarshal(&payload)
-		assert.Nil(err)
+		payload := event.Payload().String()
 		return event.Topic() == payload, nil
 	}
-	processor := func(c cells.Cell, event cells.Event) error {
-		var payload string
-		err := event.Payload().Unmarshal(&payload)
-		assert.Nil(err)
-		assert.Equal(event.Topic(), payload)
-		wg.Done()
+	conditioner := func(event cells.Event) bool {
+		counter++
+		return counter == 2
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
 		return nil
 	}
-	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
-	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(processor))
-	env.Subscribe("filter", "simple")
 
-	wg.Add(2)
+	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
+	env.StartCell("conditioner", behaviors.NewConditionBehavior(conditioner, processor))
+	env.Subscribe("filter", "conditioner")
+
 	env.EmitNew("filter", "a", "a")
 	env.EmitNew("filter", "a", "b")
 	env.EmitNew("filter", "a", "c")
 	env.EmitNew("filter", "a", "d")
 	env.EmitNew("filter", "b", "b")
 
-	wg.Wait()
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF
