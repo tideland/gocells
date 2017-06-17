@@ -43,8 +43,8 @@ func NewConditionBehavior(tester ConditionTester, processor ConditionProcessor) 
 }
 
 // Init the behavior.
-func (b *conditionBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *conditionBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 

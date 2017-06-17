@@ -32,7 +32,7 @@ func TestCounterBehavior(t *testing.T) {
 	env := cells.NewEnvironment("counter-behavior")
 	defer env.Stop()
 
-	counters := func(counters ...string) cells.Payload {
+	mkcounters := func(counters ...string) cells.Payload {
 		payload, err := cells.NewPayload(counters)
 		assert.Nil(err)
 		return payload
@@ -43,34 +43,26 @@ func TestCounterBehavior(t *testing.T) {
 		assert.Nil(err)
 		return increments
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
-		if accessor.Len() == 3 {
-			last, ok := accessor.PeekLast()
-			assert.True(ok)
-			var values map[string]uint
-			err := last.Payload().Unmarshal(&values)
-			assert.Nil(err)
-			sigc <- values
-		}
+	conditioner := func(event cells.Event) bool {
+		var values map[string]uint
+		err := event.Payload().Unmarshal(&values)
+		assert.Nil(err)
+		return values["a"] == 3 && values["b"] == 1 && values["c"] == 1 && values["d"] == 2
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
 		return nil
 	}
 
 	env.StartCell("counter", behaviors.NewCounterBehavior(counter))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
-	env.Subscribe("counter", "collector")
+	env.StartCell("conditioner", behaviors.NewConditionBehavior(conditioner, processor))
+	env.Subscribe("counter", "conditioner")
 
-	env.EmitNew("counter", "count", counters("a", "b"))
-	env.EmitNew("counter", "count", counters("a", "c", "d"))
-	env.EmitNew("counter", "count", counters("a", "d"))
+	env.EmitNew("counter", "count", mkcounters("a", "b"))
+	env.EmitNew("counter", "count", mkcounters("a", "c", "d"))
+	env.EmitNew("counter", "count", mkcounters("a", "d"))
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-
-	assert.Wait(sigc, map[string]uint{
-		"a": 3,
-		"b": 1,
-		"c": 1,
-		"d": 2,
-	}, time.Second)
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF

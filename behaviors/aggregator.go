@@ -49,8 +49,8 @@ func NewAggregatorBehavior(aggregator Aggregator) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *aggregatorBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *aggregatorBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -62,6 +62,9 @@ func (b *aggregatorBehavior) Terminate() error {
 // ProcessEvent aggregates the event.
 func (b *aggregatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
+	case cells.TopicStatus:
+		statusCell := event.Payload().String()
+		b.cell.Environment().EmitNew(statusCell, b.cell.ID(), b.payload)
 	case cells.TopicReset:
 		b.payload = nil
 	default:
