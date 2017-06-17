@@ -53,6 +53,8 @@ func NewPayload(v interface{}) (Payload, error) {
 	case []byte:
 		data = make([]byte, len(tv))
 		copy(data, tv)
+	case string:
+		data = []byte(tv)
 	case Payload:
 		return tv, nil
 	default:

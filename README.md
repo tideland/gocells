@@ -58,6 +58,9 @@ still growing.
   discovered by a user-defined criterion.
 - **Simple Processor** allows to not implement a behavior but only use
   one function for event processing.
+- **Status** receives and processes status events by other behaviors.
+  Those have to emit it when receiving the topic "status" with a status
+  cell ID as payload.
 - **Ticker** emits tick events in a defined interval.
 
 ## Contributors
