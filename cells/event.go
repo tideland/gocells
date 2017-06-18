@@ -12,7 +12,6 @@ package cells
 //--------------------
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -28,10 +27,6 @@ import (
 type Event interface {
 	fmt.Stringer
 
-	// Context returns a Context that possibly has been
-	// emitted with the event.
-	Context() context.Context
-
 	// Timestamp returns the UTC time the event has been created.
 	Timestamp() time.Time
 
@@ -44,20 +39,21 @@ type Event interface {
 
 // event implements the Event interface.
 type event struct {
-	ctx       context.Context
 	timestamp time.Time
 	topic     string
 	payload   Payload
 }
 
 // NewEvent creates a new event with the given topic and payload.
-func NewEvent(ctx context.Context, topic string, payload interface{}) (Event, error) {
+func NewEvent(topic string, payload interface{}) (Event, error) {
 	if topic == "" {
 		return nil, errors.New(ErrNoTopic, errorMessages)
 	}
-	p := NewPayload(payload)
+	p, err := NewPayload(payload)
+	if err != nil {
+		return nil, err
+	}
 	return &event{
-		ctx:       ctx,
 		timestamp: time.Now().UTC(),
 		topic:     topic,
 		payload:   p,
@@ -76,12 +72,11 @@ func (e *event) Topic() string {
 
 // Payload implements the Event interface.
 func (e *event) Payload() Payload {
+	if e.payload == nil {
+		// Fallback to empty one.
+		return newEmptyPayload()
+	}
 	return e.payload
-}
-
-// Context implements the Event interface.
-func (e *event) Context() context.Context {
-	return e.ctx
 }
 
 // String implements the Stringer interface.
@@ -120,8 +115,13 @@ type EventSinkAccessor interface {
 	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
 }
 
-// EventSinkChecker can be used to check sinks for a criterion.
-type EventSinkChecker func(events EventSinkAccessor) (bool, Payload, error)
+// EventSinkProcessor can be used as a checker function but also inside of
+// behaviors to process the content of an event sink.
+type EventSinkProcessor func(events EventSinkAccessor) error
+
+// EventSinkAnalyzer can be used as a function analyzing an event sink
+// inside a behavior and returning a payload emitted by the cell then.
+type EventSinkAnalyzer func(events EventSinkAccessor) (Payload, error)
 
 // EventSink stores a number of events ordered by adding them at the end. To
 // be used in behaviors for collecting sets of events and operate on them.
@@ -143,11 +143,10 @@ type EventSink interface {
 
 // eventSink implements the EventSink interface.
 type eventSink struct {
-	mutex   sync.RWMutex
-	max     int
-	events  []Event
-	checker EventSinkChecker
-	waiter  PayloadWaiter
+	mutex  sync.RWMutex
+	max    int
+	events []Event
+	check  EventSinkProcessor
 }
 
 // NewEventSink creates a sink for events.
@@ -157,15 +156,12 @@ func NewEventSink(max int) EventSink {
 	}
 }
 
-// NewCheckedEventSink creates a sink running a checker
-// after each change.
-func NewCheckedEventSink(max int, checker EventSinkChecker) (EventSink, PayloadWaiter) {
-	waiter := NewPayloadWaiter()
+// NewCheckedEventSink creates a sink for events.
+func NewCheckedEventSink(max int, checker EventSinkProcessor) EventSink {
 	return &eventSink{
-		max:     max,
-		checker: checker,
-		waiter:  waiter,
-	}, waiter
+		max:   max,
+		check: checker,
+	}
 }
 
 // Push implements the EventSink interface.
@@ -176,7 +172,7 @@ func (s *eventSink) Push(event Event) (int, error) {
 		s.events = s.events[1:]
 	}
 	s.mutex.Unlock()
-	return len(s.events), s.check()
+	return len(s.events), s.performCheck()
 }
 
 // PullFirst implements the EventSink interface.
@@ -188,7 +184,7 @@ func (s *eventSink) PullFirst() (Event, error) {
 		s.events = s.events[1:]
 	}
 	s.mutex.Unlock()
-	return event, s.check()
+	return event, s.performCheck()
 }
 
 // PullLast implements the EventSink interface.
@@ -200,7 +196,7 @@ func (s *eventSink) PullLast() (Event, error) {
 		s.events = s.events[:len(s.events)-1]
 	}
 	s.mutex.Unlock()
-	return event, s.check()
+	return event, s.performCheck()
 }
 
 // Clear implements tne EventSink interface.
@@ -208,7 +204,7 @@ func (s *eventSink) Clear() error {
 	s.mutex.Lock()
 	s.events = nil
 	s.mutex.Unlock()
-	return s.check()
+	return s.performCheck()
 }
 
 // Len implements the EventSinkAccessor interface.
@@ -276,15 +272,11 @@ func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (b
 	return match, err
 }
 
-// check calls the checker and the waiter if configured.
-func (s *eventSink) check() error {
-	if s.checker != nil {
-		ok, payload, err := s.checker(s)
-		if err != nil {
+// performCheck calls the checker if configured.
+func (s *eventSink) performCheck() error {
+	if s.check != nil {
+		if err := s.check(s); err != nil {
 			return err
-		}
-		if ok {
-			s.waiter.Set(payload)
 		}
 	}
 	return nil

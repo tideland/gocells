@@ -12,8 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,37 +28,33 @@ import (
 // TestBroadcasterBehavior tests the broadcast behavior.
 func TestBroadcasterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("broadcaster-behavior")
 	defer env.Stop()
 
-	var wg sync.WaitGroup
+	mktester := func() behaviors.ConditionTester {
+		counter := 0
+		return func(event cells.Event) bool {
+			counter++
+			return counter == 3
+		}
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
+		return nil
+	}
 
 	env.StartCell("broadcast", behaviors.NewBroadcasterBehavior())
-	env.StartCell("test-a", behaviors.NewCollectorBehavior(10))
-	env.StartCell("test-b", behaviors.NewCollectorBehavior(10))
-	env.StartCell("signaller", behaviors.NewSimpleProcessorBehavior(func(cell cells.Cell, event cells.Event) error {
-		wg.Done()
-		return nil
-	}))
+	env.StartCell("test-a", behaviors.NewConditionBehavior(mktester(), processor))
+	env.StartCell("test-b", behaviors.NewConditionBehavior(mktester(), processor))
 	env.Subscribe("broadcast", "test-a", "test-b")
-	env.Subscribe("test-b", "signaller")
 
-	wg.Add(3)
+	env.EmitNew("broadcast", "test", nil)
+	env.EmitNew("broadcast", "test", nil)
+	env.EmitNew("broadcast", "test", nil)
 
-	env.EmitNew(ctx, "broadcast", "test", "a")
-	env.EmitNew(ctx, "broadcast", "test", "b")
-	env.EmitNew(ctx, "broadcast", "test", "c")
-
-	wg.Wait()
-
-	accessor, err := behaviors.RequestCollectedAccessor(env, "test-a", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 3)
-
-	accessor, err = behaviors.RequestCollectedAccessor(env, "test-b", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 3)
+	assert.Wait(sigc, true, time.Second)
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF

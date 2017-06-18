@@ -12,12 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"context"
-	"time"
-
-	"github.com/tideland/golib/errors"
-	"github.com/tideland/golib/logger"
-
 	"github.com/tideland/gocells/cells"
 )
 
@@ -25,32 +19,31 @@ import (
 // COUNTER BEHAVIOR
 //--------------------
 
-// Counters is a set of named counters and their values.
-type Counters map[string]int64
-
-// CounterFunc is the signature of a function which analyzis
-// an event and returns, which counters shall be incremented.
-type CounterFunc func(id string, event cells.Event) []string
+// Counter analyzes the passed event and returns, which counters
+// shall be incremented.
+type Counter func(event cells.Event) []string
 
 // counterBehavior counts events based on the counter function.
 type counterBehavior struct {
-	cell        cells.Cell
-	counterFunc CounterFunc
-	counters    Counters
+	cell     cells.Cell
+	count    Counter
+	counters map[string]uint
 }
 
 // NewCounterBehavior creates a counter behavior based on the passed
-// function. It increments and emits those counters named by the result
-// of the counter function. The counters can be retrieved with the
-// event "counters?" and a payload waiter as payload. It can be reset
-// with "reset!".
-func NewCounterBehavior(cf CounterFunc) cells.Behavior {
-	return &counterBehavior{nil, cf, make(Counters)}
+// function. This function may increase, decrease, or set the counter
+// values. Afterwards the counter values will be emitted. All values
+// can be reset with the topic "reset!".
+func NewCounterBehavior(counter Counter) cells.Behavior {
+	return &counterBehavior{
+		count:    counter,
+		counters: map[string]uint{},
+	}
 }
 
 // Init the behavior.
-func (b *counterBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *counterBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -63,29 +56,17 @@ func (b *counterBehavior) Terminate() error {
 // and emits this value.
 func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case cells.TopicCounters:
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			logger.Warningf("retrieving counters from '%s' not possible without payload waiter", b.cell.ID())
-		}
-		response := b.copyCounters()
-		payload.GetWaiter().Set(response)
+	case cells.TopicStatus:
+		statusCell := event.Payload().String()
+		b.cell.Environment().EmitNew(statusCell, b.cell.ID(), b.counters)
 	case cells.TopicReset:
-		b.counters = make(map[string]int64)
+		b.counters = map[string]uint{}
 	default:
-		cids := b.counterFunc(b.cell.ID(), event)
-		if cids != nil {
-			for _, cid := range cids {
-				v, ok := b.counters[cid]
-				if ok {
-					b.counters[cid] = v + 1
-				} else {
-					b.counters[cid] = 1
-				}
-				topic := "counter:" + cid
-				b.cell.EmitNew(event.Context(), topic, b.counters[cid])
-			}
+		increments := b.count(event)
+		for _, increment := range increments {
+			b.counters[increment]++
 		}
+		b.cell.EmitNew(cells.TopicCounted, b.counters)
 	}
 	return nil
 }
@@ -93,29 +74,6 @@ func (b *counterBehavior) ProcessEvent(event cells.Event) error {
 // Recover from an error.
 func (b *counterBehavior) Recover(err interface{}) error {
 	return nil
-}
-
-// copyCounters copies the counters for a request.
-func (b *counterBehavior) copyCounters() Counters {
-	copiedCounters := make(Counters)
-	for key, value := range b.counters {
-		copiedCounters[key] = value
-	}
-	return copiedCounters
-}
-
-// RequestCounterResults retrieves the results to the
-// behaviors counters.
-func RequestCounterResults(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (Counters, error) {
-	payload, err := env.Request(ctx, id, cells.TopicCounters, timeout)
-	if err != nil {
-		return nil, err
-	}
-	counters, ok := payload.GetDefault(nil).(Counters)
-	if !ok {
-		return nil, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
-	}
-	return counters, nil
 }
 
 // EOF

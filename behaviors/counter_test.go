@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -29,34 +28,41 @@ import (
 // TestCounterBehavior tests the counting of events.
 func TestCounterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("counter-behavior")
 	defer env.Stop()
 
-	cf := func(id string, event cells.Event) []string {
-		return event.Payload().GetDefault([]string{}).([]string)
+	mkcounters := func(counters ...string) cells.Payload {
+		payload, err := cells.NewPayload(counters)
+		assert.Nil(err)
+		return payload
 	}
-	env.StartCell("counter", behaviors.NewCounterBehavior(cf))
+	counter := func(event cells.Event) []string {
+		var increments []string
+		err := event.Payload().Unmarshal(&increments)
+		assert.Nil(err)
+		return increments
+	}
+	conditioner := func(event cells.Event) bool {
+		var values map[string]uint
+		err := event.Payload().Unmarshal(&values)
+		assert.Nil(err)
+		return values["a"] == 3 && values["b"] == 1 && values["c"] == 1 && values["d"] == 2
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
+		return nil
+	}
 
-	env.EmitNew(ctx, "counter", "count", []string{"a", "b"})
-	env.EmitNew(ctx, "counter", "count", []string{"a", "c", "d"})
-	env.EmitNew(ctx, "counter", "count", []string{"a", "d"})
+	env.StartCell("counter", behaviors.NewCounterBehavior(counter))
+	env.StartCell("conditioner", behaviors.NewConditionBehavior(conditioner, processor))
+	env.Subscribe("counter", "conditioner")
 
-	counters, err := behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
-	assert.Nil(err)
-	assert.Length(counters, 4, "four counted events")
+	env.EmitNew("counter", "count", mkcounters("a", "b"))
+	env.EmitNew("counter", "count", mkcounters("a", "c", "d"))
+	env.EmitNew("counter", "count", mkcounters("a", "d"))
 
-	assert.Equal(counters["a"], int64(3))
-	assert.Equal(counters["b"], int64(1))
-	assert.Equal(counters["c"], int64(1))
-	assert.Equal(counters["d"], int64(2))
-
-	err = env.EmitNew(ctx, "counter", cells.TopicReset, nil)
-	assert.Nil(err)
-
-	counters, err = behaviors.RequestCounterResults(ctx, env, "counter", time.Second)
-	assert.Nil(err)
-	assert.Empty(counters)
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF

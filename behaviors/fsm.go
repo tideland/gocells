@@ -12,44 +12,61 @@ package behaviors
 //--------------------
 
 import (
-	"context"
-	"time"
-
-	"github.com/tideland/golib/errors"
-	"github.com/tideland/golib/logger"
-
 	"github.com/tideland/gocells/cells"
+)
+
+//--------------------
+// CONSTANTS
+//--------------------
+
+const (
+	// TopicFSMStatus is used to make the FSM emit its
+	// current status.
+	TopicFSMStatus = "fsm-status"
 )
 
 //--------------------
 // FSM BEHAVIOR
 //--------------------
 
-// FSMState is the signature of a function or method which processes
-// an event and returns the following state or an error.
-type FSMState func(cell cells.Cell, event cells.Event) (FSMState, error)
+// FSMProcessor is the signature of a function or method which processes
+// an event and returns the following status or an error.
+type FSMProcessor func(cell cells.Cell, event cells.Event) FSMStatus
 
-// fsmStatus contains information about the current status of the FSM.
-type fsmStatus struct {
-	done bool
-	err  error
+// FSMStatus describes the current status of a finite state machine.
+// It also contains a reference to the current process function.
+type FSMStatus struct {
+	Info    string
+	Process FSMProcessor
+	Error   error
+}
+
+// Done returns true if the status contains no processor anymore.
+func (s FSMStatus) Done() bool {
+	return s.Process == nil || s.Error != nil
+}
+
+// FSMInfo contains information about the current status of the FSM.
+type FSMInfo struct {
+	Info  string
+	Done  bool
+	Error error
 }
 
 // fsmBehavior runs the finite state machine.
 type fsmBehavior struct {
-	cell  cells.Cell
-	state FSMState
-	done  bool
-	err   error
+	cell   cells.Cell
+	status FSMStatus
 }
 
 // NewFSMBehavior creates a finite state machine behavior based on the
-// passed initial state function. The function is called with the event
-// has to return the next state, which can be the same one. In case of
-// nil the stae will be transfered into a generic end state, if an error
-// is returned the state is a generic error state.
-func NewFSMBehavior(state FSMState) cells.Behavior {
-	return &fsmBehavior{nil, state, false, nil}
+// passed initial status. The process function is called with the event
+// and has to return the next status, which can be the same or a different
+// one.
+func NewFSMBehavior(status FSMStatus) cells.Behavior {
+	return &fsmBehavior{
+		status: status,
+	}
 }
 
 // Init the behavior.
@@ -66,51 +83,29 @@ func (b *fsmBehavior) Terminate() error {
 // ProcessEvent executes the state function and stores
 // the returned new state.
 func (b *fsmBehavior) ProcessEvent(event cells.Event) error {
-	switch event.Topic() {
-	case cells.TopicStatus:
-		payload, ok := cells.HasWaiterPayload(event)
-		if !ok {
-			logger.Warningf("retrieving status from '%s' not possible without payload waiter", b.cell.ID())
-		}
-		response := &fsmStatus{
-			done: b.done,
-			err:  b.err,
-		}
-		payload.GetWaiter().Set(response)
-	default:
-		if b.done {
-			return nil
-		}
-		state, err := b.state(b.cell, event)
-		if err != nil {
-			b.done = true
-			b.err = err
-		} else if state == nil {
-			b.done = true
-		}
-		b.state = state
+	// Check if done.
+	if b.status.Done() {
+		return nil
 	}
-	return nil
+	// Process event and determine next status.
+	switch event.Topic() {
+	case TopicFSMStatus:
+		// Emit information.
+		b.cell.EmitNew(cells.TopicStatus, FSMInfo{
+			Info:  b.status.Info,
+			Done:  b.status.Done(),
+			Error: b.status.Error,
+		})
+	default:
+		// Process event.
+		b.status = b.status.Process(b.cell, event)
+	}
+	return b.status.Error
 }
 
 // Recover from an error.
 func (b *fsmBehavior) Recover(err interface{}) error {
-	b.done = true
-	b.err = cells.NewCannotRecoverError(b.cell.ID(), err)
 	return nil
-}
-
-// RequestFSMStatus retrieves the status of a FSM cell.
-func RequestFSMStatus(ctx context.Context, env cells.Environment, id string, timeout time.Duration) (bool, error) {
-	payload, err := env.Request(ctx, id, cells.TopicStatus, timeout)
-	if err != nil {
-		return false, err
-	}
-	status, ok := payload.GetDefault(nil).(*fsmStatus)
-	if !ok || status == nil {
-		return false, errors.New(ErrInvalidPayload, errorMessages, cells.PayloadDefault)
-	}
-	return status.done, status.err
 }
 
 // EOF

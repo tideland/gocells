@@ -20,11 +20,9 @@ import (
 //--------------------
 
 const (
-	// TopicCombo is used for events emitted by the combo behavior.
-	TopicCombo = "combo"
-
-	// PayloadComboEvents points to the collected event combination.
-	PayloadComboEvents = "combo:events"
+	// TopicComboComplete is used for events emitted by the combo in
+	// case of a complete combination.
+	TopicComboComplete = "combo-complete"
 )
 
 //--------------------
@@ -36,8 +34,9 @@ const (
 // is so far okay but not complete, CriterionDropFirst when the first
 // event shall be dropped, CriterionDropLast when the last event shall
 // be dropped, and CriterionClear when the collected events have
-// to be cleared for starting over.
-type ComboCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMatch
+// to be cleared for starting over. In case of CriterionDone it
+// additionally has to return a payload which will be emitted.
+type ComboCriterion func(accessor cells.EventSinkAccessor) (cells.CriterionMatch, cells.Payload)
 
 // comboBehavior implements the combo behavior.
 type comboBehavior struct {
@@ -49,9 +48,9 @@ type comboBehavior struct {
 // NewComboBehavior creates an event sequence behavior. It checks the
 // event stream for a combination of events defined by the criterion. In
 // this case an event containing the combination is emitted.
-func NewComboBehavior(matches ComboCriterion) cells.Behavior {
+func NewComboBehavior(matcher ComboCriterion) cells.Behavior {
 	return &comboBehavior{
-		matches: matches,
+		matches: matcher,
 		sink:    cells.NewEventSink(0),
 	}
 }
@@ -75,13 +74,11 @@ func (b *comboBehavior) ProcessEvent(event cells.Event) error {
 		b.sink.Clear()
 	default:
 		b.sink.Push(event)
-		matches := b.matches(b.sink)
+		matches, payload := b.matches(b.sink)
 		switch matches {
 		case cells.CriterionDone:
 			// All done, emit and start over.
-			b.cell.EmitNew(event.Context(), TopicCombo, cells.PayloadValues{
-				PayloadComboEvents: b.sink,
-			})
+			b.cell.EmitNew(TopicComboComplete, payload)
 			b.sink = cells.NewEventSink(0)
 		case cells.CriterionKeep:
 			// So far ok.

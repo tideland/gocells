@@ -12,9 +12,7 @@ package cells
 //--------------------
 
 import (
-	"context"
 	"runtime"
-	"time"
 
 	"github.com/tideland/golib/identifier"
 	"github.com/tideland/golib/logger"
@@ -93,34 +91,12 @@ func (env *environment) Emit(id string, event Event) error {
 }
 
 // EmitNew implements the Environment interface.
-func (env *environment) EmitNew(ctx context.Context, id, topic string, payload interface{}) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	event, err := NewEvent(ctx, topic, payload)
+func (env *environment) EmitNew(id, topic string, payload interface{}) error {
+	event, err := NewEvent(topic, payload)
 	if err != nil {
 		return err
 	}
 	return env.Emit(id, event)
-}
-
-// Request implements the Environment interface.
-func (env *environment) Request(ctx context.Context, id, topic string, timeout time.Duration) (Payload, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	payloadIn, waiter := NewWaiterPayload()
-	err := env.EmitNew(ctx, id, topic, payloadIn)
-	if err != nil {
-		return nil, err
-	}
-	payloadOut, err := waiter.Wait(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if payloadOut.Error() != nil {
-		return nil, payloadOut.Error()
-	}
-	return payloadOut, nil
 }
 
 // Stop implements the Environment interface.
@@ -131,6 +107,12 @@ func (env *environment) Stop() error {
 	}
 	logger.Infof("cells environment %q terminated", env.ID())
 	return nil
+}
+
+// createQueue is a factory for the configured type of queues.
+func (env *environment) createQueue() Queue {
+	// Currently only one queue type is supported.
+	return newInMemoryQueue()
 }
 
 // EOF
