@@ -9,13 +9,15 @@ of an event a cell can emit multiple events to its subscribers.
 
 I hope you like them. ;)
 
+[![GitHub release](https://img.shields.io/github/release/tideland/gocells.svg)](https://github.com/tideland/gocells)
+[![GitHub license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://raw.githubusercontent.com/tideland/gocells/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/tideland/gocells?status.svg)](https://godoc.org/github.com/tideland/gocells)
 [![Sourcegraph](https://sourcegraph.com/github.com/tideland/gocells/-/badge.svg)](https://sourcegraph.com/github.com/tideland/gocells?badge)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tideland/gocells)](https://goreportcard.com/report/github.com/tideland/gocells)
 
 ## Version
 
-Version 6.0.0-beta.2017-06-16
+Version 6.0.0-beta.2017-06-18
 
 ## Packages
 

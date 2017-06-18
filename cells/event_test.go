@@ -37,9 +37,7 @@ func TestEvent(t *testing.T) {
 	assert.True(time.Now().UTC().After(event.Timestamp()))
 	assert.Equal(event.Topic(), "foo")
 
-	var bar string
-	err = event.Payload().Unmarshal(&bar)
-	assert.Nil(err)
+	bar := event.Payload().String()
 	assert.Equal(bar, "bar")
 
 	_, err = cells.NewEvent("", nil)
