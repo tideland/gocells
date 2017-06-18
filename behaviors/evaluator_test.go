@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"strconv"
 	"testing"
 	"time"
@@ -27,64 +26,51 @@ import (
 // TESTS
 //--------------------
 
-// TestEvaluatorBehavior tests the evaluator behavior. Scenario
-// is to wait until the average evaluation has been larger than
-// 6.0 for 3 times.
+// TestEvaluatorBehavior tests the evaluator behavior.
 func TestEvaluatorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	sigc := audit.MakeSigChan()
 	generator := audit.NewGenerator(audit.FixedRand())
-	ctx := context.Background()
 	env := cells.NewEnvironment("evaluator-behavior")
 	defer env.Stop()
 
-	evaluate := func(event cells.Event) (float64, error) {
+	evaluator := func(event cells.Event) (float64, error) {
 		i, err := strconv.Atoi(event.Topic())
 		assert.Nil(err)
 		return float64(i), nil
 	}
-	matches := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
+	filter := func(event cells.Event) (bool, error) {
+		var evaluation behaviors.Evaluation
+		err := event.Payload().Unmarshal(&evaluation)
+		return evaluation.AvgRating > 6.0, err
+	}
+	processor := func(accessor cells.EventSinkAccessor) error {
+		// Check if all collected ones match the filtered ones.
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
-			avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAverage, 0.0)
-			return avg > 6.0, nil
+			var evaluation behaviors.Evaluation
+			err := event.Payload().Unmarshal(&evaluation)
+			return evaluation.AvgRating > 6.0, err
 		})
-		assert.Nil(err)
-		if !ok {
-			return cells.CriterionDropLast
-		}
-		if accessor.Len() < 3 {
-			return cells.CriterionKeep
-		}
-		return cells.CriterionDone
+		sigc <- ok
+		return err
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
-	waiter := cells.NewPayloadWaiter()
 
-	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluate))
-	env.StartCell("combo", behaviors.NewComboBehavior(matches))
-	env.StartCell("waiter", behaviors.NewWaiterBehavior(waiter))
-	env.Subscribe("evaluator", "combo")
-	env.Subscribe("combo", "waiter")
+	env.StartCell("evaluator", behaviors.NewEvaluatorBehavior(evaluator))
+	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(1000, processor))
+	env.Subscribe("evaluator", "filter")
+	env.Subscribe("filter", "collector")
 
-	go func() {
-		for i := 0; i < 10000; i++ {
-			topic := generator.OneStringOf(topics...)
-			env.EmitNew(ctx, "evaluator", topic, nil)
-		}
-	}()
+	for i := 0; i < 1000; i++ {
+		topic := generator.OneStringOf(topics...)
+		env.EmitNew("evaluator", topic, nil)
+	}
 
-	waitCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	payload, err := waiter.Wait(waitCtx)
-	assert.Nil(err)
-	accessor, ok := payload.Get(behaviors.PayloadComboEvents, nil).(cells.EventSinkAccessor)
-	assert.True(ok)
-	assert.Length(accessor, 3)
-	accessor.Match(func(index int, event cells.Event) (bool, error) {
-		avg := event.Payload().GetFloat64(behaviors.PayloadEvaluationAverage, 0.0)
-		assert.True(avg > 6.0)
-		assert.Logf("avg: %f", avg)
-		return false, nil
-	})
+	time.Sleep(time.Second)
+
+	env.EmitNew("collector", cells.TopicProcess, cells.PayloadClear)
+	assert.Wait(sigc, true, time.Minute)
 }
 
 // EOF

@@ -22,24 +22,21 @@ import (
 const (
 	// TopicAggregator is used for events emitted by the aggregator behavior.
 	TopicAggregator = "aggregator"
-
-	// PayloadAggregatorValue ppoints to the aggregated value.
-	PayloadAggregatorValue = "aggregator:value"
 )
 
 //--------------------
 // AGGREGATOR BEHAVIOR
 //--------------------
 
-// Aggregator is a function receiving the current aggregate value
-// and event and returns the next aggregate value.
-type Aggregator func(value interface{}, event cells.Event) (interface{}, error)
+// AggregatorFunc is a function receiving the current aggregated payload
+// and event and returns the next aggregated payload.
+type Aggregator func(payload cells.Payload, event cells.Event) (cells.Payload, error)
 
 // aggregatorBehavior implements the aggregator behavior.
 type aggregatorBehavior struct {
 	cell      cells.Cell
 	aggregate Aggregator
-	value     interface{}
+	payload   cells.Payload
 }
 
 // NewAggregatorBehavior creates a behavior aggregating the received events
@@ -52,8 +49,8 @@ func NewAggregatorBehavior(aggregator Aggregator) cells.Behavior {
 }
 
 // Init the behavior.
-func (b *aggregatorBehavior) Init(c cells.Cell) error {
-	b.cell = c
+func (b *aggregatorBehavior) Init(cell cells.Cell) error {
+	b.cell = cell
 	return nil
 }
 
@@ -65,24 +62,25 @@ func (b *aggregatorBehavior) Terminate() error {
 // ProcessEvent aggregates the event.
 func (b *aggregatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
+	case cells.TopicStatus:
+		statusCell := event.Payload().String()
+		b.cell.Environment().EmitNew(statusCell, b.cell.ID(), b.payload)
 	case cells.TopicReset:
-		b.value = nil
+		b.payload = nil
 	default:
-		value, err := b.aggregate(b.value, event)
+		payload, err := b.aggregate(b.payload, event)
 		if err != nil {
 			return err
 		}
-		b.value = value
-		b.cell.EmitNew(event.Context(), TopicAggregator, cells.PayloadValues{
-			PayloadAggregatorValue: b.value,
-		})
+		b.payload = payload
+		b.cell.EmitNew(TopicAggregator, payload)
 	}
 	return nil
 }
 
 // Recover from an error.
 func (b *aggregatorBehavior) Recover(err interface{}) error {
-	b.value = nil
+	b.payload = nil
 	return nil
 }
 

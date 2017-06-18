@@ -24,24 +24,6 @@ import (
 const (
 	// TopicRate signals the rate of detected matching events.
 	TopicRate = "rate"
-
-	// PayloadRateAverage contains the average event rate.
-	PayloadRateAverage = "rate:average"
-
-	// PayloadRateDuration contains the duration between the
-	// first and the last event.
-	PayloadRateDuration = "rate:duration"
-
-	// PayloadRateHigh contains the highest measured time
-	// between matching events.
-	PayloadRateHigh = "rate:high"
-
-	// PayloadRateLow contains the highest measured time
-	// between matching events.
-	PayloadRateLow = "rate:low"
-
-	// PayloadRateTime contains the time of the last matching.
-	PayloadRateTime = "rate:time"
 )
 
 //--------------------
@@ -51,6 +33,17 @@ const (
 // RateCriterion is used by the rate behavior and has to return true, if
 // the passed event matches a criterion for rate measuring.
 type RateCriterion func(event cells.Event) (bool, error)
+
+// Rate describes the rate of events matching the given criterion. It
+// contains the matching time, the duration from the last match to this
+// one, and the highest, lowest, and avaerage duration between matches.
+type Rate struct {
+	Time     time.Time
+	Duration time.Duration
+	High     time.Duration
+	Low      time.Duration
+	Average  time.Duration
+}
 
 // rateBehavior calculates the average rate of events matching a criterion.
 type rateBehavior struct {
@@ -67,7 +60,12 @@ type rateBehavior struct {
 // Additionally a moving average, lowest, and highest duration is calculated
 // and emitted too. A "reset!" as topic resets the stored values.
 func NewRateBehavior(matches RateCriterion, count int) cells.Behavior {
-	return &rateBehavior{nil, matches, count, time.Now(), []time.Duration{}}
+	return &rateBehavior{
+		matches:   matches,
+		count:     count,
+		last:      time.Now(),
+		durations: []time.Duration{},
+	}
 }
 
 // Init implements the cells.Behavior interface.
@@ -93,7 +91,7 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 			return err
 		}
 		if ok {
-			current := time.Now()
+			current := event.Timestamp()
 			duration := current.Sub(b.last)
 			b.last = current
 			b.durations = append(b.durations, duration)
@@ -113,12 +111,12 @@ func (b *rateBehavior) ProcessEvent(event cells.Event) error {
 				}
 			}
 			avg := total / time.Duration(len(b.durations))
-			return b.cell.EmitNew(event.Context(), TopicRate, cells.PayloadValues{
-				PayloadRateTime:     current,
-				PayloadRateDuration: duration,
-				PayloadRateAverage:  avg,
-				PayloadRateHigh:     high,
-				PayloadRateLow:      low,
+			return b.cell.EmitNew(TopicRate, Rate{
+				Time:     current,
+				Duration: duration,
+				High:     high,
+				Low:      low,
+				Average:  avg,
 			})
 		}
 	}

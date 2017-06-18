@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -29,25 +28,29 @@ import (
 // TestCollectorBehavior tests the collector behavior.
 func TestCollectorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	generator := audit.NewGenerator(audit.FixedRand())
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
-
-	for i := 0; i < 25; i++ {
-		env.EmitNew(ctx, "collector", "collect", i)
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
+		return nil
 	}
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 10)
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
 
-	env.EmitNew(ctx, "collector", cells.TopicReset, nil)
+	for _, word := range generator.Words(25) {
+		env.EmitNew("collector", "collect", word)
+	}
 
-	accessor, err = behaviors.RequestCollectedAccessor(env, "collector", time.Second)
-	assert.Nil(err)
-	assert.Empty(accessor)
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 10, time.Second)
+
+	env.EmitNew("collector", cells.TopicReset, nil)
+
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 0, time.Second)
 }
 
 // EOF

@@ -12,8 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,36 +28,35 @@ import (
 // TestFilterBehavior tests the filter behavior.
 func TestFilterBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
+	counter := 0
 	env := cells.NewEnvironment("filter-behavior")
 	defer env.Stop()
 
-	var wg sync.WaitGroup
-	matches := func(event cells.Event) (bool, error) {
-		payload, ok := event.Payload().GetDefault(nil).(string)
-		if !ok {
-			return false, nil
-		}
+	filter := func(event cells.Event) (bool, error) {
+		payload := event.Payload().String()
 		return event.Topic() == payload, nil
 	}
-	sf := func(c cells.Cell, event cells.Event) error {
-		wg.Done()
+	conditioner := func(event cells.Event) bool {
+		counter++
+		return counter == 2
+	}
+	processor := func(cell cells.Cell, event cells.Event) error {
+		sigc <- true
 		return nil
 	}
-	env.StartCell("filter", behaviors.NewFilterBehavior(matches))
-	env.StartCell("simple", behaviors.NewSimpleProcessorBehavior(sf))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
-	env.Subscribe("filter", "simple", "collector")
 
-	wg.Add(2)
-	env.EmitNew(ctx, "filter", "a", "a")
-	env.EmitNew(ctx, "filter", "a", "b")
-	env.EmitNew(ctx, "filter", "b", "b")
+	env.StartCell("filter", behaviors.NewFilterBehavior(filter))
+	env.StartCell("conditioner", behaviors.NewConditionBehavior(conditioner, processor))
+	env.Subscribe("filter", "conditioner")
 
-	wg.Wait()
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", time.Second)
-	assert.Nil(err)
-	assert.Length(accessor, 2)
+	env.EmitNew("filter", "a", "a")
+	env.EmitNew("filter", "a", "b")
+	env.EmitNew("filter", "a", "c")
+	env.EmitNew("filter", "a", "d")
+	env.EmitNew("filter", "b", "b")
+
+	assert.Wait(sigc, true, time.Second)
 }
 
 // EOF

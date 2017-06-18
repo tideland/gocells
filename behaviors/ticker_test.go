@@ -28,18 +28,23 @@ import (
 // TestTickerBehavior tests the ticker behavior.
 func TestTickerBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("ticker-behavior")
 	defer env.Stop()
 
+	processor := func(accessor cells.EventSinkAccessor) error {
+		sigc <- accessor.Len()
+		return nil
+	}
+
 	env.StartCell("ticker", behaviors.NewTickerBehavior(50*time.Millisecond))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(10))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
 	env.Subscribe("ticker", "collector")
 
 	time.Sleep(125 * time.Millisecond)
 
-	accessor, err := behaviors.RequestCollectedAccessor(env, "collector", cells.DefaultTimeout)
-	assert.Nil(err)
-	assert.Length(accessor, 2)
+	env.EmitNew("collector", cells.TopicProcess, nil)
+	assert.Wait(sigc, 2, time.Minute)
 }
 
 // EOF

@@ -12,7 +12,6 @@ package behaviors_test
 //--------------------
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -30,81 +29,73 @@ import (
 // TestFSMBehavior tests the finite state machine behavior.
 func TestFSMBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	ctx := context.Background()
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("fsm-behavior")
 	defer env.Stop()
 
-	checkCents := func(id string) int {
-		payload, err := env.Request(ctx, id, "cents?", cells.DefaultTimeout)
-		assert.Nil(err)
-		return payload.GetDefault(0).(int)
-	}
-	info := func(id string) string {
-		payload, err := env.Request(ctx, id, "info?", cells.DefaultTimeout)
-		assert.Nil(err)
-		return payload.GetDefault("").(string)
-	}
-	grabCents := func() int {
-		payload, err := env.Request(ctx, "restorer", "grab!", cells.DefaultTimeout)
-		assert.Nil(err)
-		return payload.GetDefault(0).(int)
+	processor := func(accessor cells.EventSinkAccessor) error {
+		eventInfos := []string{}
+		accessor.Do(func(index int, event cells.Event) error {
+			eventInfos = append(eventInfos, event.Topic())
+			return nil
+		})
+		sigc <- eventInfos
+		return nil
 	}
 
 	lockA := lockMachine{}
 	lockB := lockMachine{}
 
-	env.StartCell("lock-a", behaviors.NewFSMBehavior(lockA.Locked))
-	env.StartCell("lock-b", behaviors.NewFSMBehavior(lockB.Locked))
+	env.StartCell("lock-a", behaviors.NewFSMBehavior(behaviors.FSMStatus{"locked", lockA.Locked, nil}))
+	env.StartCell("lock-b", behaviors.NewFSMBehavior(behaviors.FSMStatus{"locked", lockB.Locked, nil}))
 	env.StartCell("restorer", newRestorerBehavior())
+	env.StartCell("collector-a", behaviors.NewCollectorBehavior(10, processor))
+	env.StartCell("collector-b", behaviors.NewCollectorBehavior(10, processor))
 
-	env.Subscribe("lock-a", "restorer")
-	env.Subscribe("lock-b", "restorer")
+	env.Subscribe("lock-a", "restorer", "collector-a")
+	env.Subscribe("lock-b", "restorer", "collector-b")
 
 	// 1st run: emit not enough and press button.
-	env.EmitNew(ctx, "lock-a", "coin!", 20)
-	env.EmitNew(ctx, "lock-a", "coin!", 20)
-	env.EmitNew(ctx, "lock-a", "coin!", 20)
-	env.EmitNew(ctx, "lock-a", "button-press!", nil)
+	env.EmitNew("lock-a", "coin", 20)
+	env.EmitNew("lock-a", "coin", 20)
+	env.EmitNew("lock-a", "coin", 20)
+	env.EmitNew("lock-a", "info", nil)
+	env.EmitNew("lock-a", "press-button", nil)
+	env.EmitNew("lock-a", "check-cents", nil)
+	env.EmitNew("restorer", "grab", nil)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
-	assert.Equal(checkCents("lock-a"), 0)
-	assert.Equal(grabCents(), 60)
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"status", "coins-dropped", "cents-checked"}, time.Second)
 
 	// 2nd run: unlock the lock and lock it again.
-	env.EmitNew(ctx, "lock-a", "coin!", 50)
-	env.EmitNew(ctx, "lock-a", "coin!", 20)
-	env.EmitNew(ctx, "lock-a", "coin!", 50)
+	env.EmitNew("lock-a", "coin", 50)
+	env.EmitNew("lock-a", "coin", 20)
+	env.EmitNew("lock-a", "coin", 50)
+	env.EmitNew("lock-a", "info", nil)
+	env.EmitNew("lock-a", "press-button", nil)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
-	assert.Equal(info("lock-a"), "state 'unlocked' with 20 cents")
-
-	env.EmitNew(ctx, "lock-a", "button-press!", nil)
-
-	time.Sleep(100 * time.Millisecond)
-
-	assert.Equal(checkCents("lock-a"), 00)
-	assert.Equal(info("lock-a"), "state 'locked' with 0 cents")
-	assert.Equal(grabCents(), 20)
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"unlocked", "status", "coins-dropped"}, time.Second)
 
 	// 3rd run: put a screwdriwer in the lock.
-	env.EmitNew(ctx, "lock-a", "screwdriver!", nil)
+	env.EmitNew("lock-a", "plastic-chip", true)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
-	done, err := behaviors.RequestFSMStatus(ctx, env, "lock-a", time.Second)
-	assert.Nil(err)
-	assert.Equal(done, true)
+	env.EmitNew("collector-a", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"dunno"}, time.Second)
 
 	// 4th run: try an illegal action.
-	env.EmitNew(ctx, "lock-b", "chewing-gum", nil)
+	env.EmitNew("lock-b", "screwdriver", nil)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
-	done, err = behaviors.RequestFSMStatus(ctx, env, "lock-b", time.Second)
-	assert.Equal(done, true)
-	assert.ErrorMatch(err, "illegal topic in state 'locked': chewing-gum")
+	env.EmitNew("collector-b", cells.TopicProcess, true)
+	assert.Wait(sigc, []string{"error"}, time.Second)
 }
 
 //--------------------
@@ -113,7 +104,9 @@ func TestFSMBehavior(t *testing.T) {
 
 // cents retrieves the cents out of the payload of an event.
 func payloadCents(event cells.Event) int {
-	return event.Payload().GetInt(cells.PayloadDefault, -1)
+	var cents int
+	event.Payload().Unmarshal(&cents)
+	return cents
 }
 
 // lockMachine will be unlocked if enough money is inserted. After
@@ -123,71 +116,57 @@ type lockMachine struct {
 }
 
 // Locked represents the locked state receiving coins.
-func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) (behaviors.FSMState, error) {
+func (m *lockMachine) Locked(cell cells.Cell, event cells.Event) behaviors.FSMStatus {
 	switch event.Topic() {
-	case "cents?":
-		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			payload.GetWaiter().Set(m.cents)
-		}
-		return m.Locked, nil
-	case "info?":
-		info := fmt.Sprintf("state 'locked' with %d cents", m.cents)
-		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			payload.GetWaiter().Set(info)
-		}
-		return m.Locked, nil
-	case "coin!":
+	case "check-cents":
+		cell.EmitNew("cents-checked", fmt.Sprintf("%s: %d", cell.ID(), m.cents))
+	case "info":
+		cell.EmitNew("status", fmt.Sprintf("%s: locked with %d cents", cell.ID(), m.cents))
+	case "coin":
 		cents := payloadCents(event)
 		if cents < 1 {
-			return nil, fmt.Errorf("do not insert buttons")
+			return behaviors.FSMStatus{"locked-error", nil, fmt.Errorf("do not insert buttons")}
 		}
 		m.cents += cents
 		if m.cents > 100 {
 			m.cents -= 100
-			return m.Unlocked, nil
+			cell.EmitNew("unlocked", fmt.Sprintf("%s: unlocked", cell.ID()))
+			return behaviors.FSMStatus{"unlocked", m.Unlocked, nil}
 		}
-		return m.Locked, nil
-	case "button-press!":
+	case "press-button":
 		if m.cents > 0 {
-			cell.Environment().EmitNew(event.Context(), "restorer", "drop!", m.cents)
+			cell.EmitNew("coins-dropped", m.cents)
 			m.cents = 0
 		}
-		return m.Locked, nil
-	case "screwdriver!":
-		// Allow a screwdriver to bring the lock into an undefined state.
-		return nil, nil
+	case "screwdriver":
+		cell.EmitNew("error", 0)
+		return behaviors.FSMStatus{event.Topic(), nil, fmt.Errorf("don't try to break me")}
+	default:
+		cell.EmitNew("dunno", 0)
 	}
-	return m.Locked, fmt.Errorf("illegal topic in state 'locked': %s", event.Topic())
+	return behaviors.FSMStatus{"locked", m.Locked, nil}
 }
 
 // Unlocked represents the unlocked state receiving coins.
-func (m *lockMachine) Unlocked(cell cells.Cell, event cells.Event) (behaviors.FSMState, error) {
+func (m *lockMachine) Unlocked(cell cells.Cell, event cells.Event) behaviors.FSMStatus {
 	switch event.Topic() {
-	case "cents?":
-		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			payload.GetWaiter().Set(m.cents)
-		}
-		return m.Unlocked, nil
-	case "info?":
-		info := fmt.Sprintf("state 'unlocked' with %d cents", m.cents)
-		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			payload.GetWaiter().Set(info)
-		}
-		return m.Unlocked, nil
-	case "coin!":
+	case "check-cents":
+		cell.EmitNew("cents-checked", fmt.Sprintf("%s: %d", cell.ID(), m.cents))
+	case "info":
+		cell.EmitNew("status", fmt.Sprintf("%s: unlocked with %d cents", cell.ID(), m.cents))
+	case "coin":
 		cents := payloadCents(event)
-		cell.EmitNew(event.Context(), "return", cents)
-		return m.Unlocked, nil
-	case "button-press!":
-		cell.Environment().EmitNew(event.Context(), "restorer", "drop!", m.cents)
-		m.cents = 0
-		return m.Locked, nil
+		cell.EmitNew("coins-returned", cents)
+	case "press-button":
+		if m.cents > 0 {
+			cell.EmitNew("coins-dropped", m.cents)
+			m.cents = 0
+		}
+		return behaviors.FSMStatus{"locked", m.Locked, nil}
+	default:
+		cell.EmitNew("dunno", 0)
 	}
-	return m.Unlocked, fmt.Errorf("illegal topic in state 'unlocked': %s", event.Topic())
+	return behaviors.FSMStatus{"unlocked", m.Unlocked, nil}
 }
 
 type restorerBehavior struct {
@@ -196,7 +175,9 @@ type restorerBehavior struct {
 }
 
 func newRestorerBehavior() cells.Behavior {
-	return &restorerBehavior{nil, 0}
+	return &restorerBehavior{
+		cents: 0,
+	}
 }
 
 func (b *restorerBehavior) Init(c cells.Cell) error {
@@ -210,14 +191,10 @@ func (b *restorerBehavior) Terminate() error {
 
 func (b *restorerBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
-	case "grab!":
-		cents := b.cents
+	case "grab-coins":
+		b.cell.EmitNew("cents", b.cents)
 		b.cents = 0
-		payload, ok := cells.HasWaiterPayload(event)
-		if ok {
-			payload.GetWaiter().Set(cents)
-		}
-	case "drop!":
+	case "drop-coins":
 		b.cents += payloadCents(event)
 	}
 	return nil

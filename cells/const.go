@@ -22,8 +22,8 @@ import (
 // CriterionMatch signals, how a criterion matches.
 type CriterionMatch int
 
+// List of criterion match signals.
 const (
-	// Criterion matches.
 	CriterionDone CriterionMatch = iota + 1
 	CriterionKeep
 	CriterionDropFirst
@@ -31,23 +31,28 @@ const (
 	CriterionClear
 )
 
+// Standard topics.
 const (
-	// Often used standard topics.
-	TopicCollected = "collected?"
-	TopicCounters  = "counters?"
-	TopicProcessed = "processed?"
-	TopicReset     = "reset!"
-	TopicStatus    = "status?"
-	TopicTick      = "tick!"
+	TopicCollected = "collected"
+	TopicCounted   = "counted"
+	TopicProcess   = "process"
+	TopicProcessed = "processed"
+	TopicReset     = "reset"
+	TopicStatus    = "status"
+	TopicTick      = "tick"
+)
 
-	// Standard payload keys.
-	PayloadDefault    = "default"
-	PayloadTickerID   = "ticker:id"
-	PayloadTickerTime = "ticker:time"
+// Standard constant payloads.
+const (
+	PayloadClear = true
+)
 
-	// Default timeout for requests to cells.
+// Default timeout for requests to cells.
+const (
 	DefaultTimeout = 5 * time.Second
+)
 
+const (
 	// minEventBufferSize is the minimum size of the
 	// event buffer per cell.
 	minEventBufferSize = 16
