@@ -33,9 +33,9 @@ func TestRoundRobinBehavior(t *testing.T) {
 	env := cells.NewEnvironment("round-robin-behavior")
 	defer env.Stop()
 
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		sigc <- accessor.Len()
-		return nil
+		return nil, nil
 	}
 
 	env.StartCell("round-robin", behaviors.NewRoundRobinBehavior())

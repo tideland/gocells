@@ -53,7 +53,7 @@ func TestSequenceBehavior(t *testing.T) {
 		assert.True(ok)
 		return first.Payload(), nil
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		var indexes []int
 		err := accessor.Do(func(_ int, event cells.Event) error {
 			var index int
@@ -63,7 +63,7 @@ func TestSequenceBehavior(t *testing.T) {
 		})
 		assert.Nil(err)
 		sigc <- indexes
-		return nil
+		return nil, nil
 	}
 	topics := []string{"a", "b", "c", "d", "now"}
 

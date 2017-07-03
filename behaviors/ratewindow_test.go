@@ -36,12 +36,12 @@ func TestRateWindowBehavior(t *testing.T) {
 	matcher := func(event cells.Event) (bool, error) {
 		return event.Topic() == "now", nil
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == behaviors.TopicRateWindow, nil
 		})
 		sigc <- ok
-		return err
+		return nil, err
 	}
 	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	interestingTopics := []string{"a", "b", "c", "d", "now"}

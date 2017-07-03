@@ -36,12 +36,12 @@ func TestRateBehavior(t *testing.T) {
 	matcher := func(event cells.Event) (bool, error) {
 		return event.Topic() == "now", nil
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == behaviors.TopicRate, nil
 		})
 		sigc <- ok
-		return err
+		return nil, err
 	}
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
 

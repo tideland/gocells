@@ -116,12 +116,8 @@ type EventSinkAccessor interface {
 }
 
 // EventSinkProcessor can be used as a checker function but also inside of
-// behaviors to process the content of an event sink.
-type EventSinkProcessor func(events EventSinkAccessor) error
-
-// EventSinkAnalyzer can be used as a function analyzing an event sink
-// inside a behavior and returning a payload emitted by the cell then.
-type EventSinkAnalyzer func(events EventSinkAccessor) (Payload, error)
+// behaviors to process the content of an event sink and return a new payload.
+type EventSinkProcessor func(events EventSinkAccessor) (Payload, error)
 
 // EventSink stores a number of events ordered by adding them at the end. To
 // be used in behaviors for collecting sets of events and operate on them.
@@ -275,7 +271,7 @@ func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (b
 // performCheck calls the checker if configured.
 func (s *eventSink) performCheck() error {
 	if s.check != nil {
-		if err := s.check(s); err != nil {
+		if _, err := s.check(s); err != nil {
 			return err
 		}
 	}
@@ -290,7 +286,9 @@ func (s *eventSink) performCheck() error {
 // the events collected inside a sink. It's intended to
 // make the life a behavior developer more simple.
 type EventSinkAnalyzer interface {
-
+	// TotalTimespan returns the timespan between the first
+	// and the last event.
+	TotalTimespan() time.Duration
 }
 
 // eventSinkAnalyzer implements EventSinkAnalyzer.
@@ -304,6 +302,16 @@ func NewEventSinkAnalyzer(accessor EventSinkAccessor) EventSinkAnalyzer {
 	return &eventSinkAnalyzer{
 		accessor: accessor,
 	}
+}
+
+// TotalTimespan implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) TotalTimespan() time.Duration {
+	first, firstOK := esa.accessor.PeekFirst()
+	last, lastOK := esa.accessor.PeekLast()
+	if !firstOK || !lastOK {
+		return 0
+	}
+	return last.Timestamp().Sub(first.Timestamp())
 }
 
 // EOF
