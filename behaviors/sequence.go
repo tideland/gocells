@@ -38,17 +38,17 @@ type SequenceCriterion func(accessor cells.EventSinkAccessor) cells.CriterionMat
 type sequenceBehavior struct {
 	cell    cells.Cell
 	matches SequenceCriterion
-	analyze cells.EventSinkAnalyzer
+	process cells.EventSinkProcessor
 	sink    cells.EventSink
 }
 
 // NewSequenceBehavior creates an event sequence behavior. It checks the
 // event stream for a sequence defined by the criterion. In this case an
 // event containing the sequence is emitted.
-func NewSequenceBehavior(criterion SequenceCriterion, analyzer cells.EventSinkAnalyzer) cells.Behavior {
+func NewSequenceBehavior(criterion SequenceCriterion, processor cells.EventSinkProcessor) cells.Behavior {
 	return &sequenceBehavior{
 		matches: criterion,
-		analyze: analyzer,
+		process: processor,
 		sink:    cells.NewEventSink(0),
 	}
 }
@@ -76,7 +76,7 @@ func (b *sequenceBehavior) ProcessEvent(event cells.Event) error {
 		switch matches {
 		case cells.CriterionDone:
 			// All done, process and start over.
-			payload, err := b.analyze(b.sink)
+			payload, err := b.process(b.sink)
 			if err != nil {
 				return err
 			}

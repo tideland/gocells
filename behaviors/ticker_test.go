@@ -32,9 +32,9 @@ func TestTickerBehavior(t *testing.T) {
 	env := cells.NewEnvironment("ticker-behavior")
 	defer env.Stop()
 
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		sigc <- accessor.Len()
-		return nil
+		return nil, nil
 	}
 
 	env.StartCell("ticker", behaviors.NewTickerBehavior(50*time.Millisecond))

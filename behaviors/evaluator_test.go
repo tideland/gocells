@@ -44,7 +44,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 		err := event.Payload().Unmarshal(&evaluation)
 		return evaluation.AvgRating > 6.0, err
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		// Check if all collected ones match the filtered ones.
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
 			var evaluation behaviors.Evaluation
@@ -52,7 +52,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 			return evaluation.AvgRating > 6.0, err
 		})
 		sigc <- ok
-		return err
+		return nil, err
 	}
 	topics := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 

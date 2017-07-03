@@ -59,7 +59,7 @@ func TestComboBehavior(t *testing.T) {
 		assert.Nil(err)
 		return cells.CriterionDone, payload
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
 			var payload map[string]int
 			if err := event.Payload().Unmarshal(&payload); err != nil {
@@ -76,7 +76,7 @@ func TestComboBehavior(t *testing.T) {
 			return true, nil
 		})
 		sigc <- ok
-		return err
+		return nil, err
 	}
 
 	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "now"}
