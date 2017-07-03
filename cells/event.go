@@ -282,4 +282,28 @@ func (s *eventSink) performCheck() error {
 	return nil
 }
 
+//--------------------
+// EVENT SINK ANALYZER
+//--------------------
+
+// EventSinkAnalyzer describes a helpful type to analyze
+// the events collected inside a sink. It's intended to
+// make the life a behavior developer more simple.
+type EventSinkAnalyzer interface {
+
+}
+
+// eventSinkAnalyzer implements EventSinkAnalyzer.
+type eventSinkAnalyzer struct {
+	accessor EventSinkAccessor
+}
+
+// NewEventSinkAnalyzer creates an analyzer for the
+// given sink accessor.
+func NewEventSinkAnalyzer(accessor EventSinkAccessor) EventSinkAnalyzer {
+	return &eventSinkAnalyzer{
+		accessor: accessor,
+	}
+}
+
 // EOF
