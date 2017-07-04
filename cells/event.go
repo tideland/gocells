@@ -93,6 +93,15 @@ func (e *event) String() string {
 // EVENT SINK
 //--------------------
 
+// EventSinkDoer performs an operation on an event.
+type EventSinkDoer func(index int, event Event) error
+
+// EventSinkFilter checks if an event matches a criterium.
+type EventSinkFilter func(index int, event Event) (bool, error)
+
+// EventSinkFolder allows to reduce (fold) events.
+type EventSinkFolder func(index int, acc interface{}, event Event) (interface{}, error)
+
 // EventSinkAccessor can be used to read the events in a sink.
 type EventSinkAccessor interface {
 	// Len returns the number of stored events.
@@ -109,10 +118,17 @@ type EventSinkAccessor interface {
 	PeekAt(index int) (Event, bool)
 
 	// Do iterates over all collected events.
-	Do(doer func(index int, event Event) error) error
+	Do(doer EventSinkDoer) error
+
+	// Filter creates a new accessor containing only the filtered
+	// events.
+	Filter(filter EventSinkFilter) (EventSinkAccessor, error)
 
 	// Match checks if all events match the passed criterion.
-	Match(matcher func(index int, event Event) (bool, error)) (bool, error)
+	Match(matcher EventSinkFilter) (bool, error)
+
+	// Fold reduces (folds) the events of the sink.
+	Fold(initial interface{}, folder EventSinkFolder) (interface{}, error)
 }
 
 // EventSinkProcessor can be used as a checker function but also inside of
@@ -137,7 +153,7 @@ type EventSink interface {
 	EventSinkAccessor
 }
 
-// eventSink implements the EventSink interface.
+// eventSink implements EventSink.
 type eventSink struct {
 	mutex  sync.RWMutex
 	max    int
@@ -160,7 +176,7 @@ func NewCheckedEventSink(max int, checker EventSinkProcessor) EventSink {
 	}
 }
 
-// Push implements the EventSink interface.
+// Push implements EventSink.
 func (s *eventSink) Push(event Event) (int, error) {
 	s.mutex.Lock()
 	s.events = append(s.events, event)
@@ -171,7 +187,7 @@ func (s *eventSink) Push(event Event) (int, error) {
 	return len(s.events), s.performCheck()
 }
 
-// PullFirst implements the EventSink interface.
+// PullFirst implements EventSink.
 func (s *eventSink) PullFirst() (Event, error) {
 	var event Event
 	s.mutex.Lock()
@@ -183,7 +199,7 @@ func (s *eventSink) PullFirst() (Event, error) {
 	return event, s.performCheck()
 }
 
-// PullLast implements the EventSink interface.
+// PullLast implements EventSink.
 func (s *eventSink) PullLast() (Event, error) {
 	var event Event
 	s.mutex.Lock()
@@ -195,7 +211,7 @@ func (s *eventSink) PullLast() (Event, error) {
 	return event, s.performCheck()
 }
 
-// Clear implements tne EventSink interface.
+// Clear implements EventSink.
 func (s *eventSink) Clear() error {
 	s.mutex.Lock()
 	s.events = nil
@@ -203,14 +219,14 @@ func (s *eventSink) Clear() error {
 	return s.performCheck()
 }
 
-// Len implements the EventSinkAccessor interface.
+// Len implements EventSinkAccessor.
 func (s *eventSink) Len() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return len(s.events)
 }
 
-// PeekFirst implements the EventSinkAccessor interface.
+// PeekFirst implements EventSinkAccessor.
 func (s *eventSink) PeekFirst() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -220,7 +236,7 @@ func (s *eventSink) PeekFirst() (Event, bool) {
 	return s.events[0], true
 }
 
-// PeekLast implements the EventSinkAccessor interface.
+// PeekLast implements EventSinkAccessor.
 func (s *eventSink) PeekLast() (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -230,7 +246,7 @@ func (s *eventSink) PeekLast() (Event, bool) {
 	return s.events[len(s.events)-1], true
 }
 
-// PeekAt implements the EventSinkAccessor interface.
+// PeekAt implements EventSinkAccessor.
 func (s *eventSink) PeekAt(index int) (Event, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -240,8 +256,8 @@ func (s *eventSink) PeekAt(index int) (Event, bool) {
 	return s.events[index], true
 }
 
-// Do implements the EventSinkAccessor interface.
-func (s *eventSink) Do(doer func(index int, event Event) error) error {
+// Do implements EventSinkAccessor.
+func (s *eventSink) Do(doer EventSinkDoer) error {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	for index, event := range s.events {
@@ -252,11 +268,28 @@ func (s *eventSink) Do(doer func(index int, event Event) error) error {
 	return nil
 }
 
-// Match implements the EventSinkAccessor interface.
-func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (bool, error) {
+// Filter implements EventSinkAccessor.
+func (s *eventSink) Filter(filter EventSinkFilter) (EventSinkAccessor, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	accessor := NewEventSink(s.Len())
+	for index, event := range s.events {
+		ok, err := filter(index, event)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			accessor.Push(event)
+		}
+	}
+	return accessor, nil
+}
+
+// Match implements EventSinkAccessor.
+func (s *eventSink) Match(matcher EventSinkFilter) (bool, error) {
 	match := true
-	doer := func(mindex int, mevent Event) error {
-		ok, err := matcher(mindex, mevent)
+	doer := func(index int, event Event) error {
+		ok, err := matcher(index, event)
 		if err != nil {
 			match = false
 			return err
@@ -266,6 +299,22 @@ func (s *eventSink) Match(matcher func(index int, event Event) (bool, error)) (b
 	}
 	err := s.Do(doer)
 	return match, err
+}
+
+// Fold implements EventSinkAccessor.
+func (s *eventSink) Fold(inject interface{}, folder EventSinkFolder) (interface{}, error) {
+	acc := inject
+	doer := func(index int, event Event) error {
+		facc, err := folder(index, acc, event)
+		if err != nil {
+			acc = nil
+			return err
+		}
+		acc = facc
+		return nil
+	}
+	err := s.Do(doer)
+	return acc, err
 }
 
 // performCheck calls the checker if configured.
@@ -286,9 +335,20 @@ func (s *eventSink) performCheck() error {
 // the events collected inside a sink. It's intended to
 // make the life a behavior developer more simple.
 type EventSinkAnalyzer interface {
-	// TotalTimespan returns the timespan between the first
+	// TotalDuration returns the duration between the first
 	// and the last event.
-	TotalTimespan() time.Duration
+	TotalDuration() time.Duration
+
+	// MinMaxDuration returns the minimum and maximum
+	// durations between two individual events.
+	MinMaxDuration() (time.Duration, time.Duration)
+
+	// TopicQuantities returns a map of collected topics and
+	// their quantity.
+	TopicQuantities() map[string]int
+
+	// TopicFolds reduces the events per topic.
+	TopicFolds(folder EventSinkFolder) (map[string]interface{}, error)
 }
 
 // eventSinkAnalyzer implements EventSinkAnalyzer.
@@ -304,14 +364,60 @@ func NewEventSinkAnalyzer(accessor EventSinkAccessor) EventSinkAnalyzer {
 	}
 }
 
-// TotalTimespan implements EventSinkAnalyzer.
-func (esa *eventSinkAnalyzer) TotalTimespan() time.Duration {
+// TotalDuration implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) TotalDuration() time.Duration {
 	first, firstOK := esa.accessor.PeekFirst()
 	last, lastOK := esa.accessor.PeekLast()
 	if !firstOK || !lastOK {
 		return 0
 	}
 	return last.Timestamp().Sub(first.Timestamp())
+}
+
+// MinMaxDuration implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) MinMaxDuration() (time.Duration, time.Duration) {
+	minDuration := esa.TotalDuration()
+	maxDuration := 0 * time.Nanosecond
+	lastTimestamp := time.Time{}
+	esa.accessor.Do(func(index int, event Event) error {
+		if index > 0 {
+			duration := event.Timestamp().Sub(lastTimestamp)
+			if duration < minDuration {
+				minDuration = duration
+			}
+			if duration > maxDuration {
+				maxDuration = duration
+			}
+		}
+		lastTimestamp = event.Timestamp()
+		return nil
+	})
+	return minDuration, maxDuration
+}
+
+// TopicQuantities implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) TopicQuantities() map[string]int {
+	topics := map[string]int{}
+	esa.accessor.Do(func(index int, event Event) error {
+		topics[event.Topic()] = topics[event.Topic()] + 1
+		return nil
+	})
+	return topics
+}
+
+// TopicFolds implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) TopicFolds(folder EventSinkFolder) (map[string]interface{}, error) {
+	folds := map[string]interface{}{}
+	err := esa.accessor.Do(func(index int, event Event) error {
+		facc, err := folder(index, folds[event.Topic()], event)
+		if err != nil {
+			folds = nil
+			return err
+		}
+		folds[event.Topic()] = facc
+		return nil
+	})
+	return folds, err
 }
 
 // EOF
