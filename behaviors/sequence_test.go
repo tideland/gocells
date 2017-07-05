@@ -35,11 +35,12 @@ func TestSequenceBehavior(t *testing.T) {
 
 	sequence := []string{"a", "b", "now"}
 	sequencer := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
 		matcher := func(index int, event cells.Event) (bool, error) {
 			ok := event.Topic() == sequence[index]
 			return ok, nil
 		}
-		matches, err := accessor.Match(matcher)
+		matches, err := analyzer.Match(matcher)
 		if err != nil || !matches {
 			return cells.CriterionClear
 		}

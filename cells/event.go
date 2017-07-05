@@ -96,12 +96,6 @@ func (e *event) String() string {
 // EventSinkDoer performs an operation on an event.
 type EventSinkDoer func(index int, event Event) error
 
-// EventSinkFilter checks if an event matches a criterium.
-type EventSinkFilter func(index int, event Event) (bool, error)
-
-// EventSinkFolder allows to reduce (fold) events.
-type EventSinkFolder func(index int, acc interface{}, event Event) (interface{}, error)
-
 // EventSinkAccessor can be used to read the events in a sink.
 type EventSinkAccessor interface {
 	// Len returns the number of stored events.
@@ -119,16 +113,6 @@ type EventSinkAccessor interface {
 
 	// Do iterates over all collected events.
 	Do(doer EventSinkDoer) error
-
-	// Filter creates a new accessor containing only the filtered
-	// events.
-	Filter(filter EventSinkFilter) (EventSinkAccessor, error)
-
-	// Match checks if all events match the passed criterion.
-	Match(matcher EventSinkFilter) (bool, error)
-
-	// Fold reduces (folds) the events of the sink.
-	Fold(initial interface{}, folder EventSinkFolder) (interface{}, error)
 }
 
 // EventSinkProcessor can be used as a checker function but also inside of
@@ -268,55 +252,6 @@ func (s *eventSink) Do(doer EventSinkDoer) error {
 	return nil
 }
 
-// Filter implements EventSinkAccessor.
-func (s *eventSink) Filter(filter EventSinkFilter) (EventSinkAccessor, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	accessor := NewEventSink(s.Len())
-	for index, event := range s.events {
-		ok, err := filter(index, event)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			accessor.Push(event)
-		}
-	}
-	return accessor, nil
-}
-
-// Match implements EventSinkAccessor.
-func (s *eventSink) Match(matcher EventSinkFilter) (bool, error) {
-	match := true
-	doer := func(index int, event Event) error {
-		ok, err := matcher(index, event)
-		if err != nil {
-			match = false
-			return err
-		}
-		match = match && ok
-		return nil
-	}
-	err := s.Do(doer)
-	return match, err
-}
-
-// Fold implements EventSinkAccessor.
-func (s *eventSink) Fold(inject interface{}, folder EventSinkFolder) (interface{}, error) {
-	acc := inject
-	doer := func(index int, event Event) error {
-		facc, err := folder(index, acc, event)
-		if err != nil {
-			acc = nil
-			return err
-		}
-		acc = facc
-		return nil
-	}
-	err := s.Do(doer)
-	return acc, err
-}
-
 // performCheck calls the checker if configured.
 func (s *eventSink) performCheck() error {
 	if s.check != nil {
@@ -331,10 +266,26 @@ func (s *eventSink) performCheck() error {
 // EVENT SINK ANALYZER
 //--------------------
 
+// EventSinkFilter checks if an event matches a criterium.
+type EventSinkFilter func(index int, event Event) (bool, error)
+
+// EventSinkFolder allows to reduce (fold) events.
+type EventSinkFolder func(index int, acc interface{}, event Event) (interface{}, error)
+
 // EventSinkAnalyzer describes a helpful type to analyze
 // the events collected inside a sink. It's intended to
 // make the life a behavior developer more simple.
 type EventSinkAnalyzer interface {
+	// Filter creates a new accessor containing only the filtered
+	// events.
+	Filter(filter EventSinkFilter) (EventSinkAccessor, error)
+
+	// Match checks if all events match the passed criterion.
+	Match(matcher EventSinkFilter) (bool, error)
+
+	// Fold reduces (folds) the events of the sink.
+	Fold(initial interface{}, folder EventSinkFolder) (interface{}, error)
+
 	// TotalDuration returns the duration between the first
 	// and the last event.
 	TotalDuration() time.Duration
@@ -364,6 +315,55 @@ func NewEventSinkAnalyzer(accessor EventSinkAccessor) EventSinkAnalyzer {
 	}
 }
 
+// Filter implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) Filter(filter EventSinkFilter) (EventSinkAccessor, error) {
+	accessor := NewEventSink(esa.accessor.Len())
+	doer := func(index int, event Event) error {
+		ok, err := filter(index, event)
+		if err != nil {
+			accessor = nil
+		}
+		if ok {
+			accessor.Push(event)
+		}
+		return nil
+	}
+	err := esa.accessor.Do(doer)
+	return accessor, err
+}
+
+// Match implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) Match(matcher EventSinkFilter) (bool, error) {
+	match := true
+	doer := func(index int, event Event) error {
+		ok, err := matcher(index, event)
+		if err != nil {
+			match = false
+			return err
+		}
+		match = match && ok
+		return nil
+	}
+	err := esa.accessor.Do(doer)
+	return match, err
+}
+
+// Fold implements EventSinkAnalyzer.
+func (esa *eventSinkAnalyzer) Fold(inject interface{}, folder EventSinkFolder) (interface{}, error) {
+	acc := inject
+	doer := func(index int, event Event) error {
+		facc, err := folder(index, acc, event)
+		if err != nil {
+			acc = nil
+			return err
+		}
+		acc = facc
+		return nil
+	}
+	err := esa.accessor.Do(doer)
+	return acc, err
+}
+
 // TotalDuration implements EventSinkAnalyzer.
 func (esa *eventSinkAnalyzer) TotalDuration() time.Duration {
 	first, firstOK := esa.accessor.PeekFirst()
@@ -379,7 +379,7 @@ func (esa *eventSinkAnalyzer) MinMaxDuration() (time.Duration, time.Duration) {
 	minDuration := esa.TotalDuration()
 	maxDuration := 0 * time.Nanosecond
 	lastTimestamp := time.Time{}
-	esa.accessor.Do(func(index int, event Event) error {
+	doer := func(index int, event Event) error {
 		if index > 0 {
 			duration := event.Timestamp().Sub(lastTimestamp)
 			if duration < minDuration {
@@ -391,24 +391,26 @@ func (esa *eventSinkAnalyzer) MinMaxDuration() (time.Duration, time.Duration) {
 		}
 		lastTimestamp = event.Timestamp()
 		return nil
-	})
+	}
+	esa.accessor.Do(doer)
 	return minDuration, maxDuration
 }
 
 // TopicQuantities implements EventSinkAnalyzer.
 func (esa *eventSinkAnalyzer) TopicQuantities() map[string]int {
 	topics := map[string]int{}
-	esa.accessor.Do(func(index int, event Event) error {
+	doer := func(index int, event Event) error {
 		topics[event.Topic()] = topics[event.Topic()] + 1
 		return nil
-	})
+	}
+	esa.accessor.Do(doer)
 	return topics
 }
 
 // TopicFolds implements EventSinkAnalyzer.
 func (esa *eventSinkAnalyzer) TopicFolds(folder EventSinkFolder) (map[string]interface{}, error) {
 	folds := map[string]interface{}{}
-	err := esa.accessor.Do(func(index int, event Event) error {
+	doer := func(index int, event Event) error {
 		facc, err := folder(index, folds[event.Topic()], event)
 		if err != nil {
 			folds = nil
@@ -416,7 +418,8 @@ func (esa *eventSinkAnalyzer) TopicFolds(folder EventSinkFolder) (map[string]int
 		}
 		folds[event.Topic()] = facc
 		return nil
-	})
+	}
+	err := esa.accessor.Do(doer)
 	return folds, err
 }
 
