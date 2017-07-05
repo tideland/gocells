@@ -147,7 +147,7 @@ func TestEventSinkIteration(t *testing.T) {
 		return nil
 	})
 	assert.Nil(err)
-	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
+	ok, err := cells.NewEventSinkAnalyzer(sink).Match(func(index int, event cells.Event) (bool, error) {
 		topicOK := event.Topic() >= "a" && event.Topic() <= "j"
 		var payload int
 		err := event.Payload().Unmarshal(&payload)
@@ -169,7 +169,7 @@ func TestEventSinkIterationError(t *testing.T) {
 		return stderr.New("ouch")
 	})
 	assert.ErrorMatch(err, "ouch")
-	ok, err := sink.Match(func(index int, event cells.Event) (bool, error) {
+	ok, err := cells.NewEventSinkAnalyzer(sink).Match(func(index int, event cells.Event) (bool, error) {
 		// The bool true won't be passed to outside.
 		return true, stderr.New("ouch")
 	})
@@ -184,7 +184,7 @@ func TestCheckedEventSink(t *testing.T) {
 	donec := audit.MakeSigChan()
 	count := 0
 	wanted := []string{"f", "c", "c"}
-	checker := func(events cells.EventSinkAccessor) error {
+	checker := func(events cells.EventSinkAccessor) (cells.Payload, error) {
 		count++
 		defer func() {
 			if count == 100 {
@@ -192,13 +192,13 @@ func TestCheckedEventSink(t *testing.T) {
 			}
 		}()
 		if events.Len() < len(wanted) {
-			return nil
+			return nil, nil
 		}
-		ok, err := events.Match(func(index int, event cells.Event) (bool, error) {
+		ok, err := cells.NewEventSinkAnalyzer(events).Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == wanted[index], nil
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if ok {
 			first, _ := events.PeekFirst()
@@ -206,7 +206,7 @@ func TestCheckedEventSink(t *testing.T) {
 			payload := last.Timestamp().Sub(first.Timestamp())
 			payloadc <- payload
 		}
-		return nil
+		return nil, nil
 	}
 	sink := cells.NewCheckedEventSink(3, checker)
 
@@ -226,6 +226,13 @@ func TestCheckedEventSink(t *testing.T) {
 	}
 }
 
+// TestEventSinkAnalyzer tests analyzing an event sink.
+func TestEventSinkAnalyzer(t *testing.T) {
+	assert := audit.NewTestingAssertion(t, true)
+	sink := cells.NewEventSink(0)
+	addEvents(assert, 100, sink)
+}
+
 //--------------------
 // HELPER
 //--------------------
@@ -239,12 +246,13 @@ func addEvents(assert audit.Assertion, count int, sink cells.EventSink) {
 	for i := 0; i < count; i++ {
 		topic := generator.OneStringOf(topics...)
 		payload := generator.OneIntOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
+		sleep := generator.Duration(2*time.Millisecond, 4*time.Millisecond)
 		event, err := cells.NewEvent(topic, payload)
 		assert.Nil(err)
 		n, err := sink.Push(event)
 		assert.Nil(err)
 		assert.True(n > 0)
-		time.Sleep(2 * time.Millisecond)
+		time.Sleep(sleep)
 	}
 }
 
