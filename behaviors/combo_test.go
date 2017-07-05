@@ -34,13 +34,14 @@ func TestComboBehavior(t *testing.T) {
 	defer env.Stop()
 
 	matcher := func(accessor cells.EventSinkAccessor) (cells.CriterionMatch, cells.Payload) {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
 		combo := map[string]int{
 			"a": 0,
 			"b": 0,
 			"c": 0,
 			"d": 0,
 		}
-		matches, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+		matches, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
 			_, ok := combo[event.Topic()]
 			if ok {
 				combo[event.Topic()]++
@@ -60,7 +61,8 @@ func TestComboBehavior(t *testing.T) {
 		return cells.CriterionDone, payload
 	}
 	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
-		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
+		ok, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
 			var payload map[string]int
 			if err := event.Payload().Unmarshal(&payload); err != nil {
 				return false, err

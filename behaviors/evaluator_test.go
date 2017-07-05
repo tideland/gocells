@@ -46,7 +46,8 @@ func TestEvaluatorBehavior(t *testing.T) {
 	}
 	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		// Check if all collected ones match the filtered ones.
-		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
+		ok, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
 			var evaluation behaviors.Evaluation
 			err := event.Payload().Unmarshal(&evaluation)
 			return evaluation.AvgRating > 6.0, err

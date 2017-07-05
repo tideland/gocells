@@ -37,7 +37,8 @@ func TestRateBehavior(t *testing.T) {
 		return event.Topic() == "now", nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
-		ok, err := accessor.Match(func(index int, event cells.Event) (bool, error) {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
+		ok, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
 			return event.Topic() == behaviors.TopicRate, nil
 		})
 		sigc <- ok
