@@ -135,6 +135,7 @@ func TestEventSink(t *testing.T) {
 func TestEventSinkIteration(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	sink := cells.NewEventSink(0)
+
 	addEvents(assert, 10, sink)
 
 	assert.Length(sink, 10)
@@ -163,6 +164,7 @@ func TestEventSinkIteration(t *testing.T) {
 func TestEventSinkIterationError(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	sink := cells.NewEventSink(0)
+
 	addEvents(assert, 10, sink)
 
 	err := sink.Do(func(index int, event cells.Event) error {
@@ -230,7 +232,60 @@ func TestCheckedEventSink(t *testing.T) {
 func TestEventSinkAnalyzer(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	sink := cells.NewEventSink(0)
+	analyzer := cells.NewEventSinkAnalyzer(sink)
+
 	addEvents(assert, 100, sink)
+
+	// Check filtering.
+	fchecker := func(index int, event cells.Event) (bool, error) {
+		if event.Topic() == "f" {
+			return true, nil
+		}
+		return false, nil
+	}
+	fs, err := analyzer.Filter(fchecker)
+	assert.Nil(err)
+	assert.True(fs.Len() < sink.Len(), "less events with topic f than total number")
+
+	// Check matching.
+	ok, err := cells.NewEventSinkAnalyzer(fs).Match(fchecker)
+	assert.Nil(err)
+	assert.True(ok, "all events in fs do have topic f")
+
+	// Check folding.
+	count := 0
+	ffolder := func(index int, acc interface{}, event cells.Event) (interface{}, error) {
+		if event.Topic() == "f" {
+			count++
+			fs, ok := acc.(int)
+			if !ok {
+				return nil, stderr.New("ouch")
+			}
+			return fs+1, nil
+		}
+		return acc, nil
+	}
+	fcount, err := analyzer.Fold(0, ffolder)
+	assert.Nil(err)
+	assert.Equal(fcount, count, "accumulator has been updated correctly")
+
+	count = 0
+	fpfolder := func(index int, acc cells.Payload, event cells.Event) (cells.Payload, error) {
+		if event.Topic() == "f" {
+			count++
+			payload, err := cells.NewPayload(acc.String() + event.Topic())
+			if err != nil {
+				return nil, err
+			}
+			return payload, nil
+		}
+		return acc, nil
+	}
+	initial, err := cells.NewPayload("")
+	assert.Nil(err)
+	fpcount, err := analyzer.FoldPayload(initial, fpfolder)
+	assert.Nil(err)
+	assert.Length(fpcount, count, "payload accumulator has been updated correctly")
 }
 
 //--------------------
