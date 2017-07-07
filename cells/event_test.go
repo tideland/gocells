@@ -13,6 +13,7 @@ package cells_test
 
 import (
 	stderr "errors"
+	"sort"
 	"testing"
 	"time"
 
@@ -261,7 +262,7 @@ func TestEventSinkAnalyzer(t *testing.T) {
 			if !ok {
 				return nil, stderr.New("ouch")
 			}
-			return fs+1, nil
+			return fs + 1, nil
 		}
 		return acc, nil
 	}
@@ -286,6 +287,54 @@ func TestEventSinkAnalyzer(t *testing.T) {
 	fpcount, err := analyzer.FoldPayload(initial, fpfolder)
 	assert.Nil(err)
 	assert.Length(fpcount, count, "payload accumulator has been updated correctly")
+
+	// Check total duration.
+	dsink := cells.NewEventSink(0)
+	danalyzer := cells.NewEventSinkAnalyzer(dsink)
+	duration := danalyzer.TotalDuration()
+	assert.Equal(duration, 0*time.Nanosecond, "empty sink has no duration")
+
+	addEvents(assert, 1, dsink)
+	duration = danalyzer.TotalDuration()
+	assert.Equal(duration, 0*time.Nanosecond, "sink containing one event has no duration")
+
+	addEvents(assert, 1, dsink)
+	first, ok := dsink.PeekFirst()
+	assert.True(ok)
+	last, ok := dsink.PeekLast()
+	assert.True(ok)
+	duration = danalyzer.TotalDuration()
+	assert.Equal(duration, last.Timestamp().Sub(first.Timestamp()), "total duration calculated correctly")
+
+	// Check minimum/maximum duration.
+	durations := []time.Duration{}
+	timestamp := time.Time{}
+	sink.Do(func(index int, event cells.Event) error {
+		if index == 0 {
+			timestamp = event.Timestamp()
+			return nil
+		}
+		duration = event.Timestamp().Sub(timestamp)
+		durations = append(durations, duration)
+		timestamp = event.Timestamp()
+		return nil
+	})
+	sort.Slice(durations, func(i, j int) bool {
+		return durations[i] < durations[j]
+	})
+	dmin := durations[0]
+	dmax := durations[len(durations)-1]
+	min, max := analyzer.MinMaxDuration()
+	assert.Equal(min, dmin, "minimum duration is correct")
+	assert.Equal(max, dmax, "maximum duration is correct")
+
+	// Check topic quantities.
+	quantities := analyzer.TopicQuantities()
+	assert.Length(quantities, 10)
+	for topic, quantity := range quantities {
+		assert.Contents(topic, topics, "topic is one of the topics")
+		assert.Range(quantity, 1, 100, "quantity is in range")
+	}
 }
 
 //--------------------
