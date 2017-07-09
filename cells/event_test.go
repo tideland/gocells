@@ -330,10 +330,28 @@ func TestEventSinkAnalyzer(t *testing.T) {
 
 	// Check topic quantities.
 	quantities := analyzer.TopicQuantities()
-	assert.Length(quantities, 10)
+	assert.Length(quantities, len(topics))
 	for topic, quantity := range quantities {
 		assert.Contents(topic, topics, "topic is one of the topics")
 		assert.Range(quantity, 1, 100, "quantity is in range")
+	}
+
+	tfolder := func(index int, acc interface{}, event cells.Event) (interface{}, error) {
+		if acc == nil {
+			return 0, nil
+		}
+		count, ok := acc.(int)
+		if !ok {
+			return nil, stderr.New("ouch")
+		}
+		return count + 1, nil
+	}
+	counts, err := analyzer.TopicFolds(tfolder)
+	assert.Nil(err)
+	assert.Length(quantities, len(topics))
+	for topic, count := range counts {
+		assert.Contents(topic, topics, "topic is one of the topics")
+		assert.Range(count, 1, 100, "quantity is in range")
 	}
 }
 
