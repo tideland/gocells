@@ -184,14 +184,23 @@ func TestEventSinkAnalyzer(t *testing.T) {
 		}
 		return false, nil
 	}
+	ferrchecker := func(index int, event cells.Event) (bool, error) {
+		return false, stderr.New("ouch")
+	}
 	fs, err := analyzer.Filter(fchecker)
 	assert.Nil(err)
 	assert.True(fs.Len() < sink.Len(), "less events with topic f than total number")
+	fs, err = analyzer.Filter(ferrchecker)
+	assert.ErrorMatch(err, "ouch", "error is returned correctly")
 
 	// Check matching.
+	fs, err = analyzer.Filter(fchecker)
+	assert.Nil(err)
 	ok, err := cells.NewEventSinkAnalyzer(fs).Match(fchecker)
 	assert.Nil(err)
 	assert.True(ok, "all events in fs do have topic f")
+	ok, err = cells.NewEventSinkAnalyzer(fs).Match(ferrchecker)
+	assert.ErrorMatch(err, "ouch", "error is returned correctly")
 
 	// Check folding.
 	count := 0
@@ -206,9 +215,14 @@ func TestEventSinkAnalyzer(t *testing.T) {
 		}
 		return acc, nil
 	}
+	ferrfolder := func(index int, acc interface{}, event cells.Event) (interface{}, error) {
+		return nil, stderr.New("ouch")
+	}
 	fcount, err := analyzer.Fold(0, ffolder)
 	assert.Nil(err)
 	assert.Equal(fcount, count, "accumulator has been updated correctly")
+	fcount, err = analyzer.Fold(0, ferrfolder)
+	assert.ErrorMatch(err, "ouch", "error is returned correctly")
 
 	count = 0
 	fpfolder := func(index int, acc cells.Payload, event cells.Event) (cells.Payload, error) {
@@ -222,11 +236,18 @@ func TestEventSinkAnalyzer(t *testing.T) {
 		}
 		return acc, nil
 	}
+	fperrfolder := func(index int, acc cells.Payload, event cells.Event) (cells.Payload, error) {
+		return nil, stderr.New("ouch")
+	}
 	initial, err := cells.NewPayload("")
 	assert.Nil(err)
 	fpcount, err := analyzer.FoldPayload(initial, fpfolder)
 	assert.Nil(err)
 	assert.Length(fpcount, count, "payload accumulator has been updated correctly")
+	initial, err = cells.NewPayload("")
+	assert.Nil(err)
+	fpcount, err = analyzer.FoldPayload(initial, fperrfolder)
+	assert.ErrorMatch(err, "ouch", "error is returned correctly")
 
 	// Check total duration.
 	dsink := cells.NewEventSink(0)
@@ -286,6 +307,9 @@ func TestEventSinkAnalyzer(t *testing.T) {
 		}
 		return count + 1, nil
 	}
+	terrfolder := func(index int, acc interface{}, event cells.Event) (interface{}, error) {
+		return nil, stderr.New("ouch")
+	}
 	counts, err := analyzer.TopicFolds(tfolder)
 	assert.Nil(err)
 	assert.Length(quantities, len(topics))
@@ -293,6 +317,8 @@ func TestEventSinkAnalyzer(t *testing.T) {
 		assert.Contents(topic, topics, "topic is one of the topics")
 		assert.Range(count, 1, 100, "quantity is in range")
 	}
+	counts, err = analyzer.TopicFolds(terrfolder)
+	assert.ErrorMatch(err, "ouch", "error is returned correctly")
 }
 
 //--------------------
