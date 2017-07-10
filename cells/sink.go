@@ -17,7 +17,7 @@ import (
 )
 
 //--------------------
-// EVENT SINK
+// EVENT SINK FUNCTION TYPES
 //--------------------
 
 // EventSinkDoer performs an operation on an event.
@@ -26,6 +26,19 @@ type EventSinkDoer func(index int, event Event) error
 // EventSinkProcessor can be used as a checker function but also inside of
 // behaviors to process the content of an event sink and return a new payload.
 type EventSinkProcessor func(accessor EventSinkAccessor) (Payload, error)
+
+// EventSinkFilter checks if an event matches a criterium.
+type EventSinkFilter func(index int, event Event) (bool, error)
+
+// EventSinkFolder allows to reduce (fold) events.
+type EventSinkFolder func(index int, acc interface{}, event Event) (interface{}, error)
+
+// EventSinkPayloadFolder allows to reduce (fold) events.
+type EventSinkPayloadFolder func(index int, acc Payload, event Event) (Payload, error)
+
+//--------------------
+// EVENT SINK
+//--------------------
 
 // EventSinkAccessor can be used to read the events in a sink.
 type EventSinkAccessor interface {
@@ -193,15 +206,6 @@ func (s *eventSink) performCheck() error {
 // EVENT SINK ANALYZER
 //--------------------
 
-// EventSinkFilter checks if an event matches a criterium.
-type EventSinkFilter func(index int, event Event) (bool, error)
-
-// EventSinkFolder allows to reduce (fold) events.
-type EventSinkFolder func(index int, acc interface{}, event Event) (interface{}, error)
-
-// EventSinkPayloadFolder allows to reduce (fold) events.
-type EventSinkPayloadFolder func(index int, acc Payload, event Event) (Payload, error)
-
 // EventSinkAnalyzer describes a helpful type to analyze
 // the events collected inside a sink. It's intended to
 // make the life a behavior developer more simple.
@@ -255,6 +259,7 @@ func (esa *eventSinkAnalyzer) Filter(filter EventSinkFilter) (EventSinkAccessor,
 		ok, err := filter(index, event)
 		if err != nil {
 			accessor = nil
+			return err
 		}
 		if ok {
 			accessor.Push(event)
