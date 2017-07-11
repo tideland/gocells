@@ -35,11 +35,12 @@ func TestSequenceBehavior(t *testing.T) {
 
 	sequence := []string{"a", "b", "now"}
 	sequencer := func(accessor cells.EventSinkAccessor) cells.CriterionMatch {
+		analyzer := cells.NewEventSinkAnalyzer(accessor)
 		matcher := func(index int, event cells.Event) (bool, error) {
 			ok := event.Topic() == sequence[index]
 			return ok, nil
 		}
-		matches, err := accessor.Match(matcher)
+		matches, err := analyzer.Match(matcher)
 		if err != nil || !matches {
 			return cells.CriterionClear
 		}
@@ -53,7 +54,7 @@ func TestSequenceBehavior(t *testing.T) {
 		assert.True(ok)
 		return first.Payload(), nil
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		var indexes []int
 		err := accessor.Do(func(_ int, event cells.Event) error {
 			var index int
@@ -63,7 +64,7 @@ func TestSequenceBehavior(t *testing.T) {
 		})
 		assert.Nil(err)
 		sigc <- indexes
-		return nil
+		return nil, nil
 	}
 	topics := []string{"a", "b", "c", "d", "now"}
 

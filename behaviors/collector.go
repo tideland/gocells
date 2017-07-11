@@ -54,7 +54,7 @@ func (b *collectorBehavior) Terminate() error {
 func (b *collectorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicProcess:
-		err := b.process(b.sink)
+		_, err := b.process(b.sink)
 		if err != nil {
 			return err
 		}
