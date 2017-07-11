@@ -17,7 +17,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-07-08
+Version 6.0.0-beta.2017-07-11
 
 ## Packages
 
@@ -45,6 +45,8 @@ still growing.
 - **Combo** waits for a user-defined combination of events.
 - **Condition** tests events for conditions using a tester function
   and calls a processor then.
+- **Countdown** counts a number of events down to zero and executes a
+  payload returning function. The payload will be emitted in an event then.
 - **Counter** counts events, the counters can be retrieved.
 - **Evaluator** evaluates events based on a user-defined function which
   returns a rating.
