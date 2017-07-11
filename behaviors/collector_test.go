@@ -33,9 +33,9 @@ func TestCollectorBehavior(t *testing.T) {
 	env := cells.NewEnvironment("collector-behavior")
 	defer env.Stop()
 
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		sigc <- accessor.Len()
-		return nil
+		return nil, nil
 	}
 
 	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))

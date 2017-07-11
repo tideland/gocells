@@ -17,7 +17,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-06-18
+Version 6.0.0-beta.2017-07-08
 
 ## Packages
 
@@ -25,9 +25,13 @@ Version 6.0.0-beta.2017-06-18
 
 Major package providing the infrastructure for event based applications. It
 is organized as an environment of networked cells. Each cell is controlled
-by its behavior. It receives events, processes them, and can emit a number
-of new events during this time. Those events are then received by those
-cells which subscribed to the individual cell.
+by its behavior implementing the according interface. It receives events,
+processes them, and can emit a number of new events during this time. Those
+events are then received by those cells which subscribed to the individual
+cell.
+
+For the implementation of own behaviors the `EventSink`, the `EventSinkAccessor`,
+and the `EventSinkAnalyzer` provide help for their tasks.
 
 ### Behaviors
 

@@ -266,7 +266,7 @@ func TestEnvironmentScenario(t *testing.T) {
 	assert.Wait(sigc, 2, 2*time.Second)
 	assert.Length(bazSink, 2)
 
-	ok, err := bazSink.Match(func(index int, event cells.Event) (bool, error) {
+	ok, err := cells.NewEventSinkAnalyzer(bazSink).Match(func(index int, event cells.Event) (bool, error) {
 		switch event.Topic() {
 		case "lorem", "ipsum":
 			return true, nil

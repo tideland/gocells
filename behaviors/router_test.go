@@ -37,9 +37,9 @@ func TestRouterBehavior(t *testing.T) {
 		ok := strings.Contains(event.Topic(), subscriberID)
 		return ok, nil
 	}
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		sigc <- accessor.Len()
-		return nil
+		return nil, nil
 	}
 	env.StartCell("router", behaviors.NewRouterBehavior(router))
 	env.StartCell("test-1", behaviors.NewCollectorBehavior(10, processor))

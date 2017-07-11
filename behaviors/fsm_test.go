@@ -33,14 +33,14 @@ func TestFSMBehavior(t *testing.T) {
 	env := cells.NewEnvironment("fsm-behavior")
 	defer env.Stop()
 
-	processor := func(accessor cells.EventSinkAccessor) error {
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		eventInfos := []string{}
 		accessor.Do(func(index int, event cells.Event) error {
 			eventInfos = append(eventInfos, event.Topic())
 			return nil
 		})
 		sigc <- eventInfos
-		return nil
+		return nil, nil
 	}
 
 	lockA := lockMachine{}
