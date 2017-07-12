@@ -69,6 +69,7 @@ func (b *countdownBehavior) ProcessEvent(event cells.Event) error {
 		if err != nil {
 			return err
 		}
+		b.sink.Clear()
 		b.t = t
 		return b.cell.Emit(e)
 	}
