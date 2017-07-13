@@ -17,7 +17,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-07-12
+Version 6.0.0-beta.2017-07-13
 
 ## Packages
 
@@ -52,6 +52,7 @@ still growing.
   returns a rating.
 - **Filter** emits received events based on a user-defined filter.
 - **Finite State Machine** allows to build finite state machines for events.
+- **Key/Value** collects and emits payloads grouped by topics.
 - **Logger** logs received events with level INFO.
 - **Mapper** maps received events based on a user-defined function to new events.
 - **Once** calls the once function only for the first event it receives.
