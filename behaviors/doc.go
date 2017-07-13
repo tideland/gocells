@@ -34,6 +34,8 @@
 //
 // Finite State Machine allows to build finite state machines for events.
 //
+// Key/Value collects and emits payloads grouped by topics.
+//
 // Logger logs received events with level INFO.
 //
 // Mapper maps received events based on a user-defined function to
@@ -64,22 +66,5 @@
 //
 // Ticker emits tick events in a defined interval.
 package behaviors
-
-//--------------------
-// IMPORTS
-//--------------------
-
-import (
-	"github.com/tideland/golib/version"
-)
-
-//--------------------
-// VERSION
-//--------------------
-
-// Version returns the version of the behaviors package.
-func Version() version.Version {
-	return version.New(6, 0, 0, "beta", "2017-10-22")
-}
 
 // EOF

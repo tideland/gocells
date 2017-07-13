@@ -65,6 +65,7 @@ func NewPayload(v interface{}) (Payload, error) {
 			}
 		}
 	}
+	fmt.Printf("--> %s\n", data)
 	return &payload{
 		data: data,
 	}, nil
