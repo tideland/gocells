@@ -63,9 +63,9 @@ func NewPayload(v interface{}) (Payload, error) {
 			if err != nil {
 				return nil, errors.Annotate(err, ErrMarshal, errorMessages)
 			}
+			fmt.Printf("--> %v is %s\n", v, data)
 		}
 	}
-	fmt.Printf("--> %s\n", data)
 	return &payload{
 		data: data,
 	}, nil
