@@ -34,11 +34,11 @@ func TestKeyValueBehavior(t *testing.T) {
 	env.StartCell("keyvalue", behaviors.NewKeyValueBehavior(5))
 
 	topics := []string{"alpha", "beta", "gamma"}
-	payloads := []string{"one", "two", "three", "four", "five"}
+	payloads := []int{1, 2, 3, 4, 5}
 
 	for i := 0; i < 50; i++ {
 		topic := generator.OneStringOf(topics...)
-		payload := generator.OneStringOf(payloads...)
+		payload := generator.OneIntOf(payloads...)
 		env.EmitNew("keyvalue", topic, payload)
 	}
 

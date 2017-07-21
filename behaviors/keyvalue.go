@@ -21,7 +21,7 @@ import "github.com/tideland/gocells/cells"
 type keyValueBehavior struct {
 	cell      cells.Cell
 	maximum   int
-	collected map[string][]cells.Payload
+	collected map[string][][]byte
 }
 
 // NewKeyValueBehavior creates a behavior collecting the payloads
@@ -30,7 +30,7 @@ func NewKeyValueBehavior(maximum int) cells.Behavior {
 	return &keyValueBehavior{
 		cell:      nil,
 		maximum:   maximum,
-		collected: make(map[string][]cells.Payload),
+		collected: make(map[string][][]byte),
 	}
 }
 
@@ -48,7 +48,7 @@ func (b *keyValueBehavior) Terminate() error {
 // ProcessEvent calls the simple processor function.
 func (b *keyValueBehavior) ProcessEvent(event cells.Event) error {
 	payloads := b.collected[event.Topic()]
-	payloads = append(payloads, event.Payload())
+	payloads = append(payloads, event.Payload().Bytes())
 	if len(payloads) > b.maximum {
 		payloads = payloads[1:]
 	}
@@ -58,7 +58,7 @@ func (b *keyValueBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *keyValueBehavior) Recover(err interface{}) error {
-	b.collected = make(map[string][]cells.Payload)
+	b.collected = make(map[string][][]byte)
 	return nil
 }
 
