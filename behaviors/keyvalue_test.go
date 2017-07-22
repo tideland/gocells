@@ -31,7 +31,20 @@ func TestKeyValueBehavior(t *testing.T) {
 	env := cells.NewEnvironment("key-value-behavior")
 	defer env.Stop()
 
+	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
+		err := accessor.Do(func(index int, event cells.Event) error {
+			var payloads cells.Payloads
+			err := event.Payload().Unmarshal(&payloads)
+			assert.Nil(err)
+			assert.Range(len(payloads), 1, 5)
+			return nil
+		})
+		return nil, err
+	}
+
 	env.StartCell("keyvalue", behaviors.NewKeyValueBehavior(5))
+	env.StartCell("collector", behaviors.NewCollectorBehavior(10, processor))
+	env.Subscribe("keyvalue", "collector")
 
 	topics := []string{"alpha", "beta", "gamma"}
 	payloads := []int{1, 2, 3, 4, 5}
