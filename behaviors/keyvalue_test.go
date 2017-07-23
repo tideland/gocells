@@ -13,6 +13,7 @@ package behaviors_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/tideland/golib/audit"
 
@@ -28,6 +29,7 @@ import (
 func TestKeyValueBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
 	generator := audit.NewGenerator(audit.FixedRand())
+	sigc := audit.MakeSigChan()
 	env := cells.NewEnvironment("key-value-behavior")
 	defer env.Stop()
 
@@ -37,8 +39,15 @@ func TestKeyValueBehavior(t *testing.T) {
 			err := event.Payload().Unmarshal(&payloads)
 			assert.Nil(err)
 			assert.Range(len(payloads), 1, 5)
+			for _, payload := range payloads {
+				var value int
+				err = payload.Unmarshal(&value)
+				assert.Nil(err)
+				assert.Range(value, 1, 5)
+			}
 			return nil
 		})
+		sigc <- err
 		return nil, err
 	}
 
@@ -55,8 +64,9 @@ func TestKeyValueBehavior(t *testing.T) {
 		env.EmitNew("keyvalue", topic, payload)
 	}
 
-	// TODO 2017-07-13 Mue Work in progress.
-	assert.True(true)
+	env.EmitNew("collector", cells.TopicProcess, nil)
+
+	assert.Wait(sigc, true, 5*time.Second)
 }
 
 // EOF
