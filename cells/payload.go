@@ -38,9 +38,6 @@ type Payload interface {
 	Unmarshal(v interface{}) error
 }
 
-// Payloads is a set of Payloads.
-type Payloads []Payload
-
 // payload implements the Payload interface.
 type payload struct {
 	Data []byte
@@ -60,11 +57,6 @@ func NewPayload(v interface{}) (Payload, error) {
 		data = []byte(tv)
 	case Payload:
 		return tv, nil
-	case Payloads:
-		data, err = json.Marshal(tv)
-		if err != nil {
-			return nil, errors.Annotate(err, ErrMarshal, errorMessages)
-		}
 	default:
 		if v != nil {
 			data, err = json.Marshal(v)
@@ -110,6 +102,42 @@ func (p *payload) Unmarshal(v interface{}) error {
 // String implements fmt.Stringer.
 func (p *payload) String() string {
 	return string(p.Data)
+}
+
+//--------------------
+// PAYLOADS
+//--------------------
+
+// Payloads contains an array of payloads.
+type Payloads interface {
+	// Len returns the number of payloads in the array.
+	Len() int
+}
+
+// payloads implements Payloads.
+type payloads struct {
+	Loads []*payload
+}
+
+// NewPayloads creates an array of payloads out of one payload.
+func NewPayloads(p Payload) (Payloads, error) {
+	var datas [][]byte
+	err := p.Unmarshal(&datas)
+	if err != nil {
+		return nil, err
+	}
+	ps := &payloads{}
+	for _, data := range datas {
+		ps.Loads = append(ps.Loads, &payload{
+			Data: data,
+		})
+	}
+	return ps, nil
+}
+
+// Len implements Payloads.
+func (p *payloads) Len() int {
+	return len(p.Loads)
 }
 
 // EOF
