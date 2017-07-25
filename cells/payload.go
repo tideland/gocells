@@ -38,9 +38,6 @@ type Payload interface {
 	Unmarshal(v interface{}) error
 }
 
-// Payloads is a set of payloads.
-type Payloads []Payload
-
 // payload implements the Payload interface.
 type payload struct {
 	Data []byte
@@ -60,15 +57,6 @@ func NewPayload(v interface{}) (Payload, error) {
 		data = []byte(tv)
 	case Payload:
 		return tv, nil
-	case Payloads:
-		var datas [][]byte
-		for _, p := range tv {
-			datas = append(datas, p.Bytes())
-		}
-		data, err = json.Marshal(datas)
-		if err != nil {
-			return nil, errors.Annotate(err, ErrMarshal, errorMessages)
-		}
 	default:
 		if v != nil {
 			data, err = json.Marshal(v)
