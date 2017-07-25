@@ -25,10 +25,10 @@ import (
 // TESTS
 //--------------------
 
-// TestSimpleBehavior tests the simple processor behavior.
-func TestSimpleBehavior(t *testing.T) {
+// TestSimpleProcessorBehavior tests the simple processor behavior.
+func TestSimpleProcessorBehavior(t *testing.T) {
 	assert := audit.NewTestingAssertion(t, true)
-	env := cells.NewEnvironment("simple-procesor-behavior")
+	env := cells.NewEnvironment("simple-processor-behavior")
 	defer env.Stop()
 
 	topics := []string{}
