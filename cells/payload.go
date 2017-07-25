@@ -40,7 +40,7 @@ type Payload interface {
 
 // payload implements the Payload interface.
 type payload struct {
-	data []byte
+	Data []byte
 }
 
 // NewPayload creates a new payload based on the passed value. In
@@ -66,7 +66,7 @@ func NewPayload(v interface{}) (Payload, error) {
 		}
 	}
 	return &payload{
-		data: data,
+		Data: data,
 	}, nil
 }
 
@@ -74,25 +74,25 @@ func NewPayload(v interface{}) (Payload, error) {
 // lazy access to events with no payload.
 func newEmptyPayload() Payload {
 	return &payload{
-		data: []byte{},
+		Data: []byte{},
 	}
 }
 
 // Len implements Payload.
 func (p *payload) Len() int {
-	return len(p.data)
+	return len(p.Data)
 }
 
 // Bytes implements Payload.
 func (p *payload) Bytes() []byte {
-	data := make([]byte, len(p.data))
-	copy(data, p.data)
+	data := make([]byte, len(p.Data))
+	copy(data, p.Data)
 	return data
 }
 
 // Unmarshal implements Payload.
 func (p *payload) Unmarshal(v interface{}) error {
-	err := json.Unmarshal(p.data, v)
+	err := json.Unmarshal(p.Data, v)
 	if err != nil {
 		return errors.Annotate(err, ErrUnmarshal, errorMessages)
 	}
@@ -101,7 +101,7 @@ func (p *payload) Unmarshal(v interface{}) error {
 
 // String implements fmt.Stringer.
 func (p *payload) String() string {
-	return string(p.data)
+	return string(p.Data)
 }
 
 // EOF

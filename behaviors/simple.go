@@ -31,7 +31,7 @@ type simpleBehavior struct {
 	processorFunc SimpleProcessorFunc
 }
 
-// NewSimpleProcessorBehavior creates a filter behavior based on the passed function.
+// NewSimpleProcessorBehavior creates a behavior based on the passed function.
 // Instead of an own logic and an own state it uses the passed simple processor
 // function for the event processing.
 func NewSimpleProcessorBehavior(spf SimpleProcessorFunc) cells.Behavior {
