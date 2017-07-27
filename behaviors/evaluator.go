@@ -57,7 +57,7 @@ type evaluatorBehavior struct {
 // of ratings for the median calculation is unlimited. Choose
 // NewLimitedEvaluatorBehavior() to create the behavior with a limit.
 //
-// A "reset!" topic sets all values to zero again.
+// A "reset" topic sets all values to zero again.
 func NewEvaluatorBehavior(evaluator Evaluator) cells.Behavior {
 	return NewLimitedEvaluatorBehavior(evaluator, 0)
 }
