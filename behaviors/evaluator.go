@@ -12,6 +12,8 @@ package behaviors
 //--------------------
 
 import (
+	"sort"
+
 	"github.com/tideland/gocells/cells"
 )
 
@@ -37,22 +39,35 @@ type Evaluation struct {
 	MinRating float64
 	MaxRating float64
 	AvgRating float64
+	MedRating float64
 }
 
 // evaluatorBehavior implements the evaluator behavior.
 type evaluatorBehavior struct {
 	cell       cells.Cell
 	evaluate   Evaluator
+	maxRatings int
+	ratings    []float64
 	evaluation Evaluation
 }
 
 // NewEvaluatorBehavior creates a behavior evaluating received events based
 // on the passed function. This function returns a rating. Their minimum,
-// maximum, average, and number of events are emitted. A "reset!" topic
-// sets all values to zero again.
+// maximum, average, median, and number of events are emitted. The number
+// of ratings for the median calculation is unlimited. Choose
+// NewLimitedEvaluatorBehavior() to create the behavior with a limit.
+//
+// A "reset" topic sets all values to zero again.
 func NewEvaluatorBehavior(evaluator Evaluator) cells.Behavior {
+	return NewLimitedEvaluatorBehavior(evaluator, 0)
+}
+
+// NewLimitedEvaluatorBehavior creates the evaluator behavior with a
+// limit for median calculation.
+func NewLimitedEvaluatorBehavior(evaluator Evaluator, limit int) cells.Behavior {
 	return &evaluatorBehavior{
 		evaluate:   evaluator,
+		maxRatings: limit,
 		evaluation: Evaluation{},
 	}
 }
@@ -72,22 +87,38 @@ func (b *evaluatorBehavior) Terminate() error {
 func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
+		b.ratings = nil
 		b.evaluation = Evaluation{}
 	default:
 		rating, err := b.evaluate(event)
 		if err != nil {
 			return err
 		}
+		b.ratings = append(b.ratings, rating)
+		if b.maxRatings > 0 && len(b.ratings) > b.maxRatings {
+			b.ratings = b.ratings[1:]
+		}
+		numOfRatings := len(b.ratings)
+		sort.Float64s(b.ratings)
 		// Calculate values.
 		if b.evaluation.Count == 0 {
 			b.evaluation.Count = 1
 			b.evaluation.MinRating = rating
 			b.evaluation.MaxRating = rating
 			b.evaluation.AvgRating = rating
+			b.evaluation.MedRating = rating
 		} else {
 			totalRating := b.evaluation.AvgRating*float64(b.evaluation.Count) + rating
 			b.evaluation.Count = b.evaluation.Count + 1
 			b.evaluation.AvgRating = totalRating / float64(b.evaluation.Count)
+			if numOfRatings%2 == 0 {
+				// Even, have to calculate.
+				middle := numOfRatings / 2
+				b.evaluation.MedRating = (b.ratings[middle-1] + b.ratings[middle]) / 2
+			} else {
+				// Odd, can take the middle.
+				b.evaluation.MedRating = b.ratings[numOfRatings/2]
+			}
 			if rating > b.evaluation.MaxRating {
 				b.evaluation.MaxRating = rating
 			}
@@ -103,6 +134,7 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 
 // Recover from an error.
 func (b *evaluatorBehavior) Recover(err interface{}) error {
+	b.ratings = nil
 	b.evaluation = Evaluation{}
 	return nil
 }
