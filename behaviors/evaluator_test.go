@@ -49,7 +49,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 	env.Subscribe("evaluator", "collector")
 
 	// Standard evaluating.
-	topics := []string{"1", "2", "1", "1", "3", "2", "3", "1", "3", "9"}
+	topics := []string{"2", "1", "1", "1", "3", "2", "3", "1", "3", "9"}
 	for _, topic := range topics {
 		env.EmitNew("evaluator", topic, nil)
 	}
@@ -89,7 +89,7 @@ func TestEvaluatorBehavior(t *testing.T) {
 	}, time.Second)
 
 	// Crash evaluating.
-	topics = []string{"1", "2", "3", "4", "crash", "1", "2", "1", "2", "1"}
+	topics = []string{"2", "1", "3", "4", "crash", "1", "2", "1", "2", "1"}
 	for _, topic := range topics {
 		env.EmitNew("evaluator", topic, nil)
 	}
@@ -145,10 +145,10 @@ func TestLimitedEvaluatorBehavior(t *testing.T) {
 		assert.True(ok)
 		var evaluation behaviors.Evaluation
 		err := event.Payload().Unmarshal(&evaluation)
-		assert.Equal(evaluation.Count, 5)
+		assert.Equal(evaluation.Count, 10)
 		assert.Equal(evaluation.MinRating, 1.0)
 		assert.Equal(evaluation.MaxRating, 9.0)
-		assert.Equal(evaluation.AvgRating, 3.6)
+		assert.Equal(evaluation.AvgRating, 2.6)
 		assert.Equal(evaluation.MedRating, 3.0)
 		return err
 	}, time.Second)
