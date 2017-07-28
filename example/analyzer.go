@@ -12,6 +12,8 @@ package main
 //--------------------
 
 import (
+	"context"
+
 	"github.com/tideland/golib/logger"
 )
 
@@ -22,17 +24,26 @@ import (
 // Analyzer provides the testable core application of the
 // example.
 type Analyzer struct {
+	ctx context.Context
 }
 
 // NewAnalyer creates a new analyzer instance.
-func NewAnalyer() *Analyzer {
-	logger.Infof("Starting the Tideland Go Cells example analyzer ...")
-	return &Analyzer{}
+func NewAnalyer(ctx context.Context) *Analyzer {
+	logger.Infof("starting the Tideland Go Cells example analyzer")
+	return &Analyzer{
+		ctx: ctx,
+	}
 }
 
 // Run performs the analyzing.
 func (a *Analyzer) Run() error {
+	logger.Infof("running the Tideland Go Cells example analyzer")
+
 	return nil
 }
+
+// Cleanup tells the analyzer to remove temporary data,
+// e.g. files.
+func (a *Analyzer) Cleanup() {}
 
 // EOF
