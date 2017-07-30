@@ -13,9 +13,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"time"
 
+	"github.com/tideland/golib/logger"
 	"github.com/tideland/golib/loop"
+
+	"github.com/tideland/gocells/cells"
 )
 
 //--------------------
@@ -53,6 +59,9 @@ type RawCoin struct {
 	LastUpdated      string `json:"last_updated"`
 }
 
+// RawCoins contains a list of raw coins
+type RawCoins []RawCoin
+
 //--------------------
 // COIN POLLER
 //--------------------
@@ -61,15 +70,17 @@ type RawCoin struct {
 // the cells.
 type CoinPoller struct {
 	ctx  context.Context
+	env  cells.Environment
 	loop loop.Loop
 }
 
 // NewCoinPoller creates and starts a new coin poller goroutine.
-func NewCoinPoller(ctx context.Context) *CoinPoller {
+func NewCoinPoller(ctx context.Context, env cells.Environment) *CoinPoller {
 	cp := &CoinPoller{
 		ctx: ctx,
+		env: env,
 	}
-	cp.loop = loop.Go(cp.backendLoop, "coin poller")
+	cp.loop = loop.Go(cp.backendLoop, "cells-example-poller")
 	return cp
 }
 
@@ -88,7 +99,7 @@ func (cp *CoinPoller) backendLoop(l loop.Loop) error {
 			return nil
 		case <-ticker.C:
 			if err := cp.poll(); err != nil {
-				return err
+				logger.Errorf("cannot retrieve coin values: %v", err)
 			}
 		}
 	}
@@ -97,7 +108,24 @@ func (cp *CoinPoller) backendLoop(l loop.Loop) error {
 // poll requests the coin values and pushes them into the
 // cells.
 func (cp *CoinPoller) poll() error {
-	return nil
+	// Retrieve the current values.
+	logger.Infof("polling from %s", PollURL)
+	resp, err := http.Get(PollURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var rawCoins RawCoins
+	err = json.Unmarshal(body, &rawCoins)
+	if err != nil {
+		return err
+	}
+	// Pass the values to the cell environment.
+	return cp.env.EmitNew("coins", "coins", rawCoins)
 }
 
 // EOF
