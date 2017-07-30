@@ -15,6 +15,8 @@ import (
 	"context"
 
 	"github.com/tideland/golib/logger"
+
+	"github.com/tideland/gocells/cells"
 )
 
 //--------------------
@@ -25,19 +27,32 @@ import (
 // example.
 type Analyzer struct {
 	ctx context.Context
+	env cells.Environment
 }
 
 // NewAnalyer creates a new analyzer instance.
 func NewAnalyer(ctx context.Context) *Analyzer {
 	logger.Infof("starting the Tideland Go Cells example analyzer")
+	env, err := InitEnvironment(ctx)
+	if err != nil {
+		logger.Fatalf("cannot init environment: %v", err)
+		return nil
+	}
 	return &Analyzer{
 		ctx: ctx,
+		env: env,
 	}
 }
 
 // Run performs the analyzing.
 func (a *Analyzer) Run() error {
-	logger.Infof("running the Tideland Go Cells example analyzer")
+	logger.Infof("running ...")
+
+	NewCoinPoller(a.ctx, a.env)
+
+	for {
+		select {}
+	}
 
 	return nil
 }
