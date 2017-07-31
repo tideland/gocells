@@ -28,7 +28,7 @@ import (
 func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	env := cells.NewEnvironment("cells-example")
 
-	env.StartCell("raw-coins", behaviors.NewSimpleProcessorBehavior(SplitRawCoins))
+	env.StartCell("raw-coins", behaviors.NewSimpleProcessorBehavior(SplitRawCoinsProcessor))
 
 	return env, nil
 }

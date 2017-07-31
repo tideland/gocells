@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
 
@@ -22,9 +23,9 @@ import (
 // PROCESSING FUNCTIONS
 //--------------------
 
-// SplitRawCoins splits the raw coins into individual ones and
+// SplitRawCoinsProcessor splits the raw coins into individual ones and
 // maps them to working coins.
-func SplitRawCoins(cell cells.Cell, event cells.Event) error {
+func SplitRawCoinsProcessor(cell cells.Cell, event cells.Event) error {
 	var rawCoins RawCoins
 	err := event.Payload().Unmarshal(&rawCoins)
 	if err != nil {
@@ -66,6 +67,24 @@ func SplitRawCoins(cell cells.Cell, event cells.Event) error {
 		cell.EmitNew("coin", coin)
 	}
 	return nil
+}
+
+//--------------------
+// BEHAVIORS
+//--------------------
+
+// MakePercentChange1hRateWindowBehavior creates the behavior checking
+// the percent change in 1h to emit extreme changes.
+func MakePercentChange1hRateWindowBehavior() cells.Behavior {
+	coins := map[string][]float64{}
+	criterion := func(event cells.Event) (bool, error) {
+		var coin Coin
+		if err := event.Payload().Unmarshal(&coin); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	return behaviors.NewRateWindowBehavior(criterion, 600, time.Hour)
 }
 
 // EOF
