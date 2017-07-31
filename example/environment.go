@@ -14,6 +14,8 @@ package main
 import (
 	"context"
 
+	"github.com/tideland/gocells/behaviors"
+
 	"github.com/tideland/gocells/cells"
 )
 
@@ -25,6 +27,8 @@ import (
 // its behaviors and subscriptions.
 func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	env := cells.NewEnvironment("cells-example")
+
+	env.StartCell("raw-coins", behaviors.NewSimpleProcessorBehavior(SplitRawCoins))
 
 	return env, nil
 }

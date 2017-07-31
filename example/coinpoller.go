@@ -38,31 +38,6 @@ const (
 )
 
 //--------------------
-// COIN
-//--------------------
-
-// RawCoin contains one raw coin object of the API.
-type RawCoin struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Symbol           string `json:"symbol"`
-	Rank             string `json:"rank"`
-	PriceUSD         string `json:"price_usd"`
-	PriceBTC         string `json:"price_btc"`
-	Volume24hUSD     string `json:"24h_volume_usd"`
-	MarketCapUSD     string `json:"market_cap_usd"`
-	AvailableSupply  string `json:"available_supply"`
-	TotalSupply      string `json:"total_supply"`
-	PercentChange1h  string `json:"percent_change_1h"`
-	PercentChange24h string `json:"percent_change_24h"`
-	PercentChange7d  string `json:"percent_change_7d"`
-	LastUpdated      string `json:"last_updated"`
-}
-
-// RawCoins contains a list of raw coins
-type RawCoins []RawCoin
-
-//--------------------
 // COIN POLLER
 //--------------------
 
@@ -85,8 +60,13 @@ func NewCoinPoller(ctx context.Context, env cells.Environment) *CoinPoller {
 }
 
 // Stop tells the CoinPoller to stop working.
-func (cp *CoinPoller) Stop() error {
-	return cp.loop.Stop()
+func (cp *CoinPoller) Stop() {
+	cp.loop.Kill(nil)
+}
+
+// Wait waits until the coin poller stopped.
+func (cp *CoinPoller) Wait() error {
+	return cp.loop.Wait()
 }
 
 // backendLoop implements the gorouting of the coin poller.
@@ -125,7 +105,7 @@ func (cp *CoinPoller) poll() error {
 		return err
 	}
 	// Pass the values to the cell environment.
-	return cp.env.EmitNew("coins", "coins", rawCoins)
+	return cp.env.EmitNew("raw-coins", "raw-coins", rawCoins)
 }
 
 // EOF
