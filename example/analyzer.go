@@ -48,17 +48,15 @@ func NewAnalyer(ctx context.Context) *Analyzer {
 func (a *Analyzer) Run() error {
 	logger.Infof("running ...")
 
-	NewCoinPoller(a.ctx, a.env)
+	cp := NewCoinPoller(a.ctx, a.env)
 
-	for {
-		select {}
-	}
-
-	return nil
+	return cp.Wait()
 }
 
 // Cleanup tells the analyzer to remove temporary data,
 // e.g. files.
-func (a *Analyzer) Cleanup() {}
+func (a *Analyzer) Cleanup() {
+	a.env.Stop()
+}
 
 // EOF
