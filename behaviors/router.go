@@ -19,21 +19,23 @@ import (
 // ROUTER BEHAVIOR
 //--------------------
 
-// RouterFunc is a function type determining which subscribed
+// Router is a function type determining which subscribed
 // cells shall receive the event.
-type RouterFunc func(emitterID, subscriberID string, event cells.Event) (bool, error)
+type Router func(emitterID, subscriberID string, event cells.Event) (bool, error)
 
 // routerBehavior check for each received event which subscriber will
 // get it based on the router function.
 type routerBehavior struct {
 	cell       cells.Cell
-	routerFunc RouterFunc
+	shallRoute Router
 }
 
 // NewRouterBehavior creates a router behavior using the passed function
 // to determine to which subscriber the received event will be emitted.
-func NewRouterBehavior(rf RouterFunc) cells.Behavior {
-	return &routerBehavior{nil, rf}
+func NewRouterBehavior(router Router) cells.Behavior {
+	return &routerBehavior{
+		shallRoute: router,
+	}
 }
 
 // Init the behavior.
@@ -51,7 +53,7 @@ func (b *routerBehavior) Terminate() error {
 // function.
 func (b *routerBehavior) ProcessEvent(event cells.Event) error {
 	return b.cell.SubscribersDo(func(s cells.Subscriber) error {
-		ok, err := b.routerFunc(b.cell.ID(), s.ID(), event)
+		ok, err := b.shallRoute(b.cell.ID(), s.ID(), event)
 		if err != nil {
 			return err
 		}
