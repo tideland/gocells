@@ -58,4 +58,7 @@ type Coin struct {
 	LastUpdated      time.Time
 }
 
+// Coins contains a list of coins
+type Coins []Coin
+
 // EOF
