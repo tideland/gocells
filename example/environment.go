@@ -29,9 +29,11 @@ func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	// Start initial cells.
 	env.StartCell("raw-coins", MakeRawCoinsConverter())
 	env.StartCell("coins-splitter", MakeCoinsSplitter())
+	env.StartCell("average-percent-change-1h", MakeAveragePercentChange1hEvaluator())
 
 	// Establish initial subscriptions.
 	env.Subscribe("raw-coins", "coins-splitter")
+	env.Subscribe("raw-coins", "average-percent-change-1h")
 
 	return env, nil
 }
