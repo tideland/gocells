@@ -14,6 +14,8 @@ package behaviors
 import (
 	"time"
 
+	"github.com/tideland/golib/identifier"
+
 	"github.com/tideland/gocells/cells"
 	"github.com/tideland/golib/collections"
 )
@@ -25,17 +27,6 @@ import (
 const (
 	// TopicRateWindow signals a detected event rate window.
 	TopicRateWindow = "rate-window"
-
-	// PayloadRateWindowCount contains the number of matching events.
-	PayloadRateWindowCount = "rate-window:count"
-
-	// PayloadRateWindowFirstTime contains the first time a
-	// matching event has been detected.
-	PayloadRateWindowFirstTime = "rate-window:first:time"
-
-	// PayloadRateWindowLastTime contains the last time a
-	// matching event has been detected.
-	PayloadRateWindowLastTime = "rate-window:last:time"
 )
 
 //--------------------
@@ -108,7 +99,8 @@ func (b *rateWindowBehavior) ProcessEvent(event cells.Event) error {
 				difference := current.Sub(first)
 				if difference <= b.duration {
 					// We've got a burst!
-					b.cell.EmitNew(TopicRateWindow, RateWindow{
+					topic := identifier.JoinedIdentifier(TopicRateWindow, b.cell.ID())
+					b.cell.EmitNew(topic, RateWindow{
 						Count: b.count,
 						First: first,
 						Last:  current,

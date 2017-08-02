@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func TestRateWindowBehavior(t *testing.T) {
 	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
 		analyzer := cells.NewEventSinkAnalyzer(accessor)
 		ok, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
-			return event.Topic() == behaviors.TopicRateWindow, nil
+			return strings.HasPrefix(event.Topic(), behaviors.TopicRateWindow), nil
 		})
 		sigc <- ok
 		return nil, err

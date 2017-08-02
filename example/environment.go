@@ -14,6 +14,8 @@ package main
 import (
 	"context"
 
+	"github.com/tideland/gocells/behaviors"
+
 	"github.com/tideland/gocells/cells"
 )
 
@@ -29,11 +31,17 @@ func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	// Start initial cells.
 	env.StartCell("raw-coins", MakeRawCoinsConverter())
 	env.StartCell("coins-splitter", MakeCoinsSplitter())
-	env.StartCell("average-percent-change-1h", MakeAveragePercentChange1hEvaluator())
+	env.StartCell("average-pc1h", MakeAveragePercentChange1hEvaluator())
+	env.StartCell("average-pc1h-up", MakeAveragePercentChange1hRater(true))
+	env.StartCell("average-pc1h-down", MakeAveragePercentChange1hRater(false))
+	env.StartCell("logger", behaviors.NewLoggerBehavior())
 
 	// Establish initial subscriptions.
 	env.Subscribe("raw-coins", "coins-splitter")
-	env.Subscribe("raw-coins", "average-percent-change-1h")
+	env.Subscribe("raw-coins", "average-pc1h")
+	env.Subscribe("average-pc1h", "average-pc1h-up", "average-pc1h-down")
+	env.Subscribe("average-pc1h-up", "logger")
+	env.Subscribe("average-pc1h-down", "logger")
 
 	return env, nil
 }
