@@ -12,6 +12,8 @@ package main
 //--------------------
 
 import (
+	"time"
+
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
@@ -21,7 +23,7 @@ import (
 //--------------------
 
 // MakeAveragePercentChange1hEvaluator returns a behavior evaluating the
-// average of all  percent changes of one hour.
+// average of all percent changes of one hour.
 func MakeAveragePercentChange1hEvaluator() cells.Behavior {
 	evaluator := func(event cells.Event) (float64, error) {
 		var coins Coins
@@ -35,6 +37,29 @@ func MakeAveragePercentChange1hEvaluator() cells.Behavior {
 		return total / float64(len(coins)), nil
 	}
 	return behaviors.NewLimitedEvaluatorBehavior(evaluator, 360*24*7)
+}
+
+// MakeAveragePercentChange1hRater returns a behavior checking the
+// rate of the average percent changes of a minute.
+func MakeAveragePercentChange1hRater(up bool) cells.Behavior {
+	var last float64
+	criterion := func(event cells.Event) (bool, error) {
+		var evaluation behaviors.Evaluation
+		var matches bool
+		if err := event.Payload().Unmarshal(&evaluation); err != nil {
+			return false, err
+		}
+		switch {
+		case up && evaluation.AvgRating > last:
+			matches = true
+		case !up && evaluation.AvgRating < last:
+			matches = true
+		}
+		last = evaluation.AvgRating
+		return matches, nil
+	}
+	// Time buffer a bit longer than a minute.
+	return behaviors.NewRateWindowBehavior(criterion, 6, 65*time.Second)
 }
 
 // EOF
