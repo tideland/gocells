@@ -17,7 +17,7 @@ I hope you like them. ;)
 
 ## Version
 
-Version 6.0.0-beta.2017-07-27
+Version 6.0.0-beta.2017-08-03
 
 ## Packages
 
@@ -77,8 +77,8 @@ still growing.
 ### Example
 
 An example application using the **Tideland Go Cells** to analyze a stream
-of crypto coin information. Later extensions may correlate it with news
-streams.
+of crypto coin information. It's called *coinalyzer*. Later extensions may
+correlate it with news streams.
 
 ## Contributors
 
