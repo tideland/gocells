@@ -12,7 +12,10 @@ package behaviors
 //--------------------
 
 import (
+	"sort"
 	"time"
+
+	"github.com/tideland/golib/identifier"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
@@ -27,8 +30,7 @@ import (
 func MakeCoinsSplitter() cells.Behavior {
 	processor := func(cell cells.Cell, event cells.Event) error {
 		var coins Coins
-		err := event.Payload().Unmarshal(&coins)
-		if err != nil {
+		if err := event.Payload().Unmarshal(&coins); err != nil {
 			return err
 		}
 		for _, coin := range coins {
@@ -50,6 +52,27 @@ func MakeCoinsCounter() cells.Behavior {
 		return cells.NewEvent("number-of-coins", len(coins))
 	}
 	return behaviors.NewMapperBehavior(mapper)
+}
+
+// MakeTopCounter returns a behavior counting how often coins
+// have been in the top rated ones.
+func MakeTopCounter() cells.Behavior {
+	counters := make(map[string]int)
+	counter := func(cell cells.Cell, event cells.Event) error {
+		var coins Coins
+		if err := event.Payload().Unmarshal(&coins); err != nil {
+			return err
+		}
+		for _, coin := range coins {
+			counters[coin.ID]++
+		}
+		for id, count := range counters {
+			topic := identifier.JoinedIdentifier("top-counter", id)
+			cell.EmitNew(topic, count)
+		}
+		return nil
+	}
+	return behaviors.NewSimpleProcessorBehavior(counter)
 }
 
 // MakeAvgPercentChange1h returns a behavior calculating the
@@ -87,10 +110,13 @@ func MakeTopPercentChange1hCoins() cells.Behavior {
 			if err := event.Payload().Unmarshal(&coins); err != nil {
 				return err
 			}
-			for _, coin := range coins {
-				if coin.PercentChange1h > avgPercentChange1h {
-					topCoins = append(topCoins, coin)
-				}
+			sort.Slice(coins, func(i, j int) bool {
+				return coins[i].PercentChange1h > coins[j].PercentChange1h
+			})
+			for i := 0; i < 10; i++ {
+				coin := coins[i]
+				coin.PercentChange1hAvgDelta = coin.PercentChange1h - avgPercentChange1h
+				topCoins = append(topCoins, coin)
 			}
 			cell.EmitNew("top-coins", topCoins)
 		}
