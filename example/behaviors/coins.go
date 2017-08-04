@@ -1,4 +1,4 @@
-// Tideland Go Cells - Example - Behaviors - Working on the Total
+// Tideland Go Cells - Example - Behaviors - Working on Slices of Coins
 //
 // Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
@@ -21,6 +21,36 @@ import (
 //--------------------
 // BEHAVIORS
 //--------------------
+
+// MakeCoinsSplitter returns a behavior splitting a list
+// of coins into individual emits.
+func MakeCoinsSplitter() cells.Behavior {
+	processor := func(cell cells.Cell, event cells.Event) error {
+		var coins Coins
+		err := event.Payload().Unmarshal(&coins)
+		if err != nil {
+			return err
+		}
+		for _, coin := range coins {
+			cell.EmitNew("coin", coin)
+		}
+		return nil
+	}
+	return behaviors.NewSimpleProcessorBehavior(processor)
+}
+
+// MakeCoinsCounter returns a behavior emitting the number
+// of coins in a received coins slice.
+func MakeCoinsCounter() cells.Behavior {
+	mapper := func(event cells.Event) (cells.Event, error) {
+		var coins Coins
+		if err := event.Payload().Unmarshal(&coins); err != nil {
+			return nil, err
+		}
+		return cells.NewEvent("number-of-coins", len(coins))
+	}
+	return behaviors.NewMapperBehavior(mapper)
+}
 
 // MakeAvgPercentChange1h returns a behavior calculating the
 // average PercentChange1h of all coins.
