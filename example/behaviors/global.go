@@ -1,4 +1,4 @@
-// Tideland Go Cells - Example - Behaviors - Global
+// Tideland Go Cells - Example - Behaviors - Global usable ones
 //
 // Copyright (C) 2010-2017 Frank Mueller / Tideland / Oldenburg / Germany
 //
@@ -74,23 +74,6 @@ func MakeRawCoinsConverter() cells.Behavior {
 			coins = append(coins, coin)
 		}
 		cell.EmitNew("coins", coins)
-		return nil
-	}
-	return behaviors.NewSimpleProcessorBehavior(processor)
-}
-
-// MakeCoinsSplitter returns a behavior splitting a list
-// of coins into individual emits.
-func MakeCoinsSplitter() cells.Behavior {
-	processor := func(cell cells.Cell, event cells.Event) error {
-		var coins Coins
-		err := event.Payload().Unmarshal(&coins)
-		if err != nil {
-			return err
-		}
-		for _, coin := range coins {
-			cell.EmitNew("coin", coin)
-		}
 		return nil
 	}
 	return behaviors.NewSimpleProcessorBehavior(processor)
