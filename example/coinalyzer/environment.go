@@ -45,7 +45,8 @@ func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	// PercentChange1h analysis.
 	env.Subscribe("raw-coins", "avg-percent-change-1h", "top-coins")
 	env.Subscribe("avg-percent-change-1h", "top-coins")
-	env.Subscribe("top-coins", "top-counter", "logger")
+	env.Subscribe("top-coins", "top-counter")
+	env.Subscribe("top-counter", "logger")
 
 	// MarketCap analysis.
 	env.Subscribe("raw-coins", "avg-marketcap")
