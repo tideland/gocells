@@ -15,8 +15,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/tideland/golib/identifier"
-
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
@@ -55,7 +53,8 @@ func MakeCoinsCounter() cells.Behavior {
 }
 
 // MakeTopCounter returns a behavior counting how often coins
-// have been in the top rated ones.
+// have been in the top rated ones. Emit their IDs for
+// subscribers.
 func MakeTopCounter() cells.Behavior {
 	counters := make(map[string]int)
 	counter := func(cell cells.Cell, event cells.Event) error {
@@ -66,9 +65,8 @@ func MakeTopCounter() cells.Behavior {
 		for _, coin := range coins {
 			counters[coin.ID]++
 		}
-		for id, count := range counters {
-			topic := identifier.JoinedIdentifier("top-counter", id)
-			cell.EmitNew(topic, count)
+		for id := range counters {
+			cell.EmitNew("top-counter", id)
 		}
 		return nil
 	}
