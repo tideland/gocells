@@ -31,6 +31,7 @@ func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	env.StartCell("raw-coins", behaviors.MakeRawCoinsConverter())
 	env.StartCell("coins-splitter", behaviors.MakeCoinsSplitter())
 	env.StartCell("coins-counter", behaviors.MakeCoinsCounter())
+	env.StartCell("coins-entry-pointer", behaviors.MakeCoinEntryPoint())
 	env.StartCell("avg-percent-change-1h", behaviors.MakeAvgPercentChange1h())
 	env.StartCell("top-coins", behaviors.MakeTopPercentChange1hCoins())
 	env.StartCell("top-counter", behaviors.MakeTopCounter())
@@ -46,7 +47,7 @@ func InitEnvironment(ctx context.Context) (cells.Environment, error) {
 	env.Subscribe("raw-coins", "avg-percent-change-1h", "top-coins")
 	env.Subscribe("avg-percent-change-1h", "top-coins")
 	env.Subscribe("top-coins", "top-counter")
-	env.Subscribe("top-counter", "logger")
+	env.Subscribe("top-counter", "coins-entry-pointer")
 
 	// MarketCap analysis.
 	env.Subscribe("raw-coins", "avg-marketcap")
