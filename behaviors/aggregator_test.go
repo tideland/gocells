@@ -46,7 +46,7 @@ func TestAggregatorBehavior(t *testing.T) {
 		topics = append(topics, event.Topic())
 		return cells.NewPayload(topics)
 	}
-	match := func(event cells.Event) (bool, error) {
+	filter := func(event cells.Event) (bool, error) {
 		var topics []string
 		err := event.Payload().Unmarshal(&topics)
 		if err != nil {
@@ -65,7 +65,7 @@ func TestAggregatorBehavior(t *testing.T) {
 	}
 
 	env.StartCell("aggregator", behaviors.NewAggregatorBehavior(aggregate))
-	env.StartCell("filter", behaviors.NewFilterBehavior(match))
+	env.StartCell("filter", behaviors.NewSelectFilterBehavior(filter))
 	env.StartCell("once", behaviors.NewOnceBehavior(oneTimer))
 	env.Subscribe("aggregator", "filter")
 	env.Subscribe("filter", "once")
