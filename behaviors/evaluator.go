@@ -44,27 +44,29 @@ type Evaluation struct {
 
 // evaluatorBehavior implements the evaluator behavior.
 type evaluatorBehavior struct {
-	cell       cells.Cell
-	evaluate   Evaluator
-	maxRatings int
-	ratings    []float64
-	evaluation Evaluation
+	cell          cells.Cell
+	evaluate      Evaluator
+	maxRatings    int
+	ratings       []float64
+	sortedRatings []float64
+	evaluation    Evaluation
 }
 
 // NewEvaluatorBehavior creates a behavior evaluating received events based
 // on the passed function. This function returns a rating. Their minimum,
 // maximum, average, median, and number of events are emitted. The number
-// of ratings for the median calculation is unlimited. Choose
-// NewLimitedEvaluatorBehavior() to create the behavior with a limit.
+// of ratings for the median calculation is unlimited. So think about
+// choosing NewMovingEvaluatorBehavior() to create the behavior with a
+// limit and reduce memory usage.
 //
 // A "reset" topic sets all values to zero again.
 func NewEvaluatorBehavior(evaluator Evaluator) cells.Behavior {
-	return NewLimitedEvaluatorBehavior(evaluator, 0)
+	return NewMovingEvaluatorBehavior(evaluator, 0)
 }
 
-// NewLimitedEvaluatorBehavior creates the evaluator behavior with a
-// limit for median calculation.
-func NewLimitedEvaluatorBehavior(evaluator Evaluator, limit int) cells.Behavior {
+// NewMovingEvaluatorBehavior creates the evaluator behavior with a
+// moving rating window for calculation.
+func NewMovingEvaluatorBehavior(evaluator Evaluator, limit int) cells.Behavior {
 	return &evaluatorBehavior{
 		evaluate:   evaluator,
 		maxRatings: limit,
@@ -88,8 +90,10 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 	switch event.Topic() {
 	case cells.TopicReset:
 		b.ratings = nil
+		b.sortedRatings = nil
 		b.evaluation = Evaluation{}
 	default:
+		// Evaluate event and collect rating.
 		rating, err := b.evaluate(event)
 		if err != nil {
 			return err
@@ -98,35 +102,12 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 		if b.maxRatings > 0 && len(b.ratings) > b.maxRatings {
 			b.ratings = b.ratings[1:]
 		}
-		numOfRatings := len(b.ratings)
-		sort.Float64s(b.ratings)
-		// Calculate values.
-		if b.evaluation.Count == 0 {
-			b.evaluation.Count = 1
-			b.evaluation.MinRating = rating
-			b.evaluation.MaxRating = rating
-			b.evaluation.AvgRating = rating
-			b.evaluation.MedRating = rating
-		} else {
-			totalRating := b.evaluation.AvgRating*float64(b.evaluation.Count) + rating
-			b.evaluation.Count = b.evaluation.Count + 1
-			b.evaluation.AvgRating = totalRating / float64(b.evaluation.Count)
-			if numOfRatings%2 == 0 {
-				// Even, have to calculate.
-				middle := numOfRatings / 2
-				b.evaluation.MedRating = (b.ratings[middle-1] + b.ratings[middle]) / 2
-			} else {
-				// Odd, can take the middle.
-				b.evaluation.MedRating = b.ratings[numOfRatings/2]
-			}
-			if rating > b.evaluation.MaxRating {
-				b.evaluation.MaxRating = rating
-			}
-			if rating < b.evaluation.MinRating {
-				b.evaluation.MinRating = rating
-			}
+		if len(b.sortedRatings) < len(b.ratings) {
+			// Let it grow up to the needed size.
+			b.sortedRatings = append(b.sortedRatings, 0.0)
 		}
-		// Emit value.
+		// Evaluate ratings.
+		b.evaluateRatings()
 		b.cell.EmitNew(TopicEvaluation, b.evaluation)
 	}
 	return nil
@@ -135,8 +116,35 @@ func (b *evaluatorBehavior) ProcessEvent(event cells.Event) error {
 // Recover from an error.
 func (b *evaluatorBehavior) Recover(err interface{}) error {
 	b.ratings = nil
+	b.sortedRatings = nil
 	b.evaluation = Evaluation{}
 	return nil
+}
+
+// evaluateRatings evaluates the collected ratings.
+func (b *evaluatorBehavior) evaluateRatings() {
+	copy(b.sortedRatings, b.ratings)
+	sort.Float64s(b.sortedRatings)
+	// Count.
+	b.evaluation.Count = len(b.sortedRatings)
+	// Average.
+	totalRating := 0.0
+	for _, rating := range b.sortedRatings {
+		totalRating += rating
+	}
+	b.evaluation.AvgRating = totalRating / float64(b.evaluation.Count)
+	// Median.
+	if b.evaluation.Count%2 == 0 {
+		// Even, have to calculate.
+		middle := b.evaluation.Count / 2
+		b.evaluation.MedRating = (b.sortedRatings[middle-1] + b.sortedRatings[middle]) / 2
+	} else {
+		// Odd, can take the middle.
+		b.evaluation.MedRating = b.sortedRatings[b.evaluation.Count/2]
+	}
+	// Minimum and maximum.
+	b.evaluation.MinRating = b.sortedRatings[0]
+	b.evaluation.MaxRating = b.sortedRatings[len(b.sortedRatings)-1]
 }
 
 // EOF
