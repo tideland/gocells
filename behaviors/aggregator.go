@@ -28,7 +28,7 @@ const (
 // AGGREGATOR BEHAVIOR
 //--------------------
 
-// AggregatorFunc is a function receiving the current aggregated payload
+// Aggregator is a function receiving the current aggregated payload
 // and event and returns the next aggregated payload.
 type Aggregator func(payload cells.Payload, event cells.Event) (cells.Payload, error)
 
