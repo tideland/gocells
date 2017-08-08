@@ -12,7 +12,6 @@ package main
 //--------------------
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -45,15 +44,15 @@ const (
 // CoinPoller polls the CoinMarketCap JSON API as input of
 // the cells.
 type CoinPoller struct {
-	ctx  context.Context
+	cfg  Configuration
 	env  cells.Environment
 	loop loop.Loop
 }
 
 // NewCoinPoller creates and starts a new coin poller goroutine.
-func NewCoinPoller(ctx context.Context, env cells.Environment) *CoinPoller {
+func NewCoinPoller(cfg Configuration, env cells.Environment) *CoinPoller {
 	cp := &CoinPoller{
-		ctx: ctx,
+		cfg: cfg,
 		env: env,
 	}
 	cp.loop = loop.Go(cp.backendLoop, "cells-example-poller")

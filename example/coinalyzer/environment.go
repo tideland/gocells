@@ -12,8 +12,6 @@ package main
 //--------------------
 
 import (
-	"context"
-
 	"github.com/tideland/gocells/cells"
 	"github.com/tideland/gocells/example/behaviors"
 )
@@ -24,7 +22,7 @@ import (
 
 // InitEnvironment creates a new cells environment and
 // its behaviors and subscriptions.
-func InitEnvironment(ctx context.Context) (cells.Environment, error) {
+func InitEnvironment(cfg Configuration) (cells.Environment, error) {
 	env := cells.NewEnvironment("cells-example")
 
 	// Start initial cells.
