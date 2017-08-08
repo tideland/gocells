@@ -12,9 +12,10 @@ package behaviors
 //--------------------
 
 import (
+	"github.com/tideland/golib/identifier"
+
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
-	"github.com/tideland/golib/identifier"
 )
 
 //--------------------
