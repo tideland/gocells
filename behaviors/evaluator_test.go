@@ -138,14 +138,13 @@ func TestLimitedEvaluatorBehavior(t *testing.T) {
 		env.EmitNew("evaluator", topic, nil)
 	}
 	time.Sleep(time.Second)
-
 	env.EmitNew("collector", cells.TopicProcess, cells.PayloadClear)
 	assert.WaitTested(sigc, func(value interface{}) error {
 		event, ok := value.(cells.Event)
 		assert.True(ok)
 		var evaluation behaviors.Evaluation
 		err := event.Payload().Unmarshal(&evaluation)
-		assert.Equal(evaluation.Count, 10)
+		assert.Equal(evaluation.Count, 5)
 		assert.Equal(evaluation.MinRating, 1.0)
 		assert.Equal(evaluation.MaxRating, 3.0)
 		assert.Equal(evaluation.AvgRating, 2.2)

@@ -137,7 +137,7 @@ func MakeAvgMarketCapEvaluator() cells.Behavior {
 		}
 		return total / float64(len(coins)), nil
 	}
-	return behaviors.NewLimitedEvaluatorBehavior(evaluator, 360*24*7)
+	return behaviors.NewMovingEvaluatorBehavior(evaluator, 360*24*7)
 }
 
 // MakeAvgMarketCapRater returns a behavior checking the change
