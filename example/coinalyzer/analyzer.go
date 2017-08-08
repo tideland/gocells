@@ -12,8 +12,6 @@ package main
 //--------------------
 
 import (
-	"context"
-
 	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/cells"
@@ -26,27 +24,27 @@ import (
 // Analyzer provides the testable core application of the
 // example.
 type Analyzer struct {
-	ctx context.Context
+	cfg Configuration
 	env cells.Environment
 }
 
-// NewAnalyer creates a new analyzer instance.
-func NewAnalyer(ctx context.Context) *Analyzer {
+// NewAnalyzer creates a new analyzer instance.
+func NewAnalyzer(cfg Configuration) *Analyzer {
 	logger.Infof("starting the Tideland Go Cells Coinalyzer")
-	env, err := InitEnvironment(ctx)
+	env, err := InitEnvironment(cfg)
 	if err != nil {
 		logger.Fatalf("cannot init environment: %v", err)
 		return nil
 	}
 	return &Analyzer{
-		ctx: ctx,
+		cfg: cfg,
 		env: env,
 	}
 }
 
 // Run performs the analyzing.
 func (a *Analyzer) Run() error {
-	cp := NewCoinPoller(a.ctx, a.env)
+	cp := NewCoinPoller(a.cfg, a.env)
 
 	return cp.Wait()
 }

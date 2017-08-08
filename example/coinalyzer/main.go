@@ -12,8 +12,6 @@ package main
 //--------------------
 
 import (
-	"context"
-
 	"github.com/tideland/golib/logger"
 )
 
@@ -22,10 +20,9 @@ import (
 //--------------------
 
 // initConfiguration prepares the configuration based on the arguments.
-func initConfiguration(ctx context.Context) (context.Context, error) {
+func initConfiguration() (Configuration, error) {
 	cfg := Configuration{}
-	ctx = NewContext(ctx, cfg)
-	return ctx, nil
+	return cfg, nil
 }
 
 //--------------------
@@ -35,12 +32,11 @@ func initConfiguration(ctx context.Context) (context.Context, error) {
 // main is, guess what, the main programm. Currently in a very
 // temporary state.
 func main() {
-	ctx := context.Background()
-	ctx, err := initConfiguration(ctx)
+	cfg, err := initConfiguration()
 	if err != nil {
 		logger.Fatalf("cannot run example: %v", err)
 	}
-	analyzer := NewAnalyer(ctx)
+	analyzer := NewAnalyzer(cfg)
 	err = analyzer.Run()
 	if err != nil {
 		logger.Errorf("analyzer stopped with error: %v", err)
