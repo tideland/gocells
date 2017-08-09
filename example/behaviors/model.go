@@ -42,24 +42,31 @@ type RawCoins []RawCoin
 
 // Coin is one converted raw coin with numerical fields.
 type Coin struct {
-	ID                      string
-	Name                    string
-	Symbol                  string
-	Rank                    int
-	PriceUSD                float64
-	PriceBTC                float64
-	Volume24hUSD            float64
-	MarketCapUSD            float64
-	AvailableSupply         int
-	TotalSupply             int
-	PercentChange1h         float64
-	PercentChange1hAvgDelta float64
-	PercentChange24h        float64
-	PercentChange7d         float64
-	LastUpdated             time.Time
+	ID               string
+	Name             string
+	Symbol           string
+	Rank             int
+	PriceUSD         float64
+	PriceBTC         float64
+	Volume24hUSD     float64
+	MarketCapUSD     float64
+	AvailableSupply  int
+	TotalSupply      int
+	PercentChange1h  float64
+	PercentChange24h float64
+	PercentChange7d  float64
+	LastUpdated      time.Time
 }
 
 // Coins contains a list of coins
 type Coins []Coin
+
+// CoinChange contains only the symbol and
+// one hour percent change of one coin.
+type CoinChange struct {
+	Symbol          string
+	PercentChange   float64
+	PercentAvgDelta float64
+}
 
 // EOF
