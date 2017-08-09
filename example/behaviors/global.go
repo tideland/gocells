@@ -56,20 +56,11 @@ func MakeRawCoinsConverter() cells.Behavior {
 		var coins Coins
 		for _, rawCoin := range rawCoins {
 			coin := Coin{
-				ID:               rawCoin.ID,
-				Name:             rawCoin.Name,
-				Symbol:           rawCoin.Symbol,
-				Rank:             atoi(rawCoin.Rank),
-				PriceUSD:         atof(rawCoin.PriceUSD),
-				PriceBTC:         atof(rawCoin.PriceBTC),
-				Volume24hUSD:     atof(rawCoin.Volume24hUSD),
-				MarketCapUSD:     atof(rawCoin.MarketCapUSD),
-				AvailableSupply:  atoi(rawCoin.AvailableSupply),
-				TotalSupply:      atoi(rawCoin.TotalSupply),
-				PercentChange1h:  atof(rawCoin.PercentChange1h),
-				PercentChange24h: atof(rawCoin.PercentChange24h),
-				PercentChange7d:  atof(rawCoin.PercentChange7d),
-				LastUpdated:      time.Unix(int64(atoi(rawCoin.LastUpdated)), 0),
+				Symbol:      rawCoin.Symbol,
+				Name:        rawCoin.Name,
+				PriceUSD:    atof(rawCoin.PriceUSD),
+				TotalSupply: atoi(rawCoin.TotalSupply),
+				LastUpdated: time.Unix(int64(atoi(rawCoin.LastUpdated)), 0),
 			}
 			coins = append(coins, coin)
 		}
