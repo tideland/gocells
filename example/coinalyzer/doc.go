@@ -10,19 +10,11 @@
 // programm polls the feed at https://coinmarketcap.com/api/.
 // This data is passed to the cells to analyze them.
 //
-// The analyzis focusses on price in USD and total supply, simply
-// to show quicker changes. There are multiple categories of cells:
-//
-// 1. The general ones to do jobs like converting the raw data
-// into our reduced coin format, to split lists of coins into
-// individual ones, or to log events.
-//
-// 2. Those which are working on a number of coins, e.g. to
-// calculate average values or simply count them.
-//
-// 3. Sometimes we're only interested in individual coins, to
-// see how they evolve or how their changes match to other
-// changes.
+// The analysis focuses on few major fields of the coin as
+// well as some feeds regarding crypto currencies. Goal is to
+// see how they infuence each other. So there will be cells
+// working on individual or groups of coins, others on
+// feeds, individual news, and terms there.
 package main
 
 //EOF
