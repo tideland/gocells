@@ -38,19 +38,15 @@ func MakeRawCoinsConverter() cells.Behavior {
 			return err
 		}
 		// Two helpers for trusted conversions.
-		atoi := func(a string) int {
-			f, err := strconv.ParseFloat(a, 64)
-			if err != nil {
-				return 0
-			}
-			return int(f)
-		}
 		atof := func(a string) float64 {
 			f, err := strconv.ParseFloat(a, 64)
 			if err != nil {
 				return 0.0
 			}
 			return f
+		}
+		atoi := func(a string) int {
+			return int(atof(a))
 		}
 		// Convert and emit the coins.
 		var coins Coins
