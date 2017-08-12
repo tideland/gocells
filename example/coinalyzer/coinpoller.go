@@ -105,7 +105,7 @@ func (cp *CoinPoller) poll() error {
 		return err
 	}
 	// Pass the values to the cell environment.
-	return cp.env.EmitNew("raw-coins", "raw-coins", rawCoins)
+	return cp.env.EmitNew("raw-coins-converter", "raw-coins", rawCoins)
 }
 
 // EOF

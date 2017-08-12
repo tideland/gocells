@@ -12,6 +12,8 @@ package behaviors
 //--------------------
 
 import (
+	"strings"
+
 	"github.com/tideland/golib/identifier"
 
 	"github.com/tideland/gocells/behaviors"
@@ -22,30 +24,19 @@ import (
 // BEHAVIORS
 //--------------------
 
-// MakeCoinEntryPoint returns a behavior checking the environment
-// for a behavior running as entry point for operations on individual
-// coins.
-func MakeCoinEntryPoint() cells.Behavior {
-	mkSelectFilter := func(coinID string) func(cells.Event) (bool, error) {
-		return func(event cells.Event) (bool, error) {
-			var coin Coin
-			if err := event.Payload().Unmarshal(&coin); err != nil {
-				return false, err
-			}
-			return coin.ID == coinID, nil
+// MakeRouter returns a behavior routing individual coin events to
+// their spubscribed spown points.
+func MakeRouter() cells.Behavior {
+	// Router directly routes to spawn points, not to subscribers.
+	router := func(cell cells.Cell, event cells.Event) error {
+		var coin Coin
+		if err := event.Payload().Unmarshal(&coin); err != nil {
+			return err
 		}
+		cellID := identifier.JoinedIdentifier("coin", strings.ToLower(coin.Symbol))
+		return cell.Environment().Emit(cellID, event)
 	}
-	processor := func(cell cells.Cell, event cells.Event) error {
-		coinID := event.Payload().String()
-		cellID := identifier.JoinedIdentifier("coin", coinID)
-		if !cell.Environment().HasCell(cellID) {
-			cell.Environment().StartCell(cellID, behaviors.NewSelectFilterBehavior(mkSelectFilter(coinID)))
-			cell.Environment().Subscribe("coins-splitter", cellID)
-			cell.Environment().Subscribe(cellID, "logger")
-		}
-		return nil
-	}
-	return behaviors.NewSimpleProcessorBehavior(processor)
+	return behaviors.NewSimpleProcessorBehavior(router)
 }
 
 // EOF

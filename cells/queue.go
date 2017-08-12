@@ -25,7 +25,7 @@ type inMemoryQueue struct {
 // newInMemoryQueue creates the in-memory queue.
 func newInMemoryQueue() Queue {
 	return &inMemoryQueue{
-		queuec: make(chan Event, 1),
+		queuec: make(chan Event, 128),
 	}
 }
 
