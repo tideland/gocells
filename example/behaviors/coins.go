@@ -12,10 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"strings"
-
-	"github.com/tideland/golib/identifier"
-
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
@@ -34,9 +30,8 @@ func MakeCoinsSpawnPointer() cells.Behavior {
 			return err
 		}
 		for _, coin := range coins {
-			cellID := identifier.JoinedIdentifier("coin", strings.ToLower(coin.Symbol))
-			if !cell.Environment().HasCell(cellID) {
-				cell.Environment().StartCell(cellID, behaviors.NewBroadcasterBehavior())
+			if err := SetupCoinEnvironment(cell.Environment(), coin.Symbol); err != nil {
+				return err
 			}
 		}
 		return nil

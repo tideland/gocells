@@ -39,4 +39,18 @@ func MakeRouter() cells.Behavior {
 	return behaviors.NewSimpleProcessorBehavior(router)
 }
 
+//--------------------
+// ENVIRONMENT
+//--------------------
+
+// SetupCoinEnvironment creates the environment for one coin.
+func SetupCoinEnvironment(env cells.Environment, symbol string) error {
+	cellID := identifier.JoinedIdentifier("coin", strings.ToLower(symbol))
+	if !env.HasCell(cellID) {
+		env.StartCell(cellID, behaviors.NewBroadcasterBehavior())
+	}
+	// TODO(mue): More to come.
+	return nil
+}
+
 // EOF
