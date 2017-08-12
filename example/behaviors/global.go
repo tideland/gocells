@@ -39,11 +39,11 @@ func MakeRawCoinsConverter() cells.Behavior {
 		}
 		// Two helpers for trusted conversions.
 		atoi := func(a string) int {
-			i, err := strconv.Atoi(a)
+			f, err := strconv.ParseFloat(a, 64)
 			if err != nil {
 				return 0
 			}
-			return i
+			return int(f)
 		}
 		atof := func(a string) float64 {
 			f, err := strconv.ParseFloat(a, 64)
@@ -55,6 +55,9 @@ func MakeRawCoinsConverter() cells.Behavior {
 		// Convert and emit the coins.
 		var coins Coins
 		for _, rawCoin := range rawCoins {
+			if rawCoin.MarketCapUSD == "" {
+				continue
+			}
 			coin := Coin{
 				Symbol:      rawCoin.Symbol,
 				Name:        rawCoin.Name,
