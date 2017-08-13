@@ -12,9 +12,10 @@ package behaviors
 //--------------------
 
 import (
-	"strings"
+	"time"
 
 	"github.com/tideland/golib/identifier"
+	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
@@ -33,10 +34,29 @@ func MakeRouter() cells.Behavior {
 		if err := event.Payload().Unmarshal(&coin); err != nil {
 			return err
 		}
-		cellID := identifier.JoinedIdentifier("coin", strings.ToLower(coin.Symbol))
+		cellID := identifier.JoinedIdentifier("coin", coin.Symbol)
 		return cell.Environment().Emit(cellID, event)
 	}
 	return behaviors.NewSimpleProcessorBehavior(router)
+}
+
+// MakeCoinRateWindow returns a rate window behavior for one coin
+// looking for raises.
+func MakeCoinRateWindow() cells.Behavior {
+	price := 0.0
+	criterion := func(event cells.Event) (bool, error) {
+		var coin Coin
+		if err := event.Payload().Unmarshal(&coin); err != nil {
+			return false, err
+		}
+		logger.Infof("PRICE: %v PRICE USD: %v", price, coin.PriceUSD)
+		if coin.PriceUSD > price {
+			price = coin.PriceUSD
+			return true, nil
+		}
+		return false, nil
+	}
+	return behaviors.NewRateWindowBehavior(criterion, 2, time.Minute)
 }
 
 //--------------------
@@ -45,10 +65,16 @@ func MakeRouter() cells.Behavior {
 
 // SetupCoinEnvironment creates the environment for one coin.
 func SetupCoinEnvironment(env cells.Environment, symbol string) error {
-	cellID := identifier.JoinedIdentifier("coin", strings.ToLower(symbol))
-	if !env.HasCell(cellID) {
-		env.StartCell(cellID, behaviors.NewBroadcasterBehavior())
+	// Broadcaster as spawn cell.
+	spawnCellID := identifier.JoinedIdentifier("coin", symbol)
+	if !env.HasCell(spawnCellID) {
+		env.StartCell(spawnCellID, behaviors.NewBroadcasterBehavior())
 	}
+	// Coin rate window behavior.
+	rateCellID := identifier.JoinedIdentifier("coin-rate-window", symbol)
+	env.StartCell(rateCellID, MakeCoinRateWindow())
+	env.Subscribe(spawnCellID, rateCellID)
+	env.Subscribe(rateCellID, "logger")
 	// TODO(mue): More to come.
 	return nil
 }
