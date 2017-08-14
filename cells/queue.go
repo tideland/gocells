@@ -11,8 +11,6 @@ package cells
 // IMPORTS
 //--------------------
 
-import ()
-
 //--------------------
 // IN-MEMORY QUEUE
 //--------------------
@@ -25,7 +23,7 @@ type inMemoryQueue struct {
 // newInMemoryQueue creates the in-memory queue.
 func newInMemoryQueue() Queue {
 	return &inMemoryQueue{
-		queuec: make(chan Event, 128),
+		queuec: make(chan Event, 2048),
 	}
 }
 
