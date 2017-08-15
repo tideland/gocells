@@ -28,13 +28,14 @@ import (
 // MakeRouter returns a behavior routing individual coin events to
 // their spubscribed spown points.
 func MakeRouter() cells.Behavior {
-	// Router directly routes to spawn points, not to subscribers.
 	router := func(cell cells.Cell, event cells.Event) error {
+		println("ROUTING")
 		var coin Coin
 		if err := event.Payload().Unmarshal(&coin); err != nil {
 			return err
 		}
 		cellID := identifier.JoinedIdentifier("coin", coin.Symbol)
+		logger.Infof("ROUTING TO %v", cellID)
 		return cell.Environment().Emit(cellID, event)
 	}
 	return behaviors.NewSimpleProcessorBehavior(router)
@@ -49,14 +50,14 @@ func MakeCoinRateWindow() cells.Behavior {
 		if err := event.Payload().Unmarshal(&coin); err != nil {
 			return false, err
 		}
-		logger.Infof("PRICE: %v PRICE USD: %v", price, coin.PriceUSD)
+		logger.Infof("COIN: %v / PRICE: %v / PRICE USD: %v", coin.Symbol, price, coin.PriceUSD)
 		if coin.PriceUSD > price {
 			price = coin.PriceUSD
 			return true, nil
 		}
 		return false, nil
 	}
-	return behaviors.NewRateWindowBehavior(criterion, 2, time.Minute)
+	return behaviors.NewRateWindowBehavior(criterion, 3, time.Minute)
 }
 
 //--------------------

@@ -12,8 +12,6 @@ package behaviors
 //--------------------
 
 import (
-	"fmt"
-
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
 )
@@ -50,9 +48,6 @@ func MakeCoinsSplitter() cells.Behavior {
 			return err
 		}
 		for _, coin := range coins {
-			if coin.PriceUSD > 3000.0 {
-				fmt.Printf("COIN: %v \n", coin)
-			}
 			cell.EmitNew("coin", coin)
 		}
 		return nil
