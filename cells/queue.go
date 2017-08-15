@@ -12,6 +12,7 @@ package cells
 //--------------------
 
 import (
+	"github.com/tideland/golib/logger"
 	"github.com/tideland/golib/loop"
 )
 
@@ -71,6 +72,7 @@ func (q *inMemoryQueue) backendLoop(l loop.Loop) error {
 		var outc chan Event
 
 		if len(pending) > 0 {
+			logger.Infof("QLEN %d", len(pending))
 			first = pending[0]
 			outc = q.outc
 		}
