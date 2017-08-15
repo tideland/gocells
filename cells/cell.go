@@ -207,6 +207,7 @@ func (c *cell) stop() error {
 		return nil
 	})
 	// Stop own backend.
+	c.queue.Close()
 	err := c.loop.Stop()
 	if err != nil {
 		logger.Errorf("cell '%s' stopped with error: %v", c.id, err)
