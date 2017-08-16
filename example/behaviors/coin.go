@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/tideland/golib/identifier"
-	"github.com/tideland/golib/logger"
 
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
@@ -26,36 +25,26 @@ import (
 //--------------------
 
 // MakeRouter returns a behavior routing individual coin events to
-// their spubscribed spown points.
+// their subscribed spown points.
 func MakeRouter() cells.Behavior {
-	router := func(cell cells.Cell, event cells.Event) error {
-		println("ROUTING")
-		var coin Coin
-		if err := event.Payload().Unmarshal(&coin); err != nil {
-			return err
-		}
-		cellID := identifier.JoinedIdentifier("coin", coin.Symbol)
-		logger.Infof("ROUTING TO %v", cellID)
-		return cell.Environment().Emit(cellID, event)
+	router := func(emitterID, subscriberID string, event cells.Event) (bool, error) {
+		return event.Topic() == subscriberID, nil
 	}
-	return behaviors.NewSimpleProcessorBehavior(router)
+	return behaviors.NewRouterBehavior(router)
 }
 
 // MakeCoinRateWindow returns a rate window behavior for one coin
 // looking for raises.
 func MakeCoinRateWindow() cells.Behavior {
-	price := 0.0
+	current := 0.0
 	criterion := func(event cells.Event) (bool, error) {
 		var coin Coin
 		if err := event.Payload().Unmarshal(&coin); err != nil {
 			return false, err
 		}
-		logger.Infof("COIN: %v / PRICE: %v / PRICE USD: %v", coin.Symbol, price, coin.PriceUSD)
-		if coin.PriceUSD > price {
-			price = coin.PriceUSD
-			return true, nil
-		}
-		return false, nil
+		raised := coin.PriceBTC > current
+		current = coin.PriceBTC
+		return raised, nil
 	}
 	return behaviors.NewRateWindowBehavior(criterion, 3, time.Minute)
 }
@@ -68,12 +57,15 @@ func MakeCoinRateWindow() cells.Behavior {
 func SetupCoinEnvironment(env cells.Environment, symbol string) error {
 	// Broadcaster as spawn cell.
 	spawnCellID := identifier.JoinedIdentifier("coin", symbol)
-	if !env.HasCell(spawnCellID) {
-		env.StartCell(spawnCellID, behaviors.NewBroadcasterBehavior())
+	if env.HasCell(spawnCellID) {
+		return nil
 	}
+	env.StartCell(spawnCellID, behaviors.NewBroadcasterBehavior())
 	// Coin rate window behavior.
 	rateCellID := identifier.JoinedIdentifier("coin-rate-window", symbol)
 	env.StartCell(rateCellID, MakeCoinRateWindow())
+	// Subscriptions.
+	env.Subscribe("router", spawnCellID)
 	env.Subscribe(spawnCellID, rateCellID)
 	env.Subscribe(rateCellID, "logger")
 	// TODO(mue): More to come.
