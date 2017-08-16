@@ -14,6 +14,7 @@ package behaviors
 import (
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
+	"github.com/tideland/golib/identifier"
 )
 
 //--------------------
@@ -48,7 +49,8 @@ func MakeCoinsSplitter() cells.Behavior {
 			return err
 		}
 		for _, coin := range coins {
-			cell.EmitNew("coin", coin)
+			topic := identifier.JoinedIdentifier("coin", coin.Symbol)
+			cell.EmitNew(topic, coin)
 		}
 		return nil
 	}

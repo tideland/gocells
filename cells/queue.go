@@ -12,7 +12,6 @@ package cells
 //--------------------
 
 import (
-	"github.com/tideland/golib/logger"
 	"github.com/tideland/golib/loop"
 )
 
@@ -37,8 +36,8 @@ type inMemoryQueue struct {
 // newInMemoryQueue creates the in-memory queue.
 func newInMemoryQueue() Queue {
 	q := &inMemoryQueue{
-		inc:  make(chan Event, 1),
-		outc: make(chan Event, 1),
+		inc:  make(chan Event),
+		outc: make(chan Event),
 	}
 	q.loop = loop.Go(q.backendLoop)
 	return q
@@ -72,7 +71,6 @@ func (q *inMemoryQueue) backendLoop(l loop.Loop) error {
 		var outc chan Event
 
 		if len(pending) > 0 {
-			logger.Infof("QLEN %d", len(pending))
 			first = pending[0]
 			outc = q.outc
 		}
@@ -82,7 +80,9 @@ func (q *inMemoryQueue) backendLoop(l loop.Loop) error {
 			return nil
 		case event := <-q.inc:
 			// TODO(mue) Limit queue size, have to think about strategy.
-			pending = append(pending, event)
+			if len(pending) < maxPending {
+				pending = append(pending, event)
+			}
 		case outc <- first:
 			pending = pending[1:]
 		}
