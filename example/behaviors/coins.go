@@ -40,6 +40,24 @@ func MakeCoinsSpawnPointer() cells.Behavior {
 	return behaviors.NewSimpleProcessorBehavior(processor)
 }
 
+// MakeCoinsAverager calculates the average percentage change of
+// all coins.
+func MakeCoinsAverager() cells.Behavior {
+	processor := func(cell cells.Cell, event cells.Event) error {
+		var coins Coins
+		var totalChange float64
+		if err := event.Payload().Unmarshal(&coins); err != nil {
+			return err
+		}
+		for _, coin := range coins {
+			totalChange += coin.PercentChange1h
+		}
+		cell.EmitNew("average-change", totalChange/float65(len(coins)))
+		return nil
+	}
+	return behaviors.NewSimpleProcessorBehavior(processor)
+}
+
 // MakeCoinsSplitter returns a behavior splitting a list
 // of coins into individual emits.
 func MakeCoinsSplitter() cells.Behavior {
