@@ -29,11 +29,12 @@ func InitEnvironment(cfg Configuration) (cells.Environment, error) {
 	env.StartCell("logger", behaviors.MakeLogger())
 	env.StartCell("raw-coins-converter", behaviors.MakeRawCoinsConverter())
 	env.StartCell("coins-spawn-pointer", behaviors.MakeCoinsSpawnPointer())
+	env.StartCell("coins-averager", behaviors.MakeCoinsAverager())
 	env.StartCell("coins-splitter", behaviors.MakeCoinsSplitter())
 	env.StartCell("router", behaviors.MakeRouter())
 
 	// Establish initial subscriptions.
-	env.Subscribe("raw-coins-converter", "coins-spawn-pointer", "coins-splitter")
+	env.Subscribe("raw-coins-converter", "coins-spawn-pointer", "coins-averager", "coins-splitter")
 	env.Subscribe("coins-splitter", "router")
 
 	return env, nil
