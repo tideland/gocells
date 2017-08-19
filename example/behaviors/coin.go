@@ -42,7 +42,7 @@ func MakeCoinRateWindow() cells.Behavior {
 		if err := event.Payload().Unmarshal(&coin); err != nil {
 			return false, err
 		}
-		raised := coin.PriceBTC > current
+		raised := coin.PriceBTC >= current
 		current = coin.PriceBTC
 		return raised, nil
 	}
