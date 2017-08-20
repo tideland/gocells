@@ -128,12 +128,12 @@ func TestLimitedEvaluatorBehavior(t *testing.T) {
 		return nil, nil
 	}
 
-	env.StartCell("evaluator", behaviors.NewLimitedEvaluatorBehavior(evaluator, 5))
+	env.StartCell("evaluator", behaviors.NewMovingEvaluatorBehavior(evaluator, 5))
 	env.StartCell("collector", behaviors.NewCollectorBehavior(1000, processor))
 	env.Subscribe("evaluator", "collector")
 
 	// Standard evaluating.
-	topics := []string{"1", "2", "1", "1", "3", "2", "3", "1", "3", "9"}
+	topics := []string{"1", "2", "1", "1", "9", "2", "3", "1", "3", "2"}
 	for _, topic := range topics {
 		env.EmitNew("evaluator", topic, nil)
 	}
@@ -147,9 +147,9 @@ func TestLimitedEvaluatorBehavior(t *testing.T) {
 		err := event.Payload().Unmarshal(&evaluation)
 		assert.Equal(evaluation.Count, 10)
 		assert.Equal(evaluation.MinRating, 1.0)
-		assert.Equal(evaluation.MaxRating, 9.0)
-		assert.Equal(evaluation.AvgRating, 2.6)
-		assert.Equal(evaluation.MedRating, 3.0)
+		assert.Equal(evaluation.MaxRating, 3.0)
+		assert.Equal(evaluation.AvgRating, 2.2)
+		assert.Equal(evaluation.MedRating, 2.0)
 		return err
 	}, time.Second)
 }

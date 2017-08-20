@@ -64,8 +64,8 @@ func TestPairBehavior(t *testing.T) {
 	duration := time.Millisecond
 
 	env.StartCell("pairer", behaviors.NewPairBehavior(matches, duration))
-	env.StartCell("positive-filter", behaviors.NewFilterBehavior(mkfilter(true)))
-	env.StartCell("negative-filter", behaviors.NewFilterBehavior(mkfilter(false)))
+	env.StartCell("positive-filter", behaviors.NewSelectFilterBehavior(mkfilter(true)))
+	env.StartCell("negative-filter", behaviors.NewSelectFilterBehavior(mkfilter(false)))
 	env.StartCell("positive-condition", behaviors.NewConditionBehavior(mkcondition()))
 	env.StartCell("negative-condition", behaviors.NewConditionBehavior(mkcondition()))
 	env.Subscribe("pairer", "positive-filter", "negative-filter")

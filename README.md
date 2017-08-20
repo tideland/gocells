@@ -50,7 +50,8 @@ still growing.
 - **Counter** counts events, the counters can be retrieved.
 - **Evaluator** evaluates events based on a user-defined function which
   returns a rating.
-- **Filter** emits received events based on a user-defined filter.
+- **Filter** re-emits received events based on a user-defined filter. It can
+  be selective or excluding.
 - **Finite State Machine** allows to build finite state machines for events.
 - **Key/Value** collects and emits payloads grouped by topics.
 - **Logger** logs received events with level INFO.
