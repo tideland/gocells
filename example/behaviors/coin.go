@@ -12,6 +12,7 @@ package behaviors
 //--------------------
 
 import (
+	"strings"
 	"time"
 
 	"github.com/tideland/golib/identifier"
@@ -36,15 +37,25 @@ func MakeRouter() cells.Behavior {
 // MakeCoinRateWindow returns a rate window behavior for one coin
 // looking for raises.
 func MakeCoinRateWindow() cells.Behavior {
-	current := 0.0
+	var averageChange float64
 	criterion := func(event cells.Event) (bool, error) {
-		var coin Coin
-		if err := event.Payload().Unmarshal(&coin); err != nil {
-			return false, err
+		topic := event.Topic()
+		switch {
+		case topic == "average-change":
+			if err := event.Payload().Unmarshal(&averageChange); err != nil {
+				return false, err
+			}
+			return false, nil
+		case strings.HasPrefix(topic, "coin:"):
+			var coin Coin
+			if err := event.Payload().Unmarshal(&coin); err != nil {
+				return false, err
+			}
+			higher := coin.PercentChange1h > averageChange
+			return higher, nil
+
 		}
-		raised := coin.PriceBTC >= current
-		current = coin.PriceBTC
-		return raised, nil
+		return false, nil
 	}
 	return behaviors.NewRateWindowBehavior(criterion, 3, time.Minute)
 }
@@ -67,6 +78,7 @@ func SetupCoinEnvironment(env cells.Environment, symbol string) error {
 	// Subscriptions.
 	env.Subscribe("router", spawnCellID)
 	env.Subscribe(spawnCellID, rateCellID)
+	env.Subscribe("coins-averager", rateCellID)
 	env.Subscribe(rateCellID, "logger")
 	// TODO(mue): More to come.
 	return nil

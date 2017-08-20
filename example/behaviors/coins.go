@@ -12,9 +12,10 @@ package behaviors
 //--------------------
 
 import (
+	"github.com/tideland/golib/identifier"
+
 	"github.com/tideland/gocells/behaviors"
 	"github.com/tideland/gocells/cells"
-	"github.com/tideland/golib/identifier"
 )
 
 //--------------------
@@ -52,7 +53,8 @@ func MakeCoinsAverager() cells.Behavior {
 		for _, coin := range coins {
 			totalChange += coin.PercentChange1h
 		}
-		cell.EmitNew("average-change", totalChange/float65(len(coins)))
+		avg := totalChange / float64(len(coins))
+		cell.EmitNew("average-change", avg)
 		return nil
 	}
 	return behaviors.NewSimpleProcessorBehavior(processor)
