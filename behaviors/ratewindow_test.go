@@ -12,6 +12,7 @@ package behaviors_test
 //--------------------
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -33,41 +34,45 @@ func TestRateWindowBehavior(t *testing.T) {
 	env := cells.NewEnvironment("rate-window-behavior")
 	defer env.Stop()
 
+	topics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "bang"}
+	duration := 50 * time.Millisecond
 	matcher := func(event cells.Event) (bool, error) {
-		return event.Topic() == "now", nil
+		match := event.Topic() == "bang"
+		return match, nil
 	}
 	processor := func(accessor cells.EventSinkAccessor) (cells.Payload, error) {
-		analyzer := cells.NewEventSinkAnalyzer(accessor)
-		ok, err := analyzer.Match(func(index int, event cells.Event) (bool, error) {
-			return event.Topic() == behaviors.TopicRateWindow, nil
-		})
-		sigc <- ok
-		return nil, err
+		first, _ := accessor.PeekFirst()
+		last, _ := accessor.PeekLast()
+		difference := last.Timestamp().Sub(first.Timestamp())
+		sigc <- difference
+		return cells.NewPayload(difference)
 	}
-	boringTopics := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
-	interestingTopics := []string{"a", "b", "c", "d", "now"}
-	duration := 25 * time.Millisecond
-
-	env.StartCell("windower", behaviors.NewRateWindowBehavior(matcher, 5, duration))
-	env.StartCell("collector", behaviors.NewCollectorBehavior(100, processor))
-	env.Subscribe("windower", "collector")
-
-	for i := 0; i < 10; i++ {
-		// Slow loop.
-		for j := 0; j < 100; j++ {
-			topic := generator.OneStringOf(boringTopics...)
-			env.EmitNew("windower", topic, nil)
-			time.Sleep(1)
-		}
-		// Fast loop.
-		for j := 0; j < 10; j++ {
-			topic := generator.OneStringOf(interestingTopics...)
-			env.EmitNew("windower", topic, nil)
-		}
+	oncer := func(cell cells.Cell, event cells.Event) error {
+		var difference time.Duration
+		err := event.Payload().Unmarshal(&difference)
+		assert.Nil(err)
+		assert.True(difference < duration)
+		assert.Equal(event.Topic(), behaviors.TopicRateWindow)
+		return nil
 	}
 
-	env.EmitNew("collector", cells.TopicProcess, nil)
-	assert.Wait(sigc, true, 10*time.Second)
+	env.StartCell("windower", behaviors.NewRateWindowBehavior(matcher, 5, duration, processor))
+	env.StartCell("oncer", behaviors.NewOnceBehavior(oncer))
+	env.Subscribe("windower", "oncer")
+
+	for i := 0; i < 100; i++ {
+		topic := generator.OneStringOf(topics...)
+		env.EmitNew("windower", topic, nil)
+		time.Sleep(time.Millisecond)
+	}
+
+	assert.WaitTested(sigc, func(v interface{}) error {
+		difference := v.(time.Duration)
+		if difference > 50*time.Millisecond {
+			return fmt.Errorf("diff %v", difference)
+		}
+		return nil
+	}, 5*time.Second)
 }
 
 // EOF
