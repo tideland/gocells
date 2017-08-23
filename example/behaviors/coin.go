@@ -12,6 +12,7 @@ package behaviors
 //--------------------
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -57,7 +58,14 @@ func MakeCoinRateWindow() cells.Behavior {
 		}
 		return false, nil
 	}
-	return behaviors.NewRateWindowBehavior(criterion, 3, time.Minute)
+	processor := func(sink cells.EventSinkAccessor) (cells.Payload, error) {
+		first, _ := sink.PeekFirst()
+		last, _ := sink.PeekLast()
+		duration := last.Timestamp().Sub(first.Timestamp())
+		msg := fmt.Sprintf("cell %v needed %v", last.Topic(), duration)
+		return cells.NewPayload(msg)
+	}
+	return behaviors.NewRateWindowBehavior(criterion, 3, time.Minute, processor)
 }
 
 //--------------------
