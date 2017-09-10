@@ -2,7 +2,7 @@
 
 ## Description
 
-The *Tideland Go Cells* provide a package for the creation of event based
+The **Tideland Go Cells** provide a package for the creation of event based
 applications with networked concurrently working cells. The way how they
 process the recevied events is defined by behaviors. During the processing
 of an event a cell can emit multiple events to its subscribers.
@@ -72,10 +72,18 @@ still growing.
   Those have to emit it when receiving the topic "status" with a status
   cell ID as payload.
 - **Ticker** emits tick events in a defined interval.
+- **Topic/Payloads** collects payloads per topic, processes them and emits
+  the result payload.
+
+### Example
+
+An example application using the **Tideland Go Cells** to analyze a stream
+of crypto coin information. It's called *coinalyzer*. Later extensions may
+correlate it with news streams.
 
 ## Contributors
 
-- Frank Mueller (https://github.com/TheMue / https://github.com/tideland)
+- Frank Mueller (https://github.com/themue / https://github.com/tideland)
 - Jonathan Camp (https://github.com/kung-foo)
 
 ## License
