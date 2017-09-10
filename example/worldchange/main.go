@@ -34,14 +34,14 @@ func initConfiguration() (Configuration, error) {
 func main() {
 	cfg, err := initConfiguration()
 	if err != nil {
-		logger.Fatalf("cannot run example: %v", err)
+		logger.Fatalf("cannot run worldchange: %v", err)
 	}
-	analyzer := NewAnalyzer(cfg)
-	err = analyzer.Run()
+	worldChange := NewWorldChange(cfg)
+	err = worldChange.Run()
 	if err != nil {
 		logger.Errorf("analyzer stopped with error: %v", err)
 	}
-	analyzer.Cleanup()
+	worldChange.Cleanup()
 }
 
 // EOF

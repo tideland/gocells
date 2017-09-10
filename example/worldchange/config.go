@@ -19,16 +19,8 @@ import (
 // CONFIGURATION
 //--------------------
 
-// Configuration contains the settings controlling the analyzer.
+// Configuration contains the sewttings for the example application.
 type Configuration struct {
-	// Limit controls a limitation of the top retrieved ticker results.
-	Limit int
-
-	// Convert controls a convertation of price, 24h volume, and market
-	// cap of the ticker results into another currency. Possible are
-	// "AUD", "BRL", "CAD", "CHF", "CNY", "EUR", "GBP", "HKD", "IDR",
-	// "INR", "JPY", "KRW", "MXN", "RUB".
-	Convert string
 }
 
 //--------------------
