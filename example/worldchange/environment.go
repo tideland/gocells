@@ -12,6 +12,8 @@ package main
 //--------------------
 
 import (
+	"sync"
+
 	"github.com/tideland/gocells/cells"
 	"github.com/tideland/gocells/example/behaviors"
 )
@@ -22,20 +24,15 @@ import (
 
 // InitEnvironment creates a new cells environment and
 // its behaviors and subscriptions.
-func InitEnvironment(cfg Configuration) (cells.Environment, error) {
-	env := cells.NewEnvironment("cells-example")
+func InitEnvironment(cfg Configuration, wg sync.WaitGroup) (cells.Environment, error) {
+	env := cells.NewEnvironment("world-change-analyzer")
 
 	// Start initial cells.
 	env.StartCell("logger", behaviors.MakeLogger())
-	env.StartCell("raw-coins-converter", behaviors.MakeRawCoinsConverter())
-	env.StartCell("coins-spawn-pointer", behaviors.MakeCoinsSpawnPointer())
-	env.StartCell("coins-averager", behaviors.MakeCoinsAverager())
-	env.StartCell("coins-splitter", behaviors.MakeCoinsSplitter())
-	env.StartCell("router", behaviors.MakeRouter())
+	env.StartCell("ticker", behaviors.MakeTicker())
+	env.StartCell("eod", behaviors.MakeEndOfData(wg))
 
 	// Establish initial subscriptions.
-	env.Subscribe("raw-coins-converter", "coins-spawn-pointer", "coins-averager", "coins-splitter")
-	env.Subscribe("coins-splitter", "router")
 
 	return env, nil
 }
